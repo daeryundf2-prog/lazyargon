@@ -57,19 +57,31 @@ async function main() {
 		child.stdin.end();
 
 		child.on("close", (code) => {
+			const safeStdout = stdoutData.trim() ? stdoutData : "{}\n";
 			if (code === 0) {
-				process.stdout.write(stdoutData);
+				process.stdout.write(safeStdout);
 				process.stderr.write(stderrData);
 				resolve(0);
 				return;
 			}
 			if (policy === "FAIL_OPEN") {
+				process.stdout.write(safeStdout);
 				process.stderr.write(stderrData);
 				resolve(0);
-			} else if (policy === "FAIL_SAFE" && fallbackPayloadRaw) {
-				try {
-					process.stdout.write(Buffer.from(fallbackPayloadRaw, "base64").toString("utf8"));
-				} catch {}
+			} else if (policy === "FAIL_SAFE") {
+				let written = false;
+				if (fallbackPayloadRaw) {
+					try {
+						const decoded = Buffer.from(fallbackPayloadRaw, "base64").toString("utf8");
+						if (decoded.trim()) {
+							process.stdout.write(decoded);
+							written = true;
+						}
+					} catch {}
+				}
+				if (!written) {
+					process.stdout.write(safeStdout);
+				}
 				resolve(0);
 			} else {
 				process.stdout.write(stdoutData);
@@ -79,7 +91,12 @@ async function main() {
 		});
 
 		child.on("error", () => {
-			resolve(policy === "FAIL_OPEN" || policy === "FAIL_SAFE" ? 0 : 1);
+			if (policy === "FAIL_OPEN" || policy === "FAIL_SAFE") {
+				process.stdout.write("{}\n");
+				resolve(0);
+			} else {
+				resolve(1);
+			}
 		});
 	}).then((code) => {
 		process.exit(code);
