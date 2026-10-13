@@ -49,7 +49,7 @@ The research is done when all of these hold:
 - Every asserted claim is represented in the claim graph, tied to an intent-vs-reality diff when an expected truth exists, and backed by observation manifest entries from independent observation groups or a documented single-source exception; convergence or exception status is explicit.
 - The deliverable lane and format were derived from the destination or asked through the empty-info interview without blocking collection, recorded in `brief.md` with `answered_by`, and the final materials match that record.
 - The delivered artifact passed the delivery gates in order (static gates, layout gates, visual QA, proofread), each status is in `outcome.json`, and `outcome verify` passed.
-- Every excursion opened during the run was closed by an EXIT rule, folded back into the claim or axis that triggered it, and recorded in both `excursion-log.md` and the ulw-loop ledger.
+- Every excursion opened during the run was closed by an EXIT rule, folded back into the claim or axis that triggered it, and recorded in both `excursion-log.md` and the markdown Claim Ledger (`$SESSION_DIR/claim-graph.md`).
 - The delivery message carries the closing briefing printed by `outcome briefing`: sources (total + unique domains), elapsed minutes, every promised deliverable with its status, and any residual defects.
 - The session journal reconstructs what was searched, found, expanded, and debated, wave by wave, and it was written in real time rather than reconstructed at the end.
 - Every spawned subagent returned and was accounted for (result journaled or lane explicitly closed) before the final answer — Antigravity subagents terminate on completion, so "done" means every result landed, not a team object deleted.
@@ -80,9 +80,9 @@ mkdir -p .omo/ulw-research/$(date +%Y%m%d-%H%M%S)
 
 This is `$SESSION_DIR`. Write `brief.md` into it: the analysis block, the axis list with one named owner per axis, the expected truths seeding `intent-diff.md`, and the team roster you are about to create. The brief is what the team is built FROM — a team stood up before the brief exists is a failure mode (see the table at the end).
 
-### Run it as a loop, and journal in real time
+### Coordinate via native `invoke_subagent` waves and journal to the Markdown Claim Ledger in real time
 
-ulw-loop is ON by default for this mode: register the research axes as loop goals with the `lazyantigravity` CLI (`lazyantigravity ulw-loop create-goals --brief <file>`; verify the exact subcommand surface with `lazyantigravity --help` first — the PATH-resolved binary, not the repo source, is what runs) so the run has durable state and survives a compaction. The session directory's timestamp is the run's start clock — the closing briefing is computed from it, so create it once and never rename it. From that point every finding, source, quote, number, and lead is written into `$SESSION_DIR` **the instant it lands** — never held in the conversation for an end-of-run dump. After any context loss, re-read the brief, the journal, and the loop ledger before doing anything else, then resume from the open wave.
+Coordinate research waves natively via Antigravity `invoke_subagent` (`Model: "inherit"`) and persist all durable state in the Markdown Claim Ledger (`$SESSION_DIR/claim-graph.md`, `$SESSION_DIR/expansion-log.md`, and `$SESSION_DIR/sources-ledger.md`) so the run survives context compaction without external CLI wrappers. The session directory's timestamp is the run's start clock — the closing briefing is computed from it, so create it once and never rename it. From that point every finding, source, quote, number, and lead is written into `$SESSION_DIR` **the instant it lands** — never held in the conversation for an end-of-run dump. After any context loss, re-read `brief.md`, `expansion-log.md`, and `claim-graph.md` before doing anything else, then resume from the open wave.
 
 ### Deliverable lane, format, and the empty-info interview
 

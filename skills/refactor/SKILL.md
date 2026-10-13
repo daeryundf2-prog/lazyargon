@@ -5,13 +5,13 @@ description: "Intelligent refactor command. Triggers: refactor, refactoring, cle
 
 ## Antigravity Tool Mapping (default)
 
-This plugin defaults to **Google Antigravity**. Read `../references/antigravity-tools.md`.
+This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 
 | Intent | Antigravity action |
 | --- | --- |
 | Explore / research / plan / implement / QA / review | `invoke_subagent` + TASK/DELIVERABLE/SCOPE/VERIFY + role envelope |
 | Wait / poll children | Stay in parent; re-invoke incomplete lanes |
-| Child model hint | Pass `Subagents[].Model`: `flash` (plan/code/research), `pro` (verify), `flash_lite` (tiny chores), `inherit` |
+| Child model hint | Pass `Subagents[].Model: "inherit"` (or `"flash_lite"` only for emergency quota fallback) |
 
 Use Antigravity tools only (`invoke_subagent`). Do **not** invent foreign spawn/wait/goal APIs or OpenCode kwargs.
 
@@ -640,7 +640,7 @@ $ARGUMENTS
 
 # Antigravity parallel execution
 
-Do **not** use OpenCode `team_*` tools on Antigravity. Dispatch independent refactor/verify lanes with `invoke_subagent` (see `../references/antigravity-tools.md`). Stay in the parent; re-invoke incomplete lanes. Codex/OpenCode team mode is out of scope for this plugin host.
+Do **not** use OpenCode `team_*` tools on Antigravity. Dispatch independent refactor/verify lanes with `invoke_subagent` (`Model: "inherit"`). Stay in the parent; re-invoke incomplete lanes. Codex/OpenCode team mode is out of scope for this plugin host.
 
 
 ## References

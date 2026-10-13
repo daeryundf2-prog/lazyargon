@@ -92,9 +92,51 @@ function extractTargetFromNode(node, out) {
 	}
 }
 
-function extractTarget(sources) {
+const WRITE_TOOL_RE = /^(write_to_file|replace_file_content|multi_replace_file_content|WriteToFile|ReplaceFileContent|MultiReplaceFileContent)$/i;
+
+function extractTargetFromTranscript(transcriptPath) {
+	if (!transcriptPath || typeof transcriptPath !== 'string' || !fs.existsSync(transcriptPath)) return '';
+	try {
+		const content = fs.readFileSync(transcriptPath, 'utf8');
+		const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0).slice(-30).reverse();
+		for (const line of lines) {
+			const step = tryParseJson(line);
+			if (!step || typeof step !== 'object') continue;
+			const calls = Array.isArray(step.tool_calls) ? step.tool_calls : Array.isArray(step.toolCalls) ? step.toolCalls : [];
+			for (let i = calls.length - 1; i >= 0; i -= 1) {
+				const tc = calls[i];
+				if (!tc || typeof tc !== 'object') continue;
+				const toolName = tc.name || tc.tool_name || tc.toolName || tc.function?.name || '';
+				if (toolName && !WRITE_TOOL_RE.test(toolName)) continue;
+				const rawArgs = tc.args ?? tc.arguments ?? tc.input ?? tc.parameters ?? tc.function?.arguments ?? tc;
+				const argsObj = typeof rawArgs === 'string' ? tryParseJson(rawArgs) : rawArgs;
+				if (argsObj && typeof argsObj === 'object') {
+					const tf = argsObj.TargetFile || argsObj.target_file || argsObj.file_path || argsObj.filepath || argsObj.path || '';
+					if (typeof tf === 'string' && tf) return tf;
+				}
+			}
+			if (WRITE_TOOL_RE.test(line)) {
+				const found = [];
+				extractTargetFromNode(step, found);
+				for (const { value, isCommand } of found) {
+					if (!isCommand) return value;
+				}
+			}
+		}
+	} catch {
+		return '';
+	}
+	return '';
+}
+
+export function extractTarget(sourcesOrPayload) {
 	const env = process.env.ANTIGRAVITY_TARGET_FILE || process.env.TARGET_FILE || '';
 	if (env) return env;
+	const sources = Array.isArray(sourcesOrPayload)
+		? sourcesOrPayload
+		: sourcesOrPayload && typeof sourcesOrPayload === 'object'
+			? [{ text: '', parsed: sourcesOrPayload, label: 'payload' }]
+			: [];
 	for (const s of sources) {
 		if (s.parsed === undefined) continue;
 		const found = [];
@@ -105,6 +147,10 @@ function extractTarget(sources) {
 			if (red) return red[1];
 			const m = value.match(PATH_LIKE_RE);
 			if (m) return m[1];
+		}
+		if (s.parsed && typeof s.parsed === 'object' && s.parsed.transcriptPath) {
+			const fromTranscript = extractTargetFromTranscript(s.parsed.transcriptPath);
+			if (fromTranscript) return fromTranscript;
 		}
 	}
 	for (const s of sources) {
@@ -304,23 +350,28 @@ function reportFindings(targetFile, findings) {
 	console.error('[HINT] 위 줄의 인라인 코드/링크 텍스트/강조/수식이 생성 중 삭제된 것이다. 내용을 복원하거나 문장을 다시 써서 파일을 재작성하라.');
 }
 
+function passHook() {
+	process.stdout.write('{}\n');
+	process.exit(0);
+}
+
 async function hookMode() {
 	const sources = await collectSources();
 	const targetFile = extractTarget(sources);
-	if (!targetFile || !/\.md$/i.test(targetFile)) process.exit(0); // .md 만 감시
-	if (!fs.existsSync(targetFile)) process.exit(0);
+	if (!targetFile || !/\.md$/i.test(targetFile)) passHook(); // .md 만 감시
+	if (!fs.existsSync(targetFile)) passHook();
 	let text;
 	try {
 		text = readFileCapped(targetFile);
 	} catch {
-		process.exit(0); // 읽기 실패는 오탐 방지 — 통과
+		passHook(); // 읽기 실패는 오탐 방지 — 통과
 	}
 	const findings = scanMarkdown(text);
 	if (findings.length > 0) {
 		reportFindings(targetFile, findings);
 		process.exit(1);
 	}
-	process.exit(0);
+	passHook();
 }
 
 function checkMode(paths) {

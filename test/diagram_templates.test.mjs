@@ -15,13 +15,32 @@ async function listMarkdown(dir) {
 	}
 }
 
-test("#given diagram-design skill #when SKILL.md is inspected #then frontmatter is valid", async () => {
+test("#given diagram-design skill and all 18 skills #when SKILL.md is inspected #then frontmatter is valid YAML", async () => {
 	const skillPath = join(root, "skills", "diagram-design", "SKILL.md");
 	const content = await readFile(skillPath, "utf8");
 	assert.match(content, /^---\n/m);
 	assert.match(content, /^name:\s*diagram-design$/m);
-	assert.match(content, /^description:\s*.+/m);
+	assert.match(content, /^description:\s*".+"/m);
 	assert.match(content, /Thirty-nine visual types/);
+
+	const skillsRoot = join(root, "skills");
+	const entries = await readdir(skillsRoot, { withFileTypes: true });
+	const skillDirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+	assert.equal(skillDirs.length, 18, `expected 18 skill directories, got ${skillDirs.length}`);
+
+	for (const dirName of skillDirs) {
+		const md = await readFile(join(skillsRoot, dirName, "SKILL.md"), "utf8");
+		const fmMatch = md.match(/^---\n([\s\S]*?)\n---/);
+		assert.ok(fmMatch, `missing YAML frontmatter in skills/${dirName}/SKILL.md`);
+		for (const line of fmMatch[1].split("\n")) {
+			const kv = line.match(/^([a-zA-Z0-9_-]+):\s*(.+)$/);
+			if (!kv) continue;
+			const val = kv[2].trim();
+			if (val.includes(": ") && !val.startsWith('"') && !val.startsWith("'")) {
+				assert.fail(`Unquoted colon-space in skills/${dirName}/SKILL.md frontmatter key '${kv[1]}': ${val}`);
+			}
+		}
+	}
 });
 
 test("#given 39 visual diagram assets #when scanned #then HTML templates are non-empty and well-formed", async () => {

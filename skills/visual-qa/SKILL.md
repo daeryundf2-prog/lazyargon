@@ -5,13 +5,13 @@ description: "Rigorous visual QA for any UI you built or changed, across BOTH we
 
 ## Antigravity Tool Mapping (default)
 
-This plugin defaults to **Google Antigravity**. Read `../references/antigravity-tools.md`.
+This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 
 | Intent | Antigravity action |
 | --- | --- |
 | Explore / research / plan / implement / QA / review | `invoke_subagent` + TASK/DELIVERABLE/SCOPE/VERIFY + role envelope |
 | Wait / poll children | Stay in parent; re-invoke incomplete lanes |
-| Child model hint | Pass `Subagents[].Model`: `flash` (plan/code/research), `pro` (verify), `flash_lite` (tiny chores), `inherit` |
+| Child model hint | Pass `Subagents[].Model: "inherit"` (or `"flash_lite"` only for emergency quota fallback) |
 
 Use Antigravity tools only (`invoke_subagent`). Do **not** invent foreign spawn/wait/goal APIs or OpenCode kwargs.
 
@@ -40,7 +40,7 @@ If the change touches both, run both capture tracks and feed both into the passe
 
 ### Web
 
-Drive a REAL browser at the same viewport size as the reference. Preferred channel: the **Playwright MCP** server (`playwright` in `mcp_config.json`; opt-in via `mcp_config.playwright.example.json`, runs locally, no browser needed in the project). Fall back to the project's own Playwright/puppeteer tooling only when the MCP server is unavailable.
+Drive a REAL browser at the same viewport size as the reference using Playwright or the active browser capture tooling, then compare the reference and actual screenshots via `scripts/image-diff.ts` (`scripts/cli.ts`).
 
 1. Capture a REFERENCE image: the user's mock/target, or a known-good baseline. Save as PNG.
 2. Capture the ACTUAL rendered screenshot with Playwright MCP, using the accessibility-tree tools (do not guess selectors):

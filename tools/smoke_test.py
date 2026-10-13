@@ -66,18 +66,33 @@ def main():
         lib = sorted(f for f in os.listdir(LIB) if f.endswith(".svg"))[:3]
         S = lambda f: os.path.join(SCRIPTS, f)
 
-        # manifest / frontmatter sanity
+        # manifest / frontmatter sanity (root plugin.json, hooks.json, and all 18 skills)
         text = open(os.path.join(SKILL, "SKILL.md"), encoding="utf-8").read()
         m = re.match(r"---\nname: (.+)\ndescription: (.+?)\n", text)
         ok = bool(m) and m.group(1).strip() == "logo-design" and len(m.group(2)) <= 1024
-        versions = set()
-        for f in ("plugin.json", "marketplace.json"):
-            data = json.load(open(os.path.join(ROOT, ".claude-plugin", f), encoding="utf-8"))
-            versions.add(data.get("version") or data["plugins"][0]["version"])
-            if "plugins" in data:
-                versions.update(p["version"] for p in data["plugins"])
-        ok = ok and len(versions) == 1
-        print(f"[{'ok  ' if ok else 'FAIL'}] SKILL.md frontmatter and manifest versions ({', '.join(sorted(versions))})")
+        plugin_data = json.load(open(os.path.join(ROOT, "plugin.json"), encoding="utf-8"))
+        hooks_data = json.load(open(os.path.join(ROOT, "hooks.json"), encoding="utf-8"))
+        versions = {plugin_data.get("version", "")}
+        skills_root = os.path.join(ROOT, "skills")
+        skill_dirs = sorted(d for d in os.listdir(skills_root) if os.path.isdir(os.path.join(skills_root, d)))
+        skills_ok = len(skill_dirs) == 18
+        for sd in skill_dirs:
+            sk_path = os.path.join(skills_root, sd, "SKILL.md")
+            if not os.path.isfile(sk_path):
+                skills_ok = False
+                break
+            sk_text = open(sk_path, encoding="utf-8").read()
+            if not re.match(r"---\n[\s\S]*?name:\s*\S+[\s\S]*?description:\s*.+?[\s\S]*?\n---", sk_text):
+                skills_ok = False
+                break
+        ok = (
+            ok
+            and plugin_data.get("name") == "lazyargon"
+            and bool(plugin_data.get("version"))
+            and "lazyargon-guards" in hooks_data
+            and skills_ok
+        )
+        print(f"[{'ok  ' if ok else 'FAIL'}] SKILL.md frontmatter ({len(skill_dirs)} skills) and root manifests ({', '.join(sorted(versions))})")
         if not ok:
             failures.append("frontmatter/manifests")
 

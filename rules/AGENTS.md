@@ -65,11 +65,11 @@ When a magic keyword is matched, activate the corresponding skill immediately:
 | "arch-guard", "architecture drift" | `$ulw` | Clean Architecture audit via `skills/ulw/references/arch-guard.md` (`Model: "inherit"`) |
 | "hypothesis-tree", "falsification" | `$ulw` | 3-hypothesis root-cause isolation via `skills/ulw/references/hypothesis-tree.md` |
 | "swarm-sync", "file ownership" | `$ulw` | Partitioned conflict-free swarm via `skills/ulw/references/swarm-sync.md` |
-| "ui-loopback", "visual loopback" | `$visual-qa` | Real-time UI multimodal remediation via `references/ui-loopback.md` |
+| "ui-loopback", "visual loopback" | `$visual-qa` | Real-time UI multimodal remediation via `skills/visual-qa/references/ui-loopback.md` |
 | "dual-verify", "co-verify" | `$ulw` | 2-Pass co-verification via `skills/ulw/references/dual-verify.md` |
 | "repo-survey", "deepsearch" | `$ulw` | Whole-codebase topology via `skills/ulw/references/repo-survey.md` |
 | "self-audit", "잘못했어요", "반성문" | `$ulw` | Agent confession & rollback via `skills/ulw/references/self-audit.md` |
-| "vector diagram", "구조도 생성" | `$image-prompt` | Code-based vector diagram via `references/vector-diagram.md` |
+| "vector diagram", "구조도 생성" | `$image-prompt` | Code-based vector diagram via `skills/image-prompt/references/vector-diagram.md` |
 | "diagram design", "다이어그램", "diagram-design", "도식화" | `$diagram-design` | Branded editorial diagram design (39 visual types) in `lazyargon` |
 | "programming", "strict types", "코드 작성" | `$programming` | Strict types, modern stacks, TDD & 250 LOC ceiling |
 | "debugging", "debug this", "버그 추적" | `$debugging` | Hypothesis-driven runtime debugging across any binary |
@@ -91,6 +91,7 @@ When a magic keyword is matched, activate the corresponding skill immediately:
 | "dlp", "유출 로그", "usb 로그" | `$dlp-leakage-detector` | DLP, web & USB leakage log audit table |
 | "forensic audit", "해시 감사", "파일 시간 감사" | `$forensic-audit` | File timestamp MACB & SHA-256 integrity audit |
 | "forensic mft", "prefetch", "ntfs 분석" | `$forensic-mft-parser` | Dissect/EZ-Tools MFT & Prefetch parsing |
+| "forensic report", "포렌식 보고서", "감정서 작성", "분석 보고서" | `$forensic-report` | Forensic analysis report & interactive HTML/PDF generator |
 | "forensic timeline", "포렌식 타임라인" | `$forensic-timeline` | Chronological forensic event HTML timeline generator |
 | "forensic video", "cctv 분석", "블랙박스 프레임" | `$forensic-video` | CCTV/dashcam frame extraction & metadata probe |
 | "kakao chat", "카카오톡 대화 추출", "카톡 txt" | `$kakao-chat-extractor` | KakaoTalk export txt parser & timeline integration |
@@ -103,11 +104,15 @@ When a magic keyword is matched, activate the corresponding skill immediately:
 | "court ruling analyzer", "판결문 분석", "판례 요약" | `$court-ruling-analyzer` | Court ruling structure analysis, issue & precedent extract |
 | "evidence integrity audit", "증거 무결성", "chain of custody" | `$evidence-integrity-audit` | Evidence hash audit & Chain of Custody verification sheet |
 | "financial flow tracer", "자금 흐름", "거래내역 분석", "계좌 추적" | `$financial-flow-tracer` | Bank transaction flow analysis & suspicious loop detection |
+| "infographic", "인포그래픽", "시각화 카드", "사건 요약 인포그래픽" | `$infographic-creator` | Forensic & legal case infographic generator |
 | "korean doc parser", "hwp 파싱", "hwpx 파싱", "공문서 파싱" | `$korean-doc-parser` | Korean official doc (HWP, HWPX, PDF) parser & text extract |
 | "korean pii masker", "개인정보 마스킹", "주민번호 가리기" | `$korean-pii-masker` | Korean PII auto-masking (RRN, phone, account, email) |
 | "legal case search", "판례 검색", "법령 조회", "위법성 검토" | `$legal-case-search` | National Law Information & Supreme Court precedent search |
 | "legal draft builder", "소장 작성", "준비서면 초안", "고소장 작성" | `$legal-draft-builder` | ECFS court complaint & brief draft builder |
+| "legal forensic consult", "법률 포렌식 자문", "수사 대응 자문", "증거능력 검토" | `$legal-forensic-consult` | Integrated legal & digital forensic strategy consultation |
+| "report guard", "보고서 검증", "감정서 감사", "보고서 무결성" | `$report-guard` | Forensic/legal report factuality & formatting guard |
 | "sqlite evidence query", "sqlite 증거 분석", "카톡 백업 분석" | `$sqlite-evidence-query` | Evidence SQLite DB analysis & deleted record carving |
+| "video editor", "영상 편집", "manim", "모션 그래픽" | `$video-editor` | Programmatic video editing & Manim animation workflow |
 | "web evidence capture", "웹 채증", "스크린샷 증거" | `$web-evidence-capture` | Web evidence capture (screenshot, PDF, URL, SHA-256) |
 </keyword_detection>
 

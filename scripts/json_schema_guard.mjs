@@ -78,15 +78,61 @@ function extractTargetFromNode(node, out) {
 	}
 }
 
-function extractTarget(sources) {
+const WRITE_TOOL_RE = /^(write_to_file|replace_file_content|multi_replace_file_content|WriteToFile|ReplaceFileContent|MultiReplaceFileContent)$/i;
+
+function extractTargetFromTranscript(transcriptPath) {
+	if (!transcriptPath || typeof transcriptPath !== 'string' || !fs.existsSync(transcriptPath)) return '';
+	try {
+		const content = fs.readFileSync(transcriptPath, 'utf8');
+		const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0).slice(-30).reverse();
+		for (const line of lines) {
+			const step = tryParseJson(line);
+			if (!step || typeof step !== 'object') continue;
+			const calls = Array.isArray(step.tool_calls) ? step.tool_calls : Array.isArray(step.toolCalls) ? step.toolCalls : [];
+			for (let i = calls.length - 1; i >= 0; i -= 1) {
+				const tc = calls[i];
+				if (!tc || typeof tc !== 'object') continue;
+				const toolName = tc.name || tc.tool_name || tc.toolName || tc.function?.name || '';
+				if (toolName && !WRITE_TOOL_RE.test(toolName)) continue;
+				const rawArgs = tc.args ?? tc.arguments ?? tc.input ?? tc.parameters ?? tc.function?.arguments ?? tc;
+				const argsObj = typeof rawArgs === 'string' ? tryParseJson(rawArgs) : rawArgs;
+				if (argsObj && typeof argsObj === 'object') {
+					const tf = argsObj.TargetFile || argsObj.target_file || argsObj.file_path || argsObj.filepath || argsObj.path || '';
+					if (typeof tf === 'string' && tf) return tf;
+				}
+			}
+			if (WRITE_TOOL_RE.test(line)) {
+				const found = [];
+				extractTargetFromNode(step, found);
+				for (const val of found) {
+					if (typeof val === 'string' && val) return val;
+				}
+			}
+		}
+	} catch {
+		return '';
+	}
+	return '';
+}
+
+export function extractTarget(sourcesOrPayload) {
 	const env = process.env.ANTIGRAVITY_TARGET_FILE || process.env.TARGET_FILE || '';
 	if (env && env.endsWith('.json')) return env;
+	const sources = Array.isArray(sourcesOrPayload)
+		? sourcesOrPayload
+		: sourcesOrPayload && typeof sourcesOrPayload === 'object'
+			? [{ text: '', parsed: sourcesOrPayload, label: 'payload' }]
+			: [];
 	for (const s of sources) {
 		if (s.parsed === undefined) continue;
 		const found = [];
 		extractTargetFromNode(s.parsed, found);
 		for (const val of found) {
 			if (val.endsWith('.json')) return val;
+		}
+		if (s.parsed && typeof s.parsed === 'object' && s.parsed.transcriptPath) {
+			const fromTranscript = extractTargetFromTranscript(s.parsed.transcriptPath);
+			if (fromTranscript && fromTranscript.endsWith('.json')) return fromTranscript;
 		}
 	}
 	for (const s of sources) {
@@ -208,6 +254,7 @@ async function main() {
 	const target = extractTarget(sources);
 
 	if (!target || !target.endsWith('.json')) {
+		process.stdout.write('{}\n');
 		process.exit(0);
 	}
 
@@ -225,6 +272,7 @@ async function main() {
 		process.exit(1);
 	}
 
+	process.stdout.write('{}\n');
 	process.exit(0);
 }
 

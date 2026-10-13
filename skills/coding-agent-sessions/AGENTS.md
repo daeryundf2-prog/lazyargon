@@ -15,8 +15,7 @@ coding-agent-sessions/
 ├── agents/openai.yaml            # Codex agent role declaration
 ├── scripts/
 │   ├── find-agent-sessions.py    # thin shebang entry (PEP 723, >=3.11); runpy → agent_sessions.cli
-│   ├── agent_sessions/           # the package (12 modules)
-│   └── tests/                    # 6 pytest modules
+│   └── agent_sessions/           # the package (12 modules)
 └── pyrightconfig.json            # extraPaths scripts/, excludes scripts/tests
 ```
 
@@ -56,7 +55,6 @@ coding-agent-sessions/
 python3 scripts/find-agent-sessions.py list --limit 20
 python3 scripts/find-agent-sessions.py find "commit" --from 7d --platform senpi --platform opencode
 python3 scripts/find-agent-sessions.py read <session-id>
-pytest scripts/tests
 ```
 
 - Parent: [`packages/shared-skills/AGENTS.md`](../../AGENTS.md).

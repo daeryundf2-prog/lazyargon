@@ -19,11 +19,11 @@
 | Guessing the deliverable format | Derive it from the request and destination; ask the empty-info interview only for what is still missing, and record `answered_by` for every field |
 | Blocking the collection wave on the format question | Ask once and start collecting; skipped/unanswered fields run on the shown defaults |
 | A roster smaller than the runtime maximum | Fill every slot; split the broadest axis until the wave is full |
-| One model tier across the whole roster | Mixed tiers by design — `flash` breadth, `pro` attack and proofread |
+| Wrong model routing on subagents | Use `Model: "inherit"` across research, expansion, and skeptic lanes (`flash_lite` only for emergency quota fallback) |
 | Silently re-routing a "quick"/"fast" roster to another tier | Routing words are literal; journal requested -> spawned -> fallback for every slot |
 | A member that starts its own research wave or loads this skill | Members research one axis and report; orchestration is yours alone |
 | Expanding on an entity the first wave never disambiguated | Settle canonical identity and first-party source before any later prompt asserts it |
-| Batching findings into an end-of-run journal dump | Journal each return as it lands; ulw-loop state is what survives a compaction |
+| Batching findings into an end-of-run journal dump | Journal each return as it lands into `$SESSION_DIR/claim-graph.md` and `expansion-log.md`; the Markdown Claim Ledger is what survives a compaction |
 | Ending the run because every worker finished | Reserve the final fifth of the run for synthesis and materials |
 | A derived estimate presented as a measured number | MEASURED / ASSUMED / DERIVED lineage on every quantitative claim, plus a sensitivity line |
 | Delivering before visual QA or before the `writing` proofread gate | The gates are mandatory and ordered; a typo the user finds means the gate did not run |
@@ -35,5 +35,5 @@
 | A figure stretched, cropped, or styled off the report's design language | `design-spec.md` binds every asset: fixed containers, contain-fit with aspect preserved, spec fonts and palette in charts and Mermaid |
 | Chasing an interesting find with no ENTER trigger | Excursions need a named trigger; everything else stays a queued lead |
 | An excursion that never came back, or drifted into a new mission | EXIT rules are unconditional; depth 3 means promote it to an axis or record it as a gap |
-| An excursion whose result was never folded back | Every EXIT writes what it changed in the top-level answer, `none` included, and mirrors into the loop ledger |
+| An excursion whose result was never folded back | Every EXIT writes what it changed in the top-level answer, `none` included, and mirrors into `$SESSION_DIR/claim-graph.md` |
 | Delivering without the closing briefing | Paste the block `outcome briefing` prints; never compute or recall its numbers by hand |
