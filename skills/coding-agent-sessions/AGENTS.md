@@ -57,4 +57,4 @@ python3 scripts/find-agent-sessions.py find "commit" --from 7d --platform senpi 
 python3 scripts/find-agent-sessions.py read <session-id>
 ```
 
-- Parent: [`packages/shared-skills/AGENTS.md`](../../AGENTS.md).
+- Parent: [`rules/AGENTS.md`](../../rules/AGENTS.md).

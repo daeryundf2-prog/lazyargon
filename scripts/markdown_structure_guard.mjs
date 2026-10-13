@@ -92,41 +92,189 @@ function extractTargetFromNode(node, out) {
 	}
 }
 
-const WRITE_TOOL_RE = /^(write_to_file|replace_file_content|multi_replace_file_content|WriteToFile|ReplaceFileContent|MultiReplaceFileContent)$/i;
+const WRITE_OR_CMD_TOOL_RE = /^(write_to_file|replace_file_content|multi_replace_file_content|run_command|WriteToFile|ReplaceFileContent|MultiReplaceFileContent|RunCommand|write_file|Write|Edit|MultiEdit|SearchReplace|StrReplace|Bash|bash|Shell|shell|execute_command)$/i;
 
-function extractTargetFromTranscript(transcriptPath) {
-	if (!transcriptPath || typeof transcriptPath !== 'string' || !fs.existsSync(transcriptPath)) return '';
-	try {
-		const content = fs.readFileSync(transcriptPath, 'utf8');
-		const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0).slice(-30).reverse();
-		for (const line of lines) {
-			const step = tryParseJson(line);
-			if (!step || typeof step !== 'object') continue;
-			const calls = Array.isArray(step.tool_calls) ? step.tool_calls : Array.isArray(step.toolCalls) ? step.toolCalls : [];
-			for (let i = calls.length - 1; i >= 0; i -= 1) {
-				const tc = calls[i];
-				if (!tc || typeof tc !== 'object') continue;
-				const toolName = tc.name || tc.tool_name || tc.toolName || tc.function?.name || '';
-				if (toolName && !WRITE_TOOL_RE.test(toolName)) continue;
-				const rawArgs = tc.args ?? tc.arguments ?? tc.input ?? tc.parameters ?? tc.function?.arguments ?? tc;
-				const argsObj = typeof rawArgs === 'string' ? tryParseJson(rawArgs) : rawArgs;
-				if (argsObj && typeof argsObj === 'object') {
-					const tf = argsObj.TargetFile || argsObj.target_file || argsObj.file_path || argsObj.filepath || argsObj.path || '';
-					if (typeof tf === 'string' && tf) return tf;
-				}
-			}
-			if (WRITE_TOOL_RE.test(line)) {
-				const found = [];
-				extractTargetFromNode(step, found);
-				for (const { value, isCommand } of found) {
-					if (!isCommand) return value;
-				}
+function unquoteTranscriptVal(val) {
+	if (typeof val !== 'string') return val;
+	const t = val.trim();
+	if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
+		try {
+			const parsed = JSON.parse(t);
+			if (typeof parsed === 'string') return parsed;
+		} catch {
+			return t.slice(1, -1);
+		}
+	}
+	return val;
+}
+
+function resolveTranscriptPaths(payloadOrPath) {
+	if (typeof payloadOrPath === 'string') {
+		return resolveTranscriptPaths({ transcriptPath: payloadOrPath });
+	}
+	if (!payloadOrPath || typeof payloadOrPath !== 'object') return [];
+	const candidates = [];
+	const add = (p) => {
+		if (typeof p === 'string' && p.trim() && !candidates.includes(p.trim())) {
+			candidates.push(p.trim());
+		}
+	};
+	const tp = payloadOrPath.transcriptPath || payloadOrPath.transcript_path || '';
+	if (typeof tp === 'string' && tp.trim()) {
+		add(tp);
+		if (/transcript\.jsonl$/i.test(tp) && !/transcript_full\.jsonl$/i.test(tp)) {
+			add(tp.replace(/transcript\.jsonl$/i, 'transcript_full.jsonl'));
+		} else if (/transcript_full\.jsonl$/i.test(tp)) {
+			add(tp.replace(/transcript_full\.jsonl$/i, 'transcript.jsonl'));
+		}
+	}
+	const adp = payloadOrPath.artifactDirectoryPath || payloadOrPath.artifact_directory_path || '';
+	if (typeof adp === 'string' && adp.trim()) {
+		add(path.join(adp, '.system_generated', 'logs', 'transcript_full.jsonl'));
+		add(path.join(adp, '.system_generated', 'logs', 'transcript.jsonl'));
+		add(path.join(adp, 'transcript_full.jsonl'));
+		add(path.join(adp, 'transcript.jsonl'));
+	}
+	return candidates.filter((p) => {
+		try {
+			return fs.existsSync(p) && fs.statSync(p).isFile();
+		} catch {
+			return false;
+		}
+	});
+}
+
+function extractToolDataFromCall(tc) {
+	if (!tc || typeof tc !== 'object') return null;
+	const toolName = unquoteTranscriptVal(tc.name || tc.tool_name || tc.toolName || tc.function?.name || '');
+	if (toolName && !WRITE_OR_CMD_TOOL_RE.test(toolName)) return null;
+	let rawArgs = tc.args ?? tc.arguments ?? tc.input ?? tc.parameters ?? tc.function?.arguments ?? tc;
+	if (typeof rawArgs === 'string') {
+		rawArgs = tryParseJson(unquoteTranscriptVal(rawArgs)) ?? tryParseJson(rawArgs);
+	}
+	if (!rawArgs || typeof rawArgs !== 'object') return null;
+
+	const getStr = (...keys) => {
+		for (const k of keys) {
+			if (typeof rawArgs[k] === 'string' && rawArgs[k]) {
+				return unquoteTranscriptVal(rawArgs[k]);
 			}
 		}
-	} catch {
 		return '';
+	};
+
+	let targetFile = getStr('TargetFile', 'target_file', 'file_path', 'filepath', 'path', 'target', 'target_path', 'targetpath', 'output', 'file', 'filename');
+	const commandLine = getStr('CommandLine', 'command_line', 'command', 'cmd', 'script');
+	let codeContent = getStr('CodeContent', 'code_content', 'ReplacementContent', 'replacement_content', 'content', 'new_string', 'text');
+	if (!codeContent && rawArgs.ReplacementChunks !== undefined) {
+		let chunks = rawArgs.ReplacementChunks;
+		if (typeof chunks === 'string') {
+			chunks = tryParseJson(unquoteTranscriptVal(chunks)) ?? tryParseJson(chunks);
+		}
+		if (Array.isArray(chunks)) {
+			codeContent = chunks
+				.map((c) => (c && typeof c === 'object' ? unquoteTranscriptVal(c.ReplacementContent || c.replacement_content || c.content || '') : ''))
+				.filter(Boolean)
+				.join('\n');
+		}
 	}
-	return '';
+	if (!targetFile && commandLine) {
+		const red = commandLine.match(REDIRECT_RE);
+		if (red) targetFile = red[1];
+		else {
+			const m = commandLine.match(PATH_LIKE_RE);
+			if (m) targetFile = m[1];
+		}
+	}
+	if (!targetFile && !commandLine && !codeContent) return null;
+	return { toolName, targetFile, codeContent, commandLine };
+}
+
+export function extractFromTranscript(payloadOrPath) {
+	const paths = resolveTranscriptPaths(payloadOrPath);
+	const targetStepIdx =
+		payloadOrPath && typeof payloadOrPath === 'object'
+			? typeof payloadOrPath.stepIdx === 'number'
+				? payloadOrPath.stepIdx
+				: typeof payloadOrPath.step_index === 'number'
+					? payloadOrPath.step_index
+					: undefined
+			: undefined;
+
+	for (const tp of paths) {
+		try {
+			const content = fs.readFileSync(tp, 'utf8');
+			const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0).slice(-50).reverse();
+			const parsedSteps = [];
+			let hasTruncatedToolCalls = false;
+			for (const line of lines) {
+				const step = tryParseJson(line);
+				if (!step || typeof step !== 'object') continue;
+				if (Array.isArray(step.truncated_fields) && step.truncated_fields.includes('tool_calls')) {
+					hasTruncatedToolCalls = true;
+				}
+				parsedSteps.push({ step, line });
+			}
+			if (hasTruncatedToolCalls && paths.some((p) => p !== tp && /transcript_full\.jsonl$/i.test(p))) {
+				continue;
+			}
+
+			const searchSteps = (respectStepIdx) => {
+				for (const { step, line } of parsedSteps) {
+					const stepIdxVal = typeof step.step_index === 'number' ? step.step_index : typeof step.stepIdx === 'number' ? step.stepIdx : undefined;
+					if (respectStepIdx && targetStepIdx !== undefined && stepIdxVal !== undefined && stepIdxVal > targetStepIdx) {
+						continue;
+					}
+					const calls = Array.isArray(step.tool_calls)
+						? step.tool_calls
+						: Array.isArray(step.toolCalls)
+							? step.toolCalls
+							: step.toolCall && typeof step.toolCall === 'object'
+								? [step.toolCall]
+								: [];
+					if (respectStepIdx && targetStepIdx !== undefined && stepIdxVal !== undefined && targetStepIdx > stepIdxVal) {
+						const callOffset = targetStepIdx - stepIdxVal - 1;
+						if (callOffset >= 0 && callOffset < calls.length) {
+							const data = extractToolDataFromCall(calls[callOffset]);
+							if (data && data.targetFile) return data;
+						}
+					}
+					for (let i = calls.length - 1; i >= 0; i -= 1) {
+						const data = extractToolDataFromCall(calls[i]);
+						if (data && data.targetFile) return data;
+					}
+					const directData = extractToolDataFromCall(step);
+					if (directData && directData.targetFile) return directData;
+					if (WRITE_OR_CMD_TOOL_RE.test(line)) {
+						const found = [];
+						extractTargetFromNode(step, found);
+						for (const { value, isCommand } of found) {
+							const u = unquoteTranscriptVal(value);
+							if (!isCommand && u) return { toolName: '', targetFile: u, codeContent: '', commandLine: '' };
+							if (isCommand && u) {
+								const red = u.match(REDIRECT_RE);
+								if (red) return { toolName: 'run_command', targetFile: red[1], codeContent: '', commandLine: u };
+								const m = u.match(PATH_LIKE_RE);
+								if (m) return { toolName: 'run_command', targetFile: m[1], codeContent: '', commandLine: u };
+							}
+						}
+					}
+				}
+				return null;
+			};
+
+			const hit = searchSteps(true) || (targetStepIdx !== undefined ? searchSteps(false) : null);
+			if (hit) return hit;
+		} catch {
+			// continue to next candidate
+		}
+	}
+	return null;
+}
+
+function extractTargetFromTranscript(payloadOrPath) {
+	const data = extractFromTranscript(payloadOrPath);
+	return data ? data.targetFile : '';
 }
 
 export function extractTarget(sourcesOrPayload) {
@@ -142,14 +290,15 @@ export function extractTarget(sourcesOrPayload) {
 		const found = [];
 		extractTargetFromNode(s.parsed, found);
 		for (const { value, isCommand } of found) {
-			if (!isCommand) return value;
-			const red = value.match(REDIRECT_RE);
+			const u = unquoteTranscriptVal(value);
+			if (!isCommand) return u;
+			const red = u.match(REDIRECT_RE);
 			if (red) return red[1];
-			const m = value.match(PATH_LIKE_RE);
+			const m = u.match(PATH_LIKE_RE);
 			if (m) return m[1];
 		}
-		if (s.parsed && typeof s.parsed === 'object' && s.parsed.transcriptPath) {
-			const fromTranscript = extractTargetFromTranscript(s.parsed.transcriptPath);
+		if (s.parsed && typeof s.parsed === 'object' && (s.parsed.transcriptPath || s.parsed.transcript_path || s.parsed.artifactDirectoryPath || s.parsed.artifact_directory_path)) {
+			const fromTranscript = extractTargetFromTranscript(s.parsed);
 			if (fromTranscript) return fromTranscript;
 		}
 	}

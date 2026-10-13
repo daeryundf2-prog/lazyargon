@@ -255,6 +255,10 @@ def check_file(file: Path) -> None:
 def main() -> None:
     global violations
 
+    if "-h" in sys.argv[1:] or "--help" in sys.argv[1:]:
+        print(f"Usage: {sys.argv[0]} <file.rs|dir> [file.rs|dir ...]")
+        sys.exit(0)
+
     if len(sys.argv) < 2:
         print(f"Usage: {sys.argv[0]} <file.rs|dir> [file.rs|dir ...]", file=sys.stderr)
         sys.exit(2)

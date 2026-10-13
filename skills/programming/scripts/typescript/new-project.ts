@@ -41,7 +41,7 @@ Arguments:
 Options:
   --path      Parent directory (default: current dir)
   -h, --help  Show this help`);
-  process.exit(positionals.length === 0 ? 2 : 0);
+  process.exit(values.help ? 0 : 2);
 }
 
 const name = positionals[0]!;

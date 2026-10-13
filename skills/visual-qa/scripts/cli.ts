@@ -67,6 +67,10 @@ export function run(argv: readonly string[]): ImageDiffResult | TuiCheckResult {
 }
 
 function main(argv: readonly string[]): void {
+	if (argv.includes("-h") || argv.includes("--help")) {
+		process.stdout.write("usage: cli.ts <image-diff|tui-check> [args...]\n")
+		return
+	}
 	try {
 		const result = run(argv)
 		process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)

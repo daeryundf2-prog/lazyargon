@@ -233,6 +233,10 @@ function runTest() { // fixtures/manifest.json 셀프테스트 — 경로는 스
 
 // ── CLI ──
 const argv = process.argv.slice(2);
+if (argv.includes("-h") || argv.includes("--help")) {
+  console.log("Usage: node check_prompt.mjs <file> | --jsonl <file> | --tier <0|1|2> | --api | --test");
+  process.exit(0);
+}
 const opts = { api: false, tier: undefined };
 let file = null, jsonlPath = null, test = false;
 for (let i = 0; i < argv.length; i++) {

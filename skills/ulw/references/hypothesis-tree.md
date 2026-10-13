@@ -1,19 +1,19 @@
 ---
 name: hypothesis-tree
-description: "직교 3대 가설 동시 반증 디버깅 스킬. Gemini 3.8 하이브리드 추론으로 상호 배타적 가설을 세우고 Flash 병렬 반증 + Pro 오라클 판정으로 1턴 만에 근본 원인을 격리합니다."
+description: "직교 3대 가설 동시 반증 디버깅 스킬. Gemini 4 Argon 추론으로 상호 배타적 가설을 세우고 병렬 반증(`Model: \"inherit\"`) + 오라클 판정으로 1턴 만에 근본 원인을 격리합니다."
 ---
 
 # Hypothesis-Tree: Parallel Falsification & Invariant Root-Cause Isolation
 
-Gemini 3.8 Flash의 논리 분기(Branching CoT)와 초저지연 병렬성을 활용하여 복잡한 버그, 침묵 실패(Silent Failure), 동시성 레이스 컨디션에 대해 직교하는 3대 가설을 수립하고, 단일 턴에 병렬 반증(Falsification)하여 진짜 근본 원인(Root Cause)을 규명하는 디버깅 스킬입니다.
+Gemini 4 Argon의 논리 분기(Branching CoT)와 초저지연 병렬성을 활용하여 복잡한 버그, 침묵 실패(Silent Failure), 동시성 레이스 컨디션에 대해 직교하는 3대 가설을 수립하고, 단일 턴에 병렬 반증(Falsification)하여 진짜 근본 원인(Root Cause)을 규명하는 디버깅 스킬입니다.
 
 ```mermaid
 flowchart TD
     Bug["버그 리포트 / 런타임 결함"] --> Gen["1. 직교 3대 가설 수립<br/>(Hypothesis A / B / C)"]
-    Gen --> Falsify["2. 병렬 반증 디스패치 (invoke_subagent)<br/>Scout A (flash) | Scout B (flash) | Scout C (flash)"]
+    Gen --> Falsify["2. 병렬 반증 디스패치 (invoke_subagent)<br/>Scout A (inherit) | Scout B (inherit) | Scout C (inherit)"]
     Falsify --> Prune{"반증 테스트 결과"}
     Prune -- "거짓 가설" --> Cut["3. 가설 소거 (Pruning)"]
-    Prune -- "유일하게 살아남은 가설" --> Oracle["4. Pro Oracle Root-Cause Verdict (pro)<br/>불변식(Invariant) 검증 & 락킹"]
+    Prune -- "유일하게 살아남은 가설" --> Oracle["4. Oracle Root-Cause Verdict (inherit)<br/>불변식(Invariant) 검증 & 락킹"]
     Oracle --> Fix["5. 최소 원자적 수정 &<br/>영구 회귀 방지 테스트"]
 ```
 
@@ -69,8 +69,8 @@ SCOPE: configuration and external boundaries."""
 ### Step 3: Falsification & Pruning (소거법 검증)
 반증에 실패한(실제 버그가 발생하지 않은) 가설은 즉시 폐기하고, 재현에 성공한 단일 가설만 격리합니다.
 
-### Step 4: Pro Oracle Verdict & Invariant Lock (오라클 검증)
-`Model: "inherit"`(verify lanes stay pro; only the single final-verdict lane uses inherit on a Claude session (Claude quota is scarce on Ultra))를 호출하여 생존한 가설의 근본 원인을 비판적으로 재검증하고 불변식(Invariant) 회귀 테스트를 고정합니다.
+### Step 4: Oracle Verdict & Invariant Lock (오라클 검증)
+`Model: "inherit"`(Gemini 4 Argon)를 호출하여 생존한 가설의 근본 원인을 비판적으로 재검증하고 불변식(Invariant) 회귀 테스트를 고정합니다.
 
 ```
 invoke_subagent(
@@ -84,8 +84,8 @@ DELIVERABLE: confirmation verdict and invariant test contract.
 SCOPE: workspace defect boundary."""
     }
   ],
-  toolAction: "Confirming root cause via Pro Oracle",
-  toolSummary: "Pro root-cause verification"
+  toolAction: "Confirming root cause via Oracle",
+  toolSummary: "Root-cause verification"
 )
 ```
 

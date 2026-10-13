@@ -657,6 +657,9 @@ def check_file(file: Path) -> list[Violation]:
 
 
 def main() -> int:
+    if "-h" in sys.argv[1:] or "--help" in sys.argv[1:]:
+        print("usage: check-no-excuse-rules.py <file-or-dir>...")
+        return 0
     if len(sys.argv) < 2:
         print("usage: check-no-excuse-rules.py <file-or-dir>...", file=sys.stderr)
         return 2

@@ -18,8 +18,8 @@ Gemini 4 Argon (`Model: "inherit"`) 전용 자율 실행(`/ulw`)·소프트웨�
 | `frontend` | 시니어 디자이너급 UI/UX/AX 디자인 시스템 |
 | `visual-qa` | 멀티모달 시각 QA 및 CJK 조판 정밀 검증 |
 | `image-prompt` | 이미지 생성 프롬프트 컴파일러 및 플레이북 |
-| `diagram-design` | 39종 브랜드 에디토리얼 다이어그램 디자인 (`lazydiagram` 통합) |
-| `logo-design` | 정밀 SVG 로고 및 브랜드 아이덴티티 디자인 (`logo-design-skill` 통합) |
+| `diagram-design` | 39종 브랜드 에디토리얼 다이어그램 디자인 |
+| `logo-design` | 정밀 SVG 로고 및 브랜드 아이덴티티 디자인 |
 | `data-scientist` | DuckDB / Polars 상주 커널 기반 데이터 분석 |
 | `gf-qa-behavioral-verification` | 런타임 행동 검증 및 에러 은폐 차단 |
 | `gf-qa-computed-outputs` | 수식·파생 지표·참조 링크 무결성 검증 |

@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
+    echo "Usage: $0 <file.rs> [file.rs ...]"
+    exit 0
+fi
 if [ $# -eq 0 ]; then
     echo "Usage: $0 <file.rs> [file.rs ...]" >&2
     exit 2

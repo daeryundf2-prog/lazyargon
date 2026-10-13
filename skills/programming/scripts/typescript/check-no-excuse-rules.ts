@@ -32,9 +32,37 @@
  */
 
 import fs from "node:fs"
+import { createRequire } from "node:module"
 import path from "node:path"
 import process from "node:process"
-import ts from "typescript"
+import type tsType from "typescript"
+
+function loadTs(): typeof tsType {
+  for (const base of [path.join(process.cwd(), "package.json"), import.meta.url]) {
+    try {
+      const req = createRequire(base)
+      const m = req("typescript") as typeof tsType & { default?: typeof tsType }
+      if (m && typeof m.createSourceFile === "function") return m
+      if (m?.default && typeof m.default.createSourceFile === "function") return m.default
+    } catch {
+      // try next candidate
+    }
+  }
+  for (const cand of [
+    "/opt/homebrew/lib/node_modules/typescript/lib/typescript.js",
+    "/usr/local/lib/node_modules/typescript/lib/typescript.js",
+  ]) {
+    if (fs.existsSync(cand)) {
+      const req = createRequire(cand)
+      const m = req(cand) as typeof tsType & { default?: typeof tsType }
+      if (m && typeof m.createSourceFile === "function") return m
+      if (m?.default && typeof m.default.createSourceFile === "function") return m.default
+    }
+  }
+  throw new Error("Cannot find package 'typescript'. Install it locally or globally (e.g. brew install typescript).")
+}
+
+const ts = loadTs()
 
 type RuleId =
   | "no-any-assertion"
@@ -274,6 +302,10 @@ function formatViolation(v: Violation): string {
 
 function main(): void {
   const args = process.argv.slice(2)
+  if (args.includes("-h") || args.includes("--help")) {
+    console.log("usage: check-no-excuse-rules.ts [--only=rule-id,rule-id] <file-or-dir>...")
+    process.exit(0)
+  }
   const onlyArg = args.find((a) => a.startsWith("--only="))
   const onlyRules = onlyArg === undefined ? null : new Set(onlyArg.slice("--only=".length).split(","))
   const inputs = args.filter((a) => !a.startsWith("--only="))

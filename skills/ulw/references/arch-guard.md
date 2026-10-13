@@ -5,14 +5,14 @@ description: "클린 아키텍처 의존성 드리프트 차단 스킬. 1M 컨�
 
 # Arch-Guard: Clean Architecture Boundary & Dependency Drift Enforcer
 
-Gemini 3.8 Flash의 1M 컨텍스트 전역 분석과 AST Import Graph 분석을 결합하여, 모듈 간 불법적인 결합도 증가 및 아키텍처 계층 위반(Architecture Drift)을 실시간으로 감시하고 차단하는 스킬입니다.
+Gemini 4 Argon의 1M 컨텍스트 전역 분석과 AST Import Graph 분석을 결합하여, 모듈 간 불법적인 결합도 증가 및 아키텍처 계층 위반(Architecture Drift)을 실시간으로 감시하고 차단하는 스킬입니다.
 
 ```mermaid
 flowchart TD
     Code["코드베이스 변경 사항 / PR"] --> Scan["1. 전역 Import Graph & AST 파싱<br/>(1M Context + ast_grep_search)"]
     Scan --> Check{"계층 위반 감지?"}
     Check -- "No (규칙 준수)" --> Clean["아키텍처 무결성 승인"]
-    Check -- "Yes (의존성 역전/불법 import)" --> Block["2. Blocking Gate 가동 (Model: 'pro')<br/>Domain → Infra 직접 참조 차단"]
+    Check -- "Yes (의존성 역전/불법 import)" --> Block["2. Blocking Gate 가동 (Model: 'inherit')<br/>Domain → Infra 직접 참조 차단"]
     Block --> Solution["3. 의존성 역전(DIP) 인터페이스 제안<br/>Port & Adapter 추상화"]
     Solution --> Verify["4. LSP 전역 진단 & 리팩토링"]
 ```
@@ -30,7 +30,7 @@ flowchart TD
 - **Presentation / UI**: Controller/API만 호출, DB/Service 내부 구현 직접 우회 금지
 
 ### Step 2: Layer Boundary Inspection (오라클 검증)
-`Model: "inherit"`(verify lanes stay pro; only the single final-verdict lane uses inherit on a Claude session (Claude quota is scarce on Ultra))를 사용하여 계층 규칙 위반을 엄격히 판정합니다.
+`Model: "inherit"`(Gemini 4 Argon)를 사용하여 계층 규칙 위반을 엄격히 판정합니다.
 
 ```
 invoke_subagent(

@@ -5,7 +5,7 @@ description: "Unified Argon 4 autonomous execution workflow (/ulw, ultrawork, ul
 
 # ULW — Unified Argon 4 Autonomous Execution (`/ulw`)
 
-단일 진입점(`/ulw`, `ulw`, `ultrawork`, `ulw-plan`, `mass-ulw`, `ulw-loop`)으로 계획·병렬 구현·검증을 끝까지 완수하는 Gemini 4 Argon 전용 자율 실행 프로토콜이다. 불필요한 다단계 상태 파일(`.lazyantigravity/`, 스냅샷, 형식적 역할극)을 생성하지 않고, 3줄 범위 잠금과 실제 실행 증거(`verified`)로만 동작한다.
+단일 진입점(`/ulw`, `ulw`, `ultrawork`, `ulw-plan`, `mass-ulw`, `ulw-loop`)으로 계획·병렬 구현·검증을 끝까지 완수하는 Gemini 4 Argon 전용 자율 실행 프로토콜이다. 불필요한 다단계 상태 파일, 스냅샷, 형식적 역할극을 생성하지 않고, 3줄 범위 잠금과 실제 실행 증거(`verified`)로만 동작한다.
 
 ---
 

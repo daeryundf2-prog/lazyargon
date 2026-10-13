@@ -258,6 +258,10 @@ async function command(input) {
 }
 
 if (import.meta.main) {
+  if (process.argv.includes("-h") || process.argv.includes("--help")) {
+    stdout.write("Usage: node dap.mjs (reads DAP REPL commands from stdin: start, launch, attach, break, continue, stack, scopes, vars, eval, threads, sessions, terminate)\n");
+    process.exit(0);
+  }
   // Serialize stdin commands: fire-and-forget (`void command(...)`) lets a `continue`
   // race ahead of the launch handshake's configurationDone, and the adapter then
   // drops or rejects the out-of-order request. Each line awaits the previous command.
