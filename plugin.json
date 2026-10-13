@@ -1,0 +1,11 @@
+{
+  "name": "lazyargon",
+  "displayName": "LazyArgon",
+  "version": "1.0.0",
+  "description": "Gemini 4 Argon-native autonomous execution (/ulw), software engineering, debugging, refactoring, UI/UX/AX design system, 39-type editorial diagram design, SVG logo design, and data science.",
+  "suggestedPrompts": [
+    "/ulw 현재 프로젝트의 버그를 추적하고 테스트까지 통과시켜줘",
+    "이 아키텍처를 브랜드 에디토리얼 다이어그램(diagram-design)으로 도식화해줘",
+    "프론트엔드 UI/UX 및 접근성(WCAG AA)을 점검하고 개선해줘"
+  ]
+}
