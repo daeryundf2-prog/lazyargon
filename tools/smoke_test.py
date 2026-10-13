@@ -89,7 +89,7 @@ def main():
             ok
             and plugin_data.get("name") == "lazyargon"
             and bool(plugin_data.get("version"))
-            and "lazyargon-guards" in hooks_data
+            and "hooks" in hooks_data
             and skills_ok
         )
         print(f"[{'ok  ' if ok else 'FAIL'}] SKILL.md frontmatter ({len(skill_dirs)} skills) and root manifests ({', '.join(sorted(versions))})")
