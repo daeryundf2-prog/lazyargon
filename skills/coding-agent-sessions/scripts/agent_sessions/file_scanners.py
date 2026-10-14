@@ -33,9 +33,11 @@ def scan_amp(extra_roots: tuple[Path, ...], workers: int) -> list[Session]:
 
 
 def scan_gemini(extra_roots: tuple[Path, ...], workers: int) -> list[Session]:
-    roots = _roots([Path.home() / ".gemini"], extra_roots, (".gemini",))
-    paths = [path for root in roots for path in (root / "tmp").glob("*/chats/*.json")]
-    return flat_parallel(recent(paths), workers, _gemini_sessions)
+    roots = _roots([Path.home() / ".gemini"], extra_roots, (".gemini", "antigravity", "brain"))
+    json_paths = [path for root in roots for path in (root / "tmp").glob("*/chats/*.json")]
+    pats = ("antigravity/brain/*/.system_generated/logs/transcript.jsonl", "brain/*/.system_generated/logs/transcript.jsonl", "*/.system_generated/logs/transcript.jsonl")
+    agy_paths = [path for root in roots for pat in pats for path in root.glob(pat)]
+    return [*flat_parallel(recent(json_paths), workers, _gemini_sessions), *flat_parallel(recent(existing(agy_paths)), workers, _antigravity_sessions)]
 
 
 def scan_kimi(extra_roots: tuple[Path, ...], workers: int) -> list[Session]:
@@ -71,9 +73,7 @@ def scan_cline(extra_roots: tuple[Path, ...], workers: int) -> list[Session]:
 
 def scan_aider(extra_roots: tuple[Path, ...], workers: int) -> list[Session]:
     roots = _roots([Path.home() / "local-workspaces", Path.home() / "indent"], extra_roots, ("local-workspaces",))
-    paths: list[Path] = []
-    for root in roots:
-        paths.extend(_bounded_named(root, ".aider.chat.history.md"))
+    paths = [path for root in roots for path in _bounded_named(root, ".aider.chat.history.md")]
     return flat_parallel(recent(paths), workers, _aider_sessions)
 
 
@@ -103,26 +103,11 @@ def _amp_sessions(path: Path) -> list[Session]:
         return []
     messages = _json_maps(data.get("messages"))
     first_user, last_user = _message_edges(messages)
-    env = as_map(data.get("env")) or {}
-    initial = as_map(env.get("initial")) or {}
+    initial = as_map((as_map(data.get("env")) or {}).get("initial")) or {}
     trees = initial.get("trees")
     tree = as_map(trees[0]) if isinstance(trees, list) and trees else None
     created = int_value(data.get("created"))
-    return [
-        Session(
-            "amp",
-            text(data.get("id")) or path.stem,
-            str(path),
-            _file_uri_path(text(tree.get("uri")) if tree is not None else None),
-            unix_millis(created) or file_time(path),
-            file_time(path),
-            None,
-            _tag_model(initial.get("tags")),
-            first_user,
-            {"message_count": len(messages)},
-            last_user_message=last_user,
-        )
-    ]
+    return [Session("amp", text(data.get("id")) or path.stem, str(path), _file_uri_path(text(tree.get("uri")) if tree is not None else None), unix_millis(created) or file_time(path), file_time(path), None, _tag_model(initial.get("tags")), first_user, {"message_count": len(messages)}, last_user_message=last_user)]
 
 
 def _gemini_sessions(path: Path) -> list[Session]:
@@ -132,6 +117,41 @@ def _gemini_sessions(path: Path) -> list[Session]:
     messages = _json_maps(data.get("messages"))
     first_user, last_user = _message_edges(messages, role_keys=("user",))
     return [Session("gemini", text(data.get("sessionId")) or path.stem, str(path), text(data.get("projectHash")), text(data.get("startTime")) or file_time(path), text(data.get("lastUpdated")) or file_time(path), "google", None, first_user, {"message_count": len(messages)}, last_user_message=last_user)]
+
+
+def _antigravity_sessions(path: Path) -> list[Session]:
+    sid = path.parents[2].name if len(path.parents) >= 3 else path.stem
+    first_user = last_user = ""
+    created = updated = parent = None
+    usage: JsonMap = {}
+    msg_count = 0
+    for data in iter_jsonl(path):
+        msg_count += 1
+        stamp = text(data.get("created_at")) or text(data.get("timestamp"))
+        created, updated = created or stamp, stamp or updated
+        step_type, content = text(data.get("type")), text(data.get("content")) or ""
+        if step_type == "USER_INPUT" or text(data.get("source")) == "USER_EXPLICIT":
+            cleaned = content.removeprefix("<USER_REQUEST>").split("</USER_REQUEST>", 1)[0].strip() or content
+            if cleaned:
+                first_user, last_user = first_user or cleaned, cleaned
+        elif step_type == "SYSTEM_MESSAGE" and "[Message]" in content and "sender=" in content:
+            s_idx = content.find("sender=") + 7
+            s_end = content.find(" ", s_idx)
+            sender = content[s_idx:s_end].strip() if s_end > s_idx else ""
+            if len(sender) == 36 and "/" not in sender and sender != sid:
+                parent = parent or sender
+                c_idx = content.find(" content=", s_end)
+                body = content[c_idx + 9 :].split("</SYSTEM_MESSAGE>")[0].strip() if c_idx != -1 else ""
+                if body:
+                    first_user, last_user = first_user or body, body
+        for tok_key, u_key in (("input_tokens", "input"), ("output_tokens", "output"), ("cache_read_tokens", "cacheRead")):
+            val = int_value(data.get(tok_key))
+            if val is not None:
+                usage[u_key] = int(usage.get(u_key, 0)) + val
+    if msg_count == 0:
+        return []
+    usage["message_count"] = msg_count
+    return [Session("gemini", sid, str(path), None, created or file_time(path), updated or created or file_time(path), "google", "antigravity", first_user, usage, parent, "subagent" if parent else None, last_user_message=last_user)]
 
 
 def _kimi_session(path: Path) -> Session:

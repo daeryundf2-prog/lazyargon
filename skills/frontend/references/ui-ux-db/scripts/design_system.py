@@ -16,8 +16,13 @@ Usage:
 import csv
 import json
 import os
+import re
+import sys
 from datetime import datetime
 from pathlib import Path
+
+sys.dont_write_bytecode = True
+
 from core import search, DATA_DIR
 
 
@@ -557,6 +562,15 @@ def generate_design_system(query: str, project_name: str = None, output_format: 
     return format_ascii_box(design_system)
 
 
+def _sanitize_slug(raw: str, fallback: str = "default") -> str:
+    """Sanitize slug to block Windows forbidden filename characters and path traversal."""
+    slug = raw.lower().strip().replace(" ", "-")
+    slug = re.sub(r'[<>:"/\\|?*]+', "-", slug)
+    slug = slug.replace("..", "")
+    slug = re.sub(r"-+", "-", slug).strip("-. ")
+    return slug or fallback
+
+
 # ============ PERSISTENCE FUNCTIONS ============
 def persist_design_system(design_system: dict, page: str = None, output_dir: str = None, page_query: str = None) -> dict:
     """
@@ -575,7 +589,7 @@ def persist_design_system(design_system: dict, page: str = None, output_dir: str
     
     # Use project name for project-specific folder
     project_name = design_system.get("project_name", "default")
-    project_slug = project_name.lower().replace(' ', '-')
+    project_slug = _sanitize_slug(project_name, fallback="default")
     
     design_system_dir = base_dir / "design-system" / project_slug
     pages_dir = design_system_dir / "pages"
@@ -596,7 +610,8 @@ def persist_design_system(design_system: dict, page: str = None, output_dir: str
     
     # If page is specified, create page override file with intelligent content
     if page:
-        page_file = pages_dir / f"{page.lower().replace(' ', '-')}.md"
+        page_slug = _sanitize_slug(page, fallback="page")
+        page_file = pages_dir / f"{page_slug}.md"
         page_content = format_page_override_md(design_system, page, page_query)
         with open(page_file, 'w', encoding='utf-8') as f:
             f.write(page_content)

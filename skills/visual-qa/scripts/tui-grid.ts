@@ -12,14 +12,17 @@ function splitLines(text: string): string[] {
 	return lines
 }
 
+function isBoxDrawing(codePoint: number | undefined): boolean {
+	return codePoint !== undefined && codePoint >= BOX_DRAWING_START && codePoint <= BOX_DRAWING_END
+}
+
 function isFrameLine(plain: string): boolean {
-	for (const char of plain) {
-		const codePoint = char.codePointAt(0)
-		if (codePoint !== undefined && codePoint >= BOX_DRAWING_START && codePoint <= BOX_DRAWING_END) {
-			return true
-		}
-	}
-	return false
+	const trimmed = plain.trim()
+	if (trimmed.length < 2) return false
+	const chars = [...trimmed]
+	const first = chars[0]?.codePointAt(0)
+	const last = chars[chars.length - 1]?.codePointAt(0)
+	return isBoxDrawing(first) && isBoxDrawing(last)
 }
 
 function wideStartColumns(plain: string): number[] {

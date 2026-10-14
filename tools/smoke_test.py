@@ -143,11 +143,14 @@ def main():
                 [os.path.join(tmp, "web", "favicon.ico")])
         else:
             print("[skip] PNG checks (no renderer on this machine)")
-        run("package_skill", [os.path.join(ROOT, "tools", "package_skill.py")],
-            [os.path.join(ROOT, "dist", "logo-design.zip"), os.path.join(ROOT, "dist", "logo-design-lite.zip")],
+        run("package_skill", [os.path.join(ROOT, "tools", "package_skill.py"), "--out-dir", tmp],
+            [os.path.join(tmp, "logo-design.zip"), os.path.join(tmp, "logo-design-lite.zip")],
             cwd=ROOT)
 
-        caches = [d for d, _, _ in os.walk(SKILL) if os.path.basename(d) == "__pycache__"]
+        caches = [
+            d for root_dir in (os.path.join(ROOT, "skills"), os.path.join(ROOT, "tools"))
+            for d, _, _ in os.walk(root_dir) if os.path.basename(d) == "__pycache__"
+        ]
         print(f"[{'ok  ' if not caches else 'FAIL'}] no __pycache__ written into the skill folder")
         if caches:
             failures.append("__pycache__ in skill folder: " + ", ".join(caches))

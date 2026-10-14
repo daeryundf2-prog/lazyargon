@@ -44,8 +44,8 @@ Options:
   process.exit(values.help ? 0 : 2);
 }
 
-const name = positionals[0]!;
-const root = resolve(values.path!, name);
+const name = positionals[0] ?? "app";
+const root = resolve(values.path ?? ".", name);
 
 if (existsSync(root)) {
   console.error(`Error: ${root} already exists`);
@@ -156,11 +156,9 @@ writeFileSync(join(root, "biome.json"), JSON.stringify(biome, null, 2) + "\n");
 // ── src/index.ts ──
 const indexTs = `import { Hono } from "hono";
 
-const app = new Hono();
+export const app = new Hono();
 
 app.get("/", (c) => c.json({ status: "ok" }));
-
-export default app;
 `;
 writeFileSync(join(root, "src/index.ts"), indexTs);
 

@@ -90,7 +90,7 @@ def nick_role(nickname: str | None, role: str | None) -> str | None:
 
 
 def user_text(data: JsonMap, message: JsonMap) -> str:
-    if data.get("type") == "user":
+    if data.get("type") in {"user", "USER_INPUT"} or data.get("source") == "USER_EXPLICIT":
         value = content_text(data.get("content"))
         if value:
             return value

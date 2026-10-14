@@ -219,7 +219,10 @@ async function command(input) {
   if (!transport) return error("no-session");
   try {
     if (cmd === "break" || cmd === "rmbreak") {
-      const [file, lineNo] = (parts[0] || "").split(":");
+      const target = parts[0] || "";
+      const sep = target.lastIndexOf(":");
+      const file = sep > 0 ? target.slice(0, sep) : "";
+      const lineNo = sep > 0 ? target.slice(sep + 1) : "";
       if (!file || !lineNo) return error("invalid-args");
       const set = breakpoints.get(file) || [];
       const next = cmd === "break" ? [...set.filter(x => x.line !== Number(lineNo)), { line: Number(lineNo) }] : set.filter(x => x.line !== Number(lineNo));

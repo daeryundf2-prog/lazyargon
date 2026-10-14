@@ -80,11 +80,11 @@ def inner_markup(raw):
 
 def square_wrap(raw, root, padding=0.1, bg=None, radius=0.0, fg=None, symbol_scale=None, offset=0.0, title=None):
     """Centre the artwork's real bounding box on a 256×256 canvas (optionally on a rounded tile)."""
-    vb = svglib.view_box(root)
+    vb = svglib.view_box(root) or (0.0, 0.0, 256.0, 256.0)
     geo = svglib.document_geometry(root)
     bb = geo["bbox"] or (vb[0], vb[1], vb[0] + vb[2], vb[1] + vb[3])
     w, h = bb[2] - bb[0], bb[3] - bb[1]
-    side = max(w, h)
+    side = max(w, h) or 256.0
     canvas = 256.0
     target = symbol_scale if symbol_scale else (1 - 2 * padding)
     s = round(canvas * target / side, 3)
@@ -168,7 +168,9 @@ def main():
             for size in a.png:
                 txt = open(p, encoding="utf-8").read()
                 vb = re.search(r'viewBox\s*=\s*"[\d.\-]+[ ,]+[\d.\-]+[ ,]+([\d.]+)[ ,]+([\d.]+)"', txt)
-                ratio = float(vb.group(1)) / float(vb.group(2)) if vb else 1.0
+                vb_w = float(vb.group(1)) if vb else 1.0
+                vb_h = float(vb.group(2)) if vb else 1.0
+                ratio = (vb_w / vb_h) if (vb_w > 0 and vb_h > 0) else 1.0
                 w, h = (size, max(1, round(size / ratio))) if ratio >= 1 else (max(1, round(size * ratio)), size)
                 png = p[:-4] + f"-{size}.png"
                 if render_png.render(p, png, w, h):
@@ -222,7 +224,7 @@ def main():
                              '<link rel="icon" href="/favicon.svg" type="image/svg+xml">\n'
                              '<link rel="apple-touch-icon" href="/apple-touch-icon.png">\n'
                              '<link rel="manifest" href="/site.webmanifest">\n'
-                             f'<meta name="theme-color" content="{a.icon_bg}">\n')
+                             f'<meta name="theme-color" content="{html.escape(a.icon_bg)}">\n')
                 raster += [os.path.join(out_dir, "site.webmanifest"), os.path.join(out_dir, "head-snippet.html")]
 
     for p in written + raster:

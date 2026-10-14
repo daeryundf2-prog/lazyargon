@@ -110,7 +110,7 @@ function findRawClose(source, from, tag) {
 			}
 			depth--
 		} else if (tag === "svg" && tagNameAt(source, lt + 1, tag)) {
-			depth++
+			if (!readTag(source, lt + 1).selfClosing) depth++
 		}
 	}
 	return [source.length, source.length]
@@ -179,7 +179,7 @@ export function parseHtml(source) {
 					node.raw = src.slice(tag.end, innerEnd)
 					at = textStart = resume
 				}
-			} else if (!VOID_TAGS.has(tag.name)) {
+			} else if (!VOID_TAGS.has(tag.name) && !tag.selfClosing) {
 				stack.push(node)
 			}
 		} else {

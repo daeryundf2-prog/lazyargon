@@ -32,10 +32,14 @@ Follows the frontend skill perfection ruleset:
 from __future__ import annotations
 
 import json
+import shutil
+import socket
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+sys.dont_write_bytecode = True
 
 import typer
 from rich import print as rprint
@@ -44,11 +48,8 @@ from rich.table import Table
 
 # Lighthouse config as Node.js script — run via subprocess
 LIGHTHOUSE_RUNNER_JS = """\
-const lighthouse = require('lighthouse');
-const chromeLauncher = require('chrome-launcher');
-
-const url = process.argv[2];
-const port = parseInt(process.argv[3]);
+const url = JSON.parse(process.argv[2]);
+const port = parseInt(process.argv[3], 10);
 const preset = process.argv[4]; // 'mobile' or 'desktop'
 
 const config = {
@@ -66,6 +67,8 @@ const config = {
 };
 
 (async () => {
+  const lhMod = await import('lighthouse');
+  const lighthouse = lhMod.default || lhMod;
   const result = await lighthouse(url, { port, logLevel: 'error' }, config);
   const categories = result.lhr.categories;
   const output = {};
@@ -78,36 +81,59 @@ const config = {
 
 
 def _check_node_deps() -> bool:
-    """Check if lighthouse and chrome-launcher are available."""
+    """Check if lighthouse is available locally or in NODE_PATH."""
     result = subprocess.run(
-        ["node", "-e", "require('lighthouse'); require('chrome-launcher')"],
+        ["node", "-e", "import('lighthouse').catch(() => process.exit(1))"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     return result.returncode == 0
 
 
-def _install_node_deps() -> None:
-    """Install lighthouse + chrome-launcher globally."""
-    rprint("[yellow]Installing lighthouse + chrome-launcher...[/yellow]")
-    subprocess.run(
-        ["npm", "install", "-g", "lighthouse", "chrome-launcher"],
-        capture_output=True,
-        check=True,
-    )
+def _find_free_port() -> int:
+    """Find a free ephemeral localhost TCP port for Chrome CDP."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
 
 
-def _run_lighthouse_via_cdp(url: str, cdp_port: int, preset: str) -> dict[str, int]:
+def _run_lighthouse_via_cdp(target_url: str, cdp_port: int, preset: str) -> dict[str, int]:
     """Run lighthouse against a CDP endpoint."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False) as f:
+    escaped_url = json.dumps(target_url)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False, encoding="utf-8") as f:
         f.write(LIGHTHOUSE_RUNNER_JS)
         js_path = f.name
 
     try:
+        if _check_node_deps():
+            cmd = ["node", js_path, escaped_url, str(cdp_port), preset]
+        elif shutil.which("npx"):
+            cmd = [
+                "npx",
+                "--yes",
+                "-p",
+                "lighthouse",
+                "node",
+                js_path,
+                escaped_url,
+                str(cdp_port),
+                preset,
+            ]
+        else:
+            rprint(
+                "[red]Lighthouse Node package not found.[/red] "
+                "Install it locally via `npm install --save-dev lighthouse`."
+            )
+            raise SystemExit(1)
+
         result = subprocess.run(
-            ["node", js_path, url, str(cdp_port), preset],
+            cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=120,
         )
         if result.returncode != 0:
@@ -119,27 +145,20 @@ def _run_lighthouse_via_cdp(url: str, cdp_port: int, preset: str) -> dict[str, i
         Path(js_path).unlink(missing_ok=True)
 
 
-def _run_with_playwright(url: str, preset: str) -> dict[str, int]:
+def _run_with_playwright(target_url: str, preset: str) -> dict[str, int]:
     """Launch real Chrome via Playwright, run Lighthouse against CDP."""
     from playwright.sync_api import sync_playwright
 
+    cdp_port = _find_free_port()
     with sync_playwright() as p:
         browser = p.chromium.launch(
             channel="chrome",
             headless=True,
-            args=["--remote-debugging-port=0"],
+            args=[f"--remote-debugging-port={cdp_port}"],
         )
 
-        # Get the actual CDP port from browser
-        cdp_url = browser.contexts[0].pages[0].url if browser.contexts else ""
-        # Use the browser's websocket endpoint to extract port
-        ws_endpoint = browser._impl_obj._connection._transport._ws_url  # noqa: SLF001
-        # Extract port from ws://127.0.0.1:PORT/...
-        port_str = ws_endpoint.split("://")[1].split(":")[1].split("/")[0]
-        cdp_port = int(port_str)
-
         try:
-            scores = _run_lighthouse_via_cdp(url, cdp_port, preset)
+            scores = _run_lighthouse_via_cdp(target_url, cdp_port, preset)
         finally:
             browser.close()
 
@@ -172,9 +191,12 @@ def main(
     mobile_only: bool = typer.Option(False, "--mobile-only", help="Skip desktop audit"),
 ) -> None:
     """Run Lighthouse audit via real Playwright Chrome."""
-    # Check node deps
-    if not _check_node_deps():
-        _install_node_deps()
+    if not _check_node_deps() and not shutil.which("npx"):
+        rprint(
+            "[red]Missing Node dependency 'lighthouse'.[/red] "
+            "Install locally with: [bold]npm install --save-dev lighthouse[/bold]"
+        )
+        raise SystemExit(1)
 
     all_pass = True
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Iterable
+from contextlib import closing
 from pathlib import Path
 
 from .jsonio import as_map, parse_json_text, text
@@ -44,7 +45,7 @@ def scan_zed(extra_roots: tuple[Path, ...], workers: int) -> list[Session]:
 
 def _message_table_sessions(path: Path, platform: str, table: str) -> list[Session]:
     try:
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn:
             rows = _fetch_all(conn, f"select session_id, role, data, created_at from {table} order by created_at")
     except sqlite3.Error:
         return []
@@ -53,7 +54,7 @@ def _message_table_sessions(path: Path, platform: str, table: str) -> list[Sessi
 
 def _crush_sessions(path: Path) -> list[Session]:
     try:
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn:
             rows = _fetch_all(conn, "select session_id, role, parts, created_at from messages order by created_at")
     except sqlite3.Error:
         return []
@@ -62,7 +63,7 @@ def _crush_sessions(path: Path) -> list[Session]:
 
 def _zed_sessions(path: Path) -> list[Session]:
     try:
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn:
             rows = _fetch_all(conn, "select id, data_type, data, updated_at from threads")
     except sqlite3.Error:
         return []

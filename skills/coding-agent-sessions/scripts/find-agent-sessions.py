@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import sys
-
 sys.dont_write_bytecode = True
 for _s in (sys.stdout, sys.stderr):
     if hasattr(_s, "reconfigure"):

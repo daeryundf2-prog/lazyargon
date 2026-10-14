@@ -9,6 +9,7 @@ import math
 import os
 import re
 import sys
+sys.dont_write_bytecode = True
 import xml.etree.ElementTree as ET
 
 

@@ -9,18 +9,42 @@ def date_bound(value: str | None, end: bool = False) -> datetime | None:
         return None
     text = value.strip().lower()
     now = datetime.now(timezone.utc)
-    if text == "today":
-        base = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif text == "yesterday":
-        base = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    elif text.endswith("d") and text[:-1].isdigit():
-        base = (now - timedelta(days=int(text[:-1]))).replace(hour=0, minute=0, second=0, microsecond=0)
-    else:
-        parts = [int(part) for part in text.split("-")]
-        base = datetime(parts[0], parts[1] if len(parts) > 1 else 1, parts[2] if len(parts) > 2 else 1, tzinfo=timezone.utc)
+    is_day_unit = False
+    try:
+        if text == "today":
+            base = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            is_day_unit = True
+        elif text == "yesterday":
+            base = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+            is_day_unit = True
+        elif text.endswith("days") and text[:-4].strip().isdigit():
+            base = (now - timedelta(days=int(text[:-4].strip()))).replace(hour=0, minute=0, second=0, microsecond=0)
+            is_day_unit = True
+        elif text.endswith("d") and text[:-1].strip().isdigit():
+            base = (now - timedelta(days=int(text[:-1].strip()))).replace(hour=0, minute=0, second=0, microsecond=0)
+            is_day_unit = True
+        elif text.endswith("w") and text[:-1].strip().isdigit():
+            base = (now - timedelta(weeks=int(text[:-1].strip()))).replace(hour=0, minute=0, second=0, microsecond=0)
+            is_day_unit = True
+        elif text.endswith("h") and text[:-1].strip().isdigit():
+            base = now - timedelta(hours=int(text[:-1].strip()))
+            if end:
+                return base + timedelta(hours=1)
+            return base
+        elif "t" in text or ":" in text:
+            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+            base = parsed.astimezone(timezone.utc) if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+            return base
+        else:
+            parts = [int(part) for part in text.split("-")]
+            if not (1 <= len(parts) <= 3):
+                raise ValueError(value)
+            base = datetime(parts[0], parts[1] if len(parts) > 1 else 1, parts[2] if len(parts) > 2 else 1, tzinfo=timezone.utc)
+    except ValueError as exc:
+        raise SystemExit(f"invalid date bound: {value}") from exc
     if not end:
         return base
-    if text in {"today", "yesterday"} or text.endswith("d") or len(text.split("-")) == 3:
+    if is_day_unit or len(text.split("-")) == 3:
         return base + timedelta(days=1)
     if len(text.split("-")) == 2:
         return datetime(base.year + (base.month // 12), (base.month % 12) + 1, 1, tzinfo=timezone.utc)

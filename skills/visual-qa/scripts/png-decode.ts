@@ -51,14 +51,26 @@ function channelsForColorType(colorType: number): number {
 	}
 }
 
+const MAX_DIMENSION = 16384
+const MAX_PIXELS = 64 * 1024 * 1024
+
 function parseHeader(data: Buffer): PngHeader {
 	if (data.length < 13) {
 		throw new PngDecodeError("invalid IHDR chunk length")
 	}
+	const width = data.readUInt32BE(0)
+	const height = data.readUInt32BE(4)
+	if (width <= 0 || height <= 0 || width > MAX_DIMENSION || height > MAX_DIMENSION || width * height > MAX_PIXELS) {
+		throw new PngDecodeError(`invalid or unsupported PNG dimensions ${width}x${height}`)
+	}
+	const interlace = data[12] ?? 0
+	if (interlace !== 0) {
+		throw new PngDecodeError(`unsupported interlace method ${interlace} (Adam7 not supported)`)
+	}
 	const colorType = data[9] ?? 0
 	return {
-		width: data.readUInt32BE(0),
-		height: data.readUInt32BE(4),
+		width,
+		height,
 		bitDepth: data[8] ?? 0,
 		colorType,
 		channels: channelsForColorType(colorType),
@@ -106,9 +118,15 @@ function unfilterRow(filterType: number, row: Buffer, prev: Buffer | null, bpp: 
 }
 
 function decodePixels(idat: Buffer, width: number, height: number, bpp: number): Buffer {
-	const inflated = inflateSync(idat)
 	const rowBytes = width * bpp
-	if (inflated.length < height * (rowBytes + 1)) {
+	const expectedBytes = height * (rowBytes + 1)
+	let inflated: Buffer
+	try {
+		inflated = inflateSync(idat, { maxOutputLength: expectedBytes + 4096 })
+	} catch (err) {
+		throw new PngDecodeError(err instanceof Error ? err.message : "failed to decompress IDAT")
+	}
+	if (inflated.length < expectedBytes) {
 		throw new PngDecodeError("truncated image data")
 	}
 	const pixels = Buffer.alloc(width * height * bpp)

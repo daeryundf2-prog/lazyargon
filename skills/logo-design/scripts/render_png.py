@@ -120,12 +120,12 @@ def _cairosvg(svg_file, png, w, h):
 
 def _rsvg(svg_file, png, w, h):
     subprocess.run(["rsvg-convert", "-w", str(w), "-h", str(h), "-o", png, svg_file], check=True,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
 
 
 def _inkscape(svg_file, png, w, h):
     subprocess.run(["inkscape", svg_file, "--export-type=png", f"--export-filename={png}", "-w", str(w), "-h", str(h)],
-                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
 
 
 @contextlib.contextmanager
@@ -148,7 +148,7 @@ def _stop(proc):
         return
     if os.name == "nt":
         subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
+                       stderr=subprocess.DEVNULL, timeout=10)
     else:
         proc.terminate()
     try:

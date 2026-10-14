@@ -37,32 +37,52 @@ import path from "node:path"
 import process from "node:process"
 import type tsType from "typescript"
 
+let _ts: typeof tsType | undefined
+
 function loadTs(): typeof tsType {
+  if (_ts) return _ts
   for (const base of [path.join(process.cwd(), "package.json"), import.meta.url]) {
     try {
       const req = createRequire(base)
       const m = req("typescript") as typeof tsType & { default?: typeof tsType }
-      if (m && typeof m.createSourceFile === "function") return m
-      if (m?.default && typeof m.default.createSourceFile === "function") return m.default
+      if (m && typeof m.createSourceFile === "function") {
+        _ts = m
+        return m
+      }
+      if (m?.default && typeof m.default.createSourceFile === "function") {
+        _ts = m.default
+        return m.default
+      }
     } catch {
       // try next candidate
     }
   }
-  for (const cand of [
+  const candidates = [
+    process.env.NODE_PATH ? path.join(process.env.NODE_PATH, "typescript/lib/typescript.js") : "",
+    process.env.APPDATA ? path.join(process.env.APPDATA, "npm/node_modules/typescript/lib/typescript.js") : "",
+    process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, "npm/node_modules/typescript/lib/typescript.js") : "",
+    process.env.ProgramFiles ? path.join(process.env.ProgramFiles, "nodejs/node_modules/typescript/lib/typescript.js") : "",
+    process.env.USERPROFILE ? path.join(process.env.USERPROFILE, ".bun/install/global/node_modules/typescript/lib/typescript.js") : "",
+    process.env.HOME ? path.join(process.env.HOME, ".bun/install/global/node_modules/typescript/lib/typescript.js") : "",
     "/opt/homebrew/lib/node_modules/typescript/lib/typescript.js",
     "/usr/local/lib/node_modules/typescript/lib/typescript.js",
-  ]) {
+  ].filter(Boolean)
+  for (const cand of candidates) {
     if (fs.existsSync(cand)) {
       const req = createRequire(cand)
       const m = req(cand) as typeof tsType & { default?: typeof tsType }
-      if (m && typeof m.createSourceFile === "function") return m
-      if (m?.default && typeof m.default.createSourceFile === "function") return m.default
+      if (m && typeof m.createSourceFile === "function") {
+        _ts = m
+        return m
+      }
+      if (m?.default && typeof m.default.createSourceFile === "function") {
+        _ts = m.default
+        return m.default
+      }
     }
   }
-  throw new Error("Cannot find package 'typescript'. Install it locally or globally (e.g. brew install typescript).")
+  throw new Error("Cannot find package 'typescript'. Install it locally or globally (e.g. bun add -d typescript or npm i -g typescript).")
 }
-
-const ts = loadTs()
 
 type RuleId =
   | "no-any-assertion"
@@ -138,6 +158,7 @@ function getLineText(sourceFile: ts.SourceFile, line: number): string {
 }
 
 function analyzeFile(filePath: string): Violation[] {
+  const ts = loadTs()
   const source = fs.readFileSync(filePath, "utf-8")
   const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true)
   const violations: Violation[] = []

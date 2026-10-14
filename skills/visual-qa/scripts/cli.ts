@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 
 import { diffImages } from "./image-diff.ts"
 import { decodePng } from "./png-decode.ts"
@@ -81,6 +83,20 @@ function main(argv: readonly string[]): void {
 	}
 }
 
-if (import.meta.main) {
+function isMainModule(): boolean {
+	if (import.meta.main === true) {
+		return true
+	}
+	const entry = process.argv[1]
+	if (entry === undefined) {
+		return false
+	}
+	if (typeof import.meta.url === "string") {
+		return resolve(entry) === resolve(fileURLToPath(import.meta.url))
+	}
+	return entry.endsWith("cli.ts") || entry.endsWith("cli.js")
+}
+
+if (isMainModule()) {
 	main(process.argv.slice(2))
 }

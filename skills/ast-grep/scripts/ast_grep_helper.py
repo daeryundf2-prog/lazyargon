@@ -179,6 +179,8 @@ def which_binary() -> Optional[Path]:
                         [str(p), "--version"],
                         capture_output=True,
                         text=True,
+                        encoding="utf-8",
+                        errors="replace",
                         timeout=5,
                     )
                     if out.returncode != 0 or "ast-grep" not in (out.stdout + out.stderr).lower():
@@ -396,6 +398,8 @@ def run_sg(
             cmd,
             capture_output=capture,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
         )
     except subprocess.TimeoutExpired:
@@ -595,18 +599,29 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
 
 
 def cmd_install(_args: argparse.Namespace) -> int:
-    """Delegate to install.sh / install.ps1 in the skill root."""
+    """Delegate to install.sh / install.ps1 in the skill root, or fall back to package managers."""
     if os.name == "nt":
         installer = skill_root() / "install.ps1"
         cmd = ["pwsh", "-File", str(installer)]
     else:
         installer = skill_root() / "install.sh"
         cmd = ["bash", str(installer)]
-    if not installer.is_file():
-        err(f"installer not found: {installer}")
-        return 1
-    trace(f"running installer: {' '.join(cmd)}")
-    return subprocess.run(cmd).returncode
+    if installer.is_file():
+        trace(f"running installer: {' '.join(cmd)}")
+        return subprocess.run(cmd).returncode
+    existing = resolve_binary()
+    if existing:
+        print(f"ast-grep is already installed at: {existing}")
+        return 0
+    err(
+        "bundled installer script not found. Install ast-grep via one of:\n"
+        "  npm install -g @ast-grep/cli\n"
+        "  pip install ast-grep-cli\n"
+        "  cargo install ast-grep --locked\n"
+        "  winget install ast-grep.ast-grep   (Windows)\n"
+        "  brew install ast-grep              (macOS/Linux)"
+    )
+    return 1
 
 
 def cmd_validate(args: argparse.Namespace) -> int:

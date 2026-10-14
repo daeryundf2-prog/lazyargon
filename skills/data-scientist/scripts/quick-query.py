@@ -15,28 +15,31 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+sys.dont_write_bytecode = True
 
 import typer
 from rich import print as rprint
 from rich.table import Table
 
+MAX_DISPLAY_ROWS = 200
+
 
 def _run_duckdb(file_path: Path, sql: str) -> None:
     import duckdb
 
-    table_ref = f"'{file_path}'"
+    escaped_path = str(file_path).replace("'", "''")
+    table_ref = f"'{escaped_path}'"
+    con = duckdb.connect()
+    for view_name in ("data", "df", "t"):
+        con.execute(f"CREATE OR REPLACE TEMP VIEW {view_name} AS SELECT * FROM {table_ref}")
     stem = file_path.stem
-    query = sql
-    for alias in ("data", "df", stem):
-        query = query.replace(f"FROM {alias} ", f"FROM {table_ref} ")
-        query = query.replace(f"FROM {alias}\n", f"FROM {table_ref}\n")
-        query = query.replace(f"from {alias} ", f"from {table_ref} ")
-        query = query.replace(f"from {alias}\n", f"from {table_ref}\n")
-        if query.endswith(f"FROM {alias}") or query.endswith(f"from {alias}"):
-            query = query[: -len(alias)] + table_ref
+    if stem.isidentifier() and stem not in ("data", "df", "t"):
+        con.execute(f'CREATE OR REPLACE TEMP VIEW "{stem}" AS SELECT * FROM {table_ref}')
 
-    result = duckdb.sql(query)
+    result = con.sql(sql)
     df = result.pl()
     _print_polars(df)
 
@@ -76,14 +79,19 @@ def _read_file(file_path: Path):  # noqa: ANN202
     raise SystemExit(1)
 
 
-def _print_polars(df) -> None:  # noqa: ANN001
+def _print_polars(df, max_rows: int = MAX_DISPLAY_ROWS) -> None:  # noqa: ANN001
     table = Table(show_lines=False)
     for col_name in df.columns:
         table.add_column(col_name)
-    for row in df.iter_rows():
+    total_rows = df.shape[0]
+    display_df = df.head(max_rows) if total_rows > max_rows else df
+    for row in display_df.iter_rows():
         table.add_row(*(str(v) for v in row))
     rprint(table)
-    rprint(f"[dim]{df.shape[0]} rows × {df.shape[1]} cols[/dim]")
+    if total_rows > max_rows:
+        rprint(f"[dim]Showing first {max_rows} of {total_rows} rows × {df.shape[1]} cols[/dim]")
+    else:
+        rprint(f"[dim]{total_rows} rows × {df.shape[1]} cols[/dim]")
 
 
 def main(

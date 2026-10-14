@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+sys.dont_write_bytecode = True
 from pathlib import Path
 from string import Template
 
@@ -45,7 +46,7 @@ def _render(template_file: str, **subs: str) -> str:
 
     Uses string.Template ($name) so Go/YAML curly braces stay literal.
     """
-    raw = (TEMPLATES_DIR / template_file).read_text()
+    raw = (TEMPLATES_DIR / template_file).read_text(encoding="utf-8")
     if not subs:
         return raw
     return Template(raw).substitute(**subs)
@@ -77,7 +78,7 @@ def _init_go_module(project_dir: Path, module: str) -> None:
         console.print(f"  [dim]ran[/] go mod init {module}")
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         console.print(f"  [yellow]warn[/] go mod init failed ({e}); writing fallback go.mod")
-        (project_dir / "go.mod").write_text(f"module {module}\n\ngo 1.23\n")
+        (project_dir / "go.mod").write_text(f"module {module}\n\ngo 1.23\n", encoding="utf-8")
 
 
 def _create_layout(project_dir: Path) -> None:
@@ -106,7 +107,7 @@ def _write_files(project_dir: Path, name: str, module: str, purpose: str) -> Non
         content = _render(tmpl_name, **subs)
         out_path = project_dir / out_rel
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(content)
+        out_path.write_text(content, encoding="utf-8")
         console.print(f"  [dim]wrote[/] {out_rel}")
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeAlias
@@ -50,7 +51,7 @@ def _state_index(db_path: Path) -> dict[str, _StateRow]:
     if not db_path.exists():
         return {}
     try:
-        with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
+        with closing(sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)) as conn:
             rows: list[SqlRow] = conn.execute("select id, parent_id, title, cwd, model, created_at, updated_at from sessions").fetchall()
     except sqlite3.Error:
         return {}

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+sys.dont_write_bytecode = True
 from pathlib import Path
 
 import typer
@@ -136,6 +137,8 @@ def main(
             check=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
     except FileNotFoundError:
         console.print("[bold red]Error:[/] cargo not found. Install Rust via https://rustup.rs")
@@ -145,27 +148,27 @@ def main(
         sys.exit(1)
 
     # ── rust-toolchain.toml ──────────────────────────────────────────
-    (project_dir / "rust-toolchain.toml").write_text(RUST_TOOLCHAIN_TOML)
+    (project_dir / "rust-toolchain.toml").write_text(RUST_TOOLCHAIN_TOML, encoding="utf-8")
     console.print("  [dim]wrote[/] rust-toolchain.toml")
 
     # ── Append [lints] to Cargo.toml ─────────────────────────────────
     cargo_toml = project_dir / "Cargo.toml"
-    with cargo_toml.open("a") as f:
+    with cargo_toml.open("a", encoding="utf-8") as f:
         f.write(CARGO_TOML_LINTS)
     console.print("  [dim]appended[/] [lints] to Cargo.toml")
 
     # ── .cargo/config.toml ───────────────────────────────────────────
     cargo_config_dir = project_dir / ".cargo"
     cargo_config_dir.mkdir(parents=True, exist_ok=True)
-    (cargo_config_dir / "config.toml").write_text(CARGO_CONFIG_TOML)
+    (cargo_config_dir / "config.toml").write_text(CARGO_CONFIG_TOML, encoding="utf-8")
     console.print("  [dim]wrote[/] .cargo/config.toml")
 
     # ── deny.toml ────────────────────────────────────────────────────
-    (project_dir / "deny.toml").write_text(DENY_TOML)
+    (project_dir / "deny.toml").write_text(DENY_TOML, encoding="utf-8")
     console.print("  [dim]wrote[/] deny.toml")
 
     # ── rustfmt.toml ─────────────────────────────────────────────────
-    (project_dir / "rustfmt.toml").write_text(RUSTFMT_TOML)
+    (project_dir / "rustfmt.toml").write_text(RUSTFMT_TOML, encoding="utf-8")
     console.print("  [dim]wrote[/] rustfmt.toml")
 
     console.print(f"\n[bold green]Done![/] cd {project_dir} && cargo check")

@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import re
 import sys
+sys.dont_write_bytecode = True
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -150,6 +151,7 @@ def collect_rs_files(args: list[str]) -> list[Path]:
 def check_file(file: Path) -> None:
     in_test_file = is_test_path(file)
     in_cfg_test = False
+    cfg_test_entered_block = False
     cfg_test_brace_depth = 0
 
     try:
@@ -160,21 +162,27 @@ def check_file(file: Path) -> None:
 
     for line_no_0, raw_line in enumerate(lines):
         line_no = line_no_0 + 1  # 1-indexed
+        code_only = strip_line_comment(raw_line)
 
         # --- #[cfg(test)] region tracker ---
-        if RE_CFG_TEST.search(raw_line):
+        if RE_CFG_TEST.search(code_only):
             in_cfg_test = True
+            cfg_test_entered_block = False
             cfg_test_brace_depth = 0
 
         if in_cfg_test:
-            opens = raw_line.count("{")
-            closes = raw_line.count("}")
+            opens = code_only.count("{")
+            closes = code_only.count("}")
+            if opens > 0:
+                cfg_test_entered_block = True
             cfg_test_brace_depth += opens - closes
-            if cfg_test_brace_depth <= 0 and not RE_CFG_TEST.search(raw_line):
+            if cfg_test_entered_block and cfg_test_brace_depth <= 0:
+                in_cfg_test = False
+                cfg_test_entered_block = False
+            elif not cfg_test_entered_block and ";" in code_only and not RE_CFG_TEST.search(code_only):
                 in_cfg_test = False
 
         exempt = in_test_file or in_cfg_test
-        code_only = strip_line_comment(raw_line)
 
         if not exempt:
             # .unwrap()

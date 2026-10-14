@@ -34,6 +34,7 @@ from __future__ import annotations
 import os
 import stat
 import sys
+sys.dont_write_bytecode = True
 import tempfile
 from pathlib import Path
 
@@ -101,7 +102,7 @@ def main(
     )
 
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(content)
+    dest.write_text(content, encoding="utf-8")
 
     # Make executable on Unix
     if sys.platform != "win32":

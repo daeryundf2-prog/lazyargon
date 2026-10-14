@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { StringDecoder } from "node:string_decoder";
 
 async function readAllStdin() {
 	return new Promise((resolve) => {
@@ -36,17 +37,25 @@ async function main() {
 
 		let stdoutData = "";
 		let stderrData = "";
+		let stdoutBytes = 0;
+		let stderrBytes = 0;
+		const stdoutDecoder = new StringDecoder("utf8");
+		const stderrDecoder = new StringDecoder("utf8");
 		const MAX_CAPTURE_BYTES = 10 * 1024 * 1024;
 
 		child.stdout.on("data", (chunk) => {
-			if (stdoutData.length + chunk.length <= MAX_CAPTURE_BYTES) {
-				stdoutData += chunk;
+			const chunkBytes = Buffer.byteLength(chunk);
+			if (stdoutBytes + chunkBytes <= MAX_CAPTURE_BYTES) {
+				stdoutBytes += chunkBytes;
+				stdoutData += stdoutDecoder.write(chunk);
 			}
 		});
 
 		child.stderr.on("data", (chunk) => {
-			if (stderrData.length + chunk.length <= MAX_CAPTURE_BYTES) {
-				stderrData += chunk;
+			const chunkBytes = Buffer.byteLength(chunk);
+			if (stderrBytes + chunkBytes <= MAX_CAPTURE_BYTES) {
+				stderrBytes += chunkBytes;
+				stderrData += stderrDecoder.write(chunk);
 			}
 		});
 
@@ -57,6 +66,8 @@ async function main() {
 		child.stdin.end();
 
 		child.on("close", (code) => {
+			stdoutData += stdoutDecoder.end();
+			stderrData += stderrDecoder.end();
 			const safeStdout = stdoutData.trim() ? stdoutData : "{}\n";
 			if (code === 0) {
 				process.stdout.write(safeStdout);

@@ -12,30 +12,32 @@ const HOOKS_JSON = JSON.parse(fs.readFileSync(path.join(ROOT, "hooks.json"), "ut
 function runShCommand(cmd, stdinPayload, cwd = ROOT, extraEnv = {}) {
 	const env = { ...process.env, ...extraEnv };
 	delete env.PLUGIN_ROOT;
-	return spawnSync("sh", ["-c", cmd], {
+	const resolvedCmd = cmd.replace(/\$\{PLUGIN_ROOT:-\.\}/g, env.PLUGIN_ROOT || ".");
+	return spawnSync(resolvedCmd, {
 		cwd,
 		env,
 		input: stdinPayload,
 		encoding: "utf8",
+		shell: true,
 	});
 }
 
 test("#given hook-runner.mjs #when child exits 0 with empty stdout #then stdout is valid JSON {}", () => {
-	const cmd = 'node "${PLUGIN_ROOT:-.}/scripts/hook-runner.mjs" FAIL_CLOSED none none node -e "process.exit(0)"';
+	const cmd = 'node "./scripts/hook-runner.mjs" FAIL_CLOSED none none node -e "process.exit(0)"';
 	const res = runShCommand(cmd, "{}");
 	assert.equal(res.status, 0);
 	assert.deepEqual(JSON.parse(res.stdout), {});
 });
 
 test("#given hook-runner.mjs FAIL_OPEN #when child exits 1 with empty stdout #then stdout is valid JSON {}", () => {
-	const cmd = 'node "${PLUGIN_ROOT:-.}/scripts/hook-runner.mjs" FAIL_OPEN none none node -e "console.error(\'err\'); process.exit(1)"';
+	const cmd = 'node "./scripts/hook-runner.mjs" FAIL_OPEN none none node -e "console.error(\'err\'); process.exit(1)"';
 	const res = runShCommand(cmd, "{}");
 	assert.equal(res.status, 0);
 	assert.deepEqual(JSON.parse(res.stdout), {});
 	assert.match(res.stderr, /err/);
 });
 
-test("#given lazyargon hooks.json commands #when executed via sh -c without PLUGIN_ROOT #then pass returns 0 + {} and broken transcript target returns 1", () => {
+test("#given lazyargon hooks.json commands #when executed without PLUGIN_ROOT #then pass returns 0 + {} and broken transcript target returns 1", () => {
 	const postHooks = HOOKS_JSON.hooks.PostToolUse[0].hooks;
 	const mdCmd = postHooks.find((h) => h.command.includes("markdown_structure_guard.mjs")).command;
 	const jsonCmd = postHooks.find((h) => h.command.includes("json_schema_guard.mjs")).command;
@@ -103,11 +105,42 @@ test("#given lazyargon hooks.json commands #when executed via sh -c without PLUG
 		assert.equal(jsonFail.status, 1);
 		assert.match(jsonFail.stderr, /JSON SCHEMA GUARD/);
 
-		// Fix JSON -> exit 0 and {}
-		fs.writeFileSync(brokenJson, '{"version": "1.0.0"}', "utf8");
+		// Fix JSON (including workspace:*, github: shorthand, and relative endpoint) -> exit 0 and {}
+		fs.writeFileSync(
+			brokenJson,
+			JSON.stringify({
+				version: "workspace:*",
+				repository: "github:daeryundf2-prog/lazyargon",
+				endpoint: "/api/v1/health",
+				nested: { version: "v1" },
+			}),
+			"utf8",
+		);
 		const jsonPass = runShCommand(jsonCmd, jsonPayload);
 		assert.equal(jsonPass.status, 0, jsonPass.stderr);
 		assert.deepEqual(JSON.parse(jsonPass.stdout), {});
+
+		// 4) Markdown file > 10MB truncated mid-fence -> does not false-positive on unclosed_code_fence
+		const largeMd = path.join(tmpDir, "large.md");
+		const pad = "# Heading\n\n" + "a".repeat(10 * 1024 * 1024 - 20) + "\n```js\nconst x = 1;\n" + "b".repeat(4096) + "\n```\n";
+		fs.writeFileSync(largeMd, pad, "utf8");
+		const largeStep = {
+			step_index: 8,
+			source: "MODEL",
+			type: "PLANNER_RESPONSE",
+			status: "DONE",
+			tool_calls: [{ name: "write_to_file", args: { TargetFile: JSON.stringify(largeMd) } }],
+		};
+		fs.writeFileSync(path.join(logsDir, "transcript.jsonl"), `${JSON.stringify(largeStep)}\n`, "utf8");
+		const largePayload = JSON.stringify({
+			conversationId: "conv-e2e",
+			transcriptPath: path.join(logsDir, "transcript.jsonl"),
+			artifactDirectoryPath: brainDir,
+			stepIdx: 9,
+		});
+		const largeMdPass = runShCommand(mdCmd, largePayload);
+		assert.equal(largeMdPass.status, 0, largeMdPass.stderr);
+		assert.deepEqual(JSON.parse(largeMdPass.stdout), {});
 	} finally {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 	}

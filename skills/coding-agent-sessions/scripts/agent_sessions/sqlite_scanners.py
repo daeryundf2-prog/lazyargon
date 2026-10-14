@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from typing import TypeAlias
 
@@ -36,7 +37,7 @@ def scan_cursor_cli(extra_roots: tuple[Path, ...], workers: int) -> list[Session
 
 def _kodu_db(path: Path) -> list[Session]:
     try:
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn:
             tasks = _fetch_all(
                 conn,
                 "select id, name, dir_absolute_path, created_at, updated_at, tokens_in, tokens_out, cache_reads, cache_writes, cost from tasks"
@@ -78,7 +79,7 @@ def _kodu_session(path: Path, conn: sqlite3.Connection, row: SqlRow) -> Session:
 
 def _cursor_db(path: Path) -> list[Session]:
     try:
-        with sqlite3.connect(path) as conn:
+        with closing(sqlite3.connect(path)) as conn:
             rows = _fetch_all(conn, "select data from blobs")
     except sqlite3.Error:
         return []

@@ -6,7 +6,10 @@
 The lite package leaves out the 1,400+ SVG files and gallery.html (catalog metadata, scripts and all
 references are kept) for platforms with upload size limits.
 """
+import argparse
 import os
+import sys
+sys.dont_write_bytecode = True
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,9 +18,9 @@ DIST = os.path.join(ROOT, "dist")
 SKIP_DIRS = {"__pycache__", ".DS_Store"}
 
 
-def build(name, lite):
-    os.makedirs(DIST, exist_ok=True)
-    out = os.path.join(DIST, name)
+def build(name, lite, out_dir=DIST):
+    os.makedirs(out_dir, exist_ok=True)
+    out = os.path.join(out_dir, name)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for dirpath, dirnames, filenames in os.walk(SKILL):
             dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
@@ -35,5 +38,8 @@ def build(name, lite):
 
 
 if __name__ == "__main__":
-    build("logo-design.zip", lite=False)
-    build("logo-design-lite.zip", lite=True)
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--out-dir", default=DIST, help="Output directory for zip archives (default: dist/)")
+    args = ap.parse_args()
+    build("logo-design.zip", lite=False, out_dir=args.out_dir)
+    build("logo-design-lite.zip", lite=True, out_dir=args.out_dir)

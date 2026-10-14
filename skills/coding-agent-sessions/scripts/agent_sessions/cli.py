@@ -2,11 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
-
 sys.dont_write_bytecode = True
-for _s in (sys.stdout, sys.stderr):
-    if hasattr(_s, "reconfigure"):
-        _s.reconfigure(encoding="utf-8", errors="replace")
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
@@ -18,6 +14,9 @@ from .types import Json, JsonMap, Options, Session
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     command, opts, rest = _parse()
     sessions = sorted(scan(opts.platforms, opts.roots, opts.workers), key=lambda item: item.created_at or "", reverse=True)
     if command == "list":
@@ -35,17 +34,24 @@ def main() -> int:
     raise SystemExit(f"unknown command: {command}")
 
 
-def _parse() -> tuple[str, Options, list[str]]:
-    import sys
+def _next_arg(args: list[str], index: int, flag: str) -> str:
+    if index + 1 >= len(args):
+        raise SystemExit(f"error: {flag} requires a value")
+    return args[index + 1]
 
+
+def _next_int(args: list[str], index: int, flag: str) -> int:
+    raw = _next_arg(args, index, flag)
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise SystemExit(f"error: {flag} requires an integer, got '{raw}'") from exc
+
+
+def _parse() -> tuple[str, Options, list[str]]:
     args = sys.argv[1:]
     if not args or args[0] in {"-h", "--help"}:
-        usage = (
-            "Usage: find-agent-sessions.py list|find|search|read|get [query|ids...] [--query TEXT ...] "
-            "[--platform NAME ...] [--root PATH] [--from DATE] [--to DATE] [--cwd TEXT] "
-            "[--model TEXT] [--limit N] [--workers N] [--include-subagents]"
-        )
-        print(usage)
+        print("Usage: find-agent-sessions.py list|find|search|read|get [query|ids...] [--query TEXT ...] [--platform NAME ...] [--root PATH] [--from DATE] [--to DATE] [--cwd TEXT] [--model TEXT] [--limit N] [--workers N] [--include-subagents]")
         raise SystemExit(0)
     command = args.pop(0)
     if command == "find":
@@ -64,34 +70,34 @@ def _parse() -> tuple[str, Options, list[str]]:
     while index < len(args):
         arg = args[index]
         if arg == "--root":
-            roots.append(Path(args[index + 1]).expanduser())
+            roots.append(Path(_next_arg(args, index, "--root")).expanduser())
             index += 2
         elif arg == "--query":
-            queries.append(args[index + 1])
+            queries.append(_next_arg(args, index, "--query"))
             index += 2
         elif arg == "--platform":
-            platform = args[index + 1].strip().lower()
+            platform = _next_arg(args, index, "--platform").strip().lower()
             if "," in platform:
                 raise SystemExit("Use repeated --platform flags, for example: --platform senpi --platform opencode")
             platforms.append(platform)
             index += 2
         elif arg == "--from":
-            date_from = args[index + 1]
+            date_from = _next_arg(args, index, "--from")
             index += 2
         elif arg == "--to":
-            date_to = args[index + 1]
+            date_to = _next_arg(args, index, "--to")
             index += 2
         elif arg == "--cwd":
-            cwd = args[index + 1].lower()
+            cwd = _next_arg(args, index, "--cwd").lower()
             index += 2
         elif arg == "--model":
-            model = args[index + 1].lower()
+            model = _next_arg(args, index, "--model").lower()
             index += 2
         elif arg == "--limit":
-            limit = int(args[index + 1])
+            limit = _next_int(args, index, "--limit")
             index += 2
         elif arg == "--workers":
-            workers = max(int(args[index + 1]), 1)
+            workers = max(_next_int(args, index, "--workers"), 1)
             index += 2
         elif arg == "--include-subagents":
             include_subagents = True

@@ -18,9 +18,9 @@ async function listMarkdown(dir) {
 test("#given diagram-design skill and all 18 skills #when SKILL.md is inspected #then frontmatter is valid YAML", async () => {
 	const skillPath = join(root, "skills", "diagram-design", "SKILL.md");
 	const content = await readFile(skillPath, "utf8");
-	assert.match(content, /^---\n/m);
-	assert.match(content, /^name:\s*diagram-design$/m);
-	assert.match(content, /^description:\s*".+"/m);
+	assert.match(content, /^---\r?\n/m);
+	assert.match(content, /^name:\s*diagram-design\r?$/m);
+	assert.match(content, /^description:\s*".+"\r?$/m);
 	assert.match(content, /Thirty-nine visual types/);
 
 	const skillsRoot = join(root, "skills");
@@ -30,9 +30,9 @@ test("#given diagram-design skill and all 18 skills #when SKILL.md is inspected 
 
 	for (const dirName of skillDirs) {
 		const md = await readFile(join(skillsRoot, dirName, "SKILL.md"), "utf8");
-		const fmMatch = md.match(/^---\n([\s\S]*?)\n---/);
+		const fmMatch = md.match(/^---\r?\n([\s\S]*?)\r?\n---/);
 		assert.ok(fmMatch, `missing YAML frontmatter in skills/${dirName}/SKILL.md`);
-		for (const line of fmMatch[1].split("\n")) {
+		for (const line of fmMatch[1].split(/\r?\n/)) {
 			const kv = line.match(/^([a-zA-Z0-9_-]+):\s*(.+)$/);
 			if (!kv) continue;
 			const val = kv[2].trim();

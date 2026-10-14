@@ -318,7 +318,7 @@ def main():
     final = spec.get("final", False)
     cls = "g" if grey else ""
     tile = "#161616" if grey else (spec.get("tile_color") or color)
-    date = spec.get("date") or datetime.date.today().isoformat()
+    date = html.escape(str(spec.get("date") or datetime.date.today().isoformat()))
     designer = spec.get("designer", "")
     concepts = spec.get("concepts", [])
     ind = str(spec.get("industry", "")).lower()
@@ -339,8 +339,8 @@ def main():
             cover_mark = (f'<div style="position:absolute;right:64px;top:50%;transform:translateY(-50%);width:520px;'
                           f'height:300px;display:flex;align-items:center;justify-content:center">'
                           f'<img class="{cls}" src="{uri(first, base)}" style="max-width:100%;max-height:100%"></div>')
-    kicker = (custom_title.capitalize() if (final and custom_title) else "Final identity") if final \
-        else f"Logo design · round {spec.get('round', 1)}"
+    kicker = html.escape(str((custom_title.capitalize() if (final and custom_title) else "Final identity") if final
+                             else f"Logo design · round {spec.get('round', 1)}"))
     note = ("Concepts are shown in greyscale so the conversation stays on form and idea; colour follows once a "
             "direction is chosen." if grey and not final else "")
     slides.append(f"""<section class="slide"><div class="kicker">{kicker}</div>
@@ -375,8 +375,8 @@ def main():
                 if src:
                     dark[k] = uri(src, base)
         items.append((c, sym, lock))
-        label = spec.get("label") or ((custom_title.capitalize() if custom_title else "Final design") if final
-                                      else f"Concept {chr(65 + i)}")
+        label = html.escape(str(spec.get("label") or ((custom_title.capitalize() if custom_title else "Final design") if final
+                                                      else f"Concept {chr(65 + i)}")))
         rat = "".join(f"<li>{html.escape(r)}</li>" for r in c.get("rationale", []))
         sizes = "".join(f'<div><img class="{cls}" src="{av}" style="height:{s}px">{s}px</div>' for s in (16, 24, 32, 64))
         slides.append(f"""<section class="slide"><div class="kicker">{label}</div><h2>{html.escape(c.get('name', ''))}</h2>

@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+sys.dont_write_bytecode = True
 from pathlib import Path
 
 import typer
@@ -113,14 +114,14 @@ def main(
 
     # Run uv init
     cmd = ["uv", "init", "--lib" if lib else "--app", str(project_dir)]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if result.returncode != 0:
         rprint(f"[red]uv init failed:[/red] {result.stderr}")
         raise SystemExit(1)
 
     # Read existing pyproject.toml
     pyproject_path = project_dir / "pyproject.toml"
-    content = pyproject_path.read_text()
+    content = pyproject_path.read_text(encoding="utf-8")
 
     # Remove the default [dependency-groups] if uv init created one
     # (we'll replace it with our strict version)
@@ -141,7 +142,7 @@ def main(
     # Append strict tool config
     content += TOOL_CONFIG
 
-    pyproject_path.write_text(content)
+    pyproject_path.write_text(content, encoding="utf-8")
 
     # Add dev dependencies
     subprocess.run(
@@ -156,7 +157,7 @@ def main(
     (tests_dir / "__init__.py").touch()
 
     # Overwrite .gitignore
-    (project_dir / ".gitignore").write_text(GITIGNORE)
+    (project_dir / ".gitignore").write_text(GITIGNORE, encoding="utf-8")
 
     # Create py.typed marker for libraries
     if lib:

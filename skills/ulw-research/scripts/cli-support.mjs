@@ -1,7 +1,7 @@
 // cli-support.mjs - argument parsing, typed usage errors, exit-code mapping, and JSON file IO
 // shared by every report-tools subcommand. node: builtins only.
 
-import { readFileSync, renameSync, writeFileSync } from "node:fs"
+import { readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
 import { basename, dirname, join } from "node:path"
 
 /** A usage or input error: always exit code 2. */
@@ -90,8 +90,17 @@ export function readJsonFile(path) {
 /** Write JSON through a sibling temp file + rename, so a crash never leaves a half-written file. */
 export function writeJsonAtomic(path, value) {
 	const temp = join(dirname(path), `.${basename(path)}.${process.pid}.${Date.now()}.tmp`)
-	writeFileSync(temp, `${JSON.stringify(value, null, 2)}\n`)
-	renameSync(temp, path)
+	try {
+		writeFileSync(temp, `${JSON.stringify(value, null, 2)}\n`)
+		renameSync(temp, path)
+	} catch (error) {
+		try {
+			rmSync(temp, { force: true })
+		} catch {
+			// ignore cleanup error
+		}
+		throw error
+	}
 }
 
 /** Print a result: JSON on stdout, one summary line on stderr. */
