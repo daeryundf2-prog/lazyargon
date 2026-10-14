@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer"
 import { deflateSync } from "node:zlib"
 
-import { crc32, PNG_SIGNATURE } from "./png-crc"
+import { crc32, PNG_SIGNATURE } from "./png-crc.ts"
 
 const BIT_DEPTH_8 = 8
 const COLOR_TYPE_RGBA = 6

@@ -1,8 +1,8 @@
 import { Buffer } from "node:buffer"
 import { inflateSync } from "node:zlib"
 
-import { PNG_SIGNATURE } from "./png-crc"
-import type { DecodedImage } from "./types"
+import { PNG_SIGNATURE } from "./png-crc.ts"
+import type { DecodedImage } from "./types.ts"
 
 export class PngDecodeError extends Error {
 	readonly name = "PngDecodeError"

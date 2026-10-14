@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs"
 
-import { diffImages } from "./image-diff"
-import { decodePng } from "./png-decode"
-import { checkTui } from "./tui-grid"
-import type { ImageDiffResult, TuiCheckResult } from "./types"
+import { diffImages } from "./image-diff.ts"
+import { decodePng } from "./png-decode.ts"
+import { checkTui } from "./tui-grid.ts"
+import type { ImageDiffResult, TuiCheckResult } from "./types.ts"
 
 export class CliError extends Error {
 	readonly name = "CliError"

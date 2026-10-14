@@ -1136,6 +1136,11 @@ def _detect_page_type(context: str, style_results: list) -> str:
 # ============ CLI SUPPORT ============
 if __name__ == "__main__":
     import argparse
+    import sys
+    sys.dont_write_bytecode = True
+    for _s in (sys.stdout, sys.stderr):
+        if hasattr(_s, "reconfigure"):
+            _s.reconfigure(encoding="utf-8", errors="replace")
 
     parser = argparse.ArgumentParser(description="Generate Design System")
     parser.add_argument("query", help="Search query (e.g., 'SaaS dashboard')")

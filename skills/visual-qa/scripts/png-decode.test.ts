@@ -1,8 +1,8 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "./test-shim.ts"
 import { Buffer } from "node:buffer"
 
-import { decodePng } from "./png-decode"
-import { encodeRgbaPng, solidRgba } from "./png-synth"
+import { decodePng } from "./png-decode.ts"
+import { encodeRgbaPng, solidRgba } from "./png-synth.ts"
 
 describe("decodePng", () => {
 	test("#given an encoded RGBA image #when decoded #then dimensions and first pixel round-trip", () => {

@@ -6,12 +6,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT:-.}/scripts/hook-runner.mjs\" FAIL_CLOSED none none node \"${PLUGIN_ROOT:-.}/scripts/markdown_structure_guard.mjs\"",
+            "command": "node ./scripts/hook-runner.mjs FAIL_CLOSED none none node ./scripts/markdown_structure_guard.mjs",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT:-.}/scripts/hook-runner.mjs\" FAIL_CLOSED none none node \"${PLUGIN_ROOT:-.}/scripts/json_schema_guard.mjs\"",
+            "command": "node ./scripts/hook-runner.mjs FAIL_CLOSED none none node ./scripts/json_schema_guard.mjs",
             "timeout": 5
           }
         ]

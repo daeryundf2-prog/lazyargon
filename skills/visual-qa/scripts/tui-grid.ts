@@ -1,6 +1,6 @@
-import { hasAnsi, stripAnsi } from "./ansi"
-import { charWidth, stringWidth } from "./east-asian-width"
-import type { OverflowLine, TuiCheckResult } from "./types"
+import { hasAnsi, stripAnsi } from "./ansi.ts"
+import { charWidth, stringWidth } from "./east-asian-width.ts"
+import type { OverflowLine, TuiCheckResult } from "./types.ts"
 
 const BOX_DRAWING_START = 0x2500
 const BOX_DRAWING_END = 0x257f

@@ -1,10 +1,11 @@
-import { describe, expect, test } from "bun:test"
+import { spawnSync } from "node:child_process"
+import { describe, expect, test } from "./test-shim.ts"
 import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { run, runImageDiff, runTuiCheck } from "./cli"
-import { encodeRgbaPng, solidRgba } from "./png-synth"
+import { run, runImageDiff, runTuiCheck } from "./cli.ts"
+import { encodeRgbaPng, solidRgba } from "./png-synth.ts"
 
 function tempDir(): string {
 	return mkdtempSync(join(tmpdir(), "visual-qa-"))
@@ -63,9 +64,9 @@ describe("cli entry", () => {
 		writeFileSync(reference, encodeRgbaPng(2, 2, solidRgba(2, 2, [0, 0, 0, 255])))
 		writeFileSync(actual, encodeRgbaPng(2, 2, solidRgba(2, 2, [255, 255, 255, 255])))
 		// when
-		const proc = Bun.spawnSync(["bun", join(import.meta.dir, "cli.ts"), "image-diff", reference, actual])
+		const proc = spawnSync(process.execPath, ["--experimental-strip-types", join(import.meta.dirname, "cli.ts"), "image-diff", reference, actual])
 		// then
-		expect(proc.exitCode).toBe(0)
+		expect(proc.status).toBe(0)
 		const parsed: Record<string, unknown> = JSON.parse(proc.stdout.toString())
 		expect(parsed["command"]).toBe("image-diff")
 		expect(parsed["similarityScore"]).toBe(0)

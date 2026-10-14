@@ -1,8 +1,8 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "./test-shim.ts"
 
-import { diffImages } from "./image-diff"
-import { solidRgba } from "./png-synth"
-import type { DecodedImage } from "./types"
+import { diffImages } from "./image-diff.ts"
+import { solidRgba } from "./png-synth.ts"
+import type { DecodedImage } from "./types.ts"
 
 function makeImage(width: number, height: number, rgba: Uint8Array, transparent = false): DecodedImage {
 	return { width, height, rgba, hasAlphaChannel: true, hasTransparentPixels: transparent }

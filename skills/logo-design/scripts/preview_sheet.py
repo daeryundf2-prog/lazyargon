@@ -25,7 +25,23 @@ import sys
 
 sys.dont_write_bytecode = True  # keep the skill folder clean (no __pycache__)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import svglib  # noqa: E402
+import svglib
+
+INDUSTRY_ALIASES = {
+    "legal": "finance-banking", "law": "finance-banking", "services": "productivity-collaboration",
+    "agency": "design-creative", "consulting": "productivity-collaboration",
+    "finance": "finance-banking", "bank": "finance-banking", "banking": "finance-banking",
+    "fintech": "payments-fintech", "payments": "payments-fintech", "crypto": "payments-fintech",
+    "software": "developer-tools", "devtool": "developer-tools", "tech": "developer-tools",
+    "saas": "productivity-collaboration", "b2b-saas": "productivity-collaboration", "startup": "productivity-collaboration",
+    "ai": "ai-ml", "ml": "ai-ml", "security": "security-identity",
+    "retail": "ecommerce-retail", "ecommerce": "ecommerce-retail", "shop": "ecommerce-retail", "store": "ecommerce-retail",
+    "cloud": "cloud-infrastructure", "hosting": "hosting-cdn", "data": "database-data", "database": "database-data",
+    "design": "design-creative", "media": "media-entertainment", "social": "social-communication",
+    "travel": "travel-transport", "clinic": "health", "wellness": "health", "medical": "health",
+    "school": "education", "university": "education",
+}
+  # noqa: E402
 
 SIZES = [16, 20, 24, 32, 48, 64, 96, 128, 256]
 
@@ -186,6 +202,7 @@ def shelf_block(items, refs):
 def refs_for_industry(industry, n):
     with open(svglib.CATALOG_PATH, encoding="utf-8") as fh:
         cat = json.load(fh)
+    industry = INDUSTRY_ALIASES.get((industry or "").lower(), industry)
     rows = [r for r in cat if r.get("industry") == industry and r.get("variant") == "main"]
     rows.sort(key=lambda r: (not r.get("exemplary"), r["file"]))
     return [os.path.join(svglib.LIBRARY_SVG_DIR, r["file"]) for r in rows[:n]]

@@ -13,9 +13,12 @@ New-Item -ItemType Directory -Path $Output -Force | Out-Null
 function Pass([string]$msg) { Write-Host "PASS: $msg" }
 function Fail([string]$msg) { Write-Host "FAIL: $msg" -ForegroundColor Red; Remove-Item -Recurse -Force $Output -ErrorAction SilentlyContinue; exit 1 }
 
-function Run([string[]]$Args) {
+function Run([string[]]$CmdArgs) {
     $stdoutFile = Join-Path $Output ("out-" + [guid]::NewGuid().ToString('N').Substring(0,8) + ".txt")
-    $proc = Start-Process -FilePath $Python -ArgumentList (@($Helper) + $Args) -NoNewWindow -PassThru -Wait -RedirectStandardOutput $stdoutFile -RedirectStandardError "$stdoutFile.err"
+    $quotedArgs = (@($Helper) + $CmdArgs) | ForEach-Object {
+        if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ }
+    }
+    $proc = Start-Process -FilePath $Python -ArgumentList $quotedArgs -NoNewWindow -PassThru -Wait -RedirectStandardOutput $stdoutFile -RedirectStandardError "$stdoutFile.err"
     $stdout = if (Test-Path $stdoutFile) { Get-Content $stdoutFile -Raw } else { '' }
     $stderr = if (Test-Path "$stdoutFile.err") { Get-Content "$stdoutFile.err" -Raw } else { '' }
     return [pscustomobject]@{

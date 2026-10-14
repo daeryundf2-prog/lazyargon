@@ -19,6 +19,7 @@ import html
 import os
 import re
 import sys
+import unicodedata
 
 sys.dont_write_bytecode = True  # keep the skill folder clean (no __pycache__)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -42,10 +43,14 @@ def embed(path, key, x, y, w, h):
     return raw.replace(tag, new_tag, 1)
 
 
+def _disp_width(s):
+    return sum(2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1 for ch in s)
+
+
 def wrap(text, limit):
     words, lines, line = text.split(), [], ""
     for w in words:
-        if len(line) + len(w) + 1 > limit and line:
+        if _disp_width(line) + _disp_width(w) + (1 if line else 0) > limit and line:
             lines.append(line)
             line = ""
         line += (" " if line else "") + w

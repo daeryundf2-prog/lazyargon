@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 import os
+import sys
+
+sys.dont_write_bytecode = True
+for _s in (sys.stdout, sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 

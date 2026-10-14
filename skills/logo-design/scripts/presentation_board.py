@@ -154,6 +154,30 @@ def uri(path, base):
     return svglib.svg_data_uri(p)
 
 
+
+_HANGUL_L = ["g","kk","n","d","tt","r","m","b","pp","s","ss","","j","jj","ch","k","t","p","h"]
+_HANGUL_V = ["a","ae","ya","yae","eo","e","yeo","ye","o","wa","wae","oe","yo","u","wo","we","wi","yu","eu","ui","i"]
+_HANGUL_T = ["","k","k","k","n","n","n","t","l","k","m","p","l","l","p","l","m","p","p","t","t","ng","t","t","k","t","p","t"]
+
+
+def _brand_handle(name: str) -> str:
+    h = re.sub(r"[^a-z0-9]", "", unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower())
+    if h:
+        return h
+    cleaned = re.sub(r"^(?:법무법인\s*\(유한\)|법무법인\s*\(유\)|법무법인|주식회사|\(주\)|\(유\)|유한회사)\s*", "", name.strip())
+    out = []
+    for ch in (cleaned or name):
+        code = ord(ch)
+        if 0xAC00 <= code <= 0xD7A3:
+            idx = code - 0xAC00
+            l, r = divmod(idx, 588)
+            v, t = divmod(r, 28)
+            out.append(_HANGUL_L[l] + _HANGUL_V[v] + _HANGUL_T[t])
+        elif ch.isascii() and ch.isalnum():
+            out.append(ch.lower())
+    return re.sub(r"[^a-z0-9]", "", "".join(out)) or "brand"
+
+
 def text_on(bg):
     """White text while it keeps 3:1 on the background, near-black below that (white if the colour can't be parsed)."""
     h = (bg or "").strip().lstrip("#")
@@ -181,7 +205,7 @@ def mock_html(kind, c):
     skd, wsk = ((c.get("stack_dark") or c["lock_dark"]), "") if (c.get("stack_dark") or c.get("lock_dark")) else (stack, "w")
     tile = c["tile"]
     # e-mail / social handle / domain: plain ASCII letters and digits ("Marlow & Finch" -> "marlowfinch")
-    handle = re.sub(r"[^a-z0-9]", "", unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower())
+    handle = _brand_handle(name)
     n = html.escape(name)
     if kind == "business-card":
         return (f'<div class="m" style="background:#d9d4cb"><div class="bc"><img class="{cls}" src="{lock}" style="max-height:34px;max-width:170px">'

@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "./test-shim.ts"
 
-import { hasAnsi, stripAnsi } from "./ansi"
+import { hasAnsi, stripAnsi } from "./ansi.ts"
 
 const ESC = String.fromCharCode(0x1b)
 

@@ -58,6 +58,7 @@ import re
 import shutil
 import subprocess
 import sys
+sys.dont_write_bytecode = True
 from pathlib import Path
 from typing import Optional
 
@@ -739,7 +740,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[list[str]] = None) -> int:
     global _QUIET
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args, extra = parser.parse_known_args(argv)
+    if extra:
+        if hasattr(args, "paths") and all(not x.startswith("-") for x in extra):
+            args.paths = list(getattr(args, "paths", None) or []) + extra
+        else:
+            parser.error(f"unrecognized arguments: {' '.join(extra)}")
     _QUIET = bool(getattr(args, "quiet", False))
     return args.func(args)
 

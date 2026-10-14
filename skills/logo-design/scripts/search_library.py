@@ -23,7 +23,23 @@ from collections import Counter
 
 sys.dont_write_bytecode = True  # keep the skill folder clean (no __pycache__)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import svglib  # noqa: E402
+import svglib
+
+INDUSTRY_ALIASES = {
+    "legal": "finance-banking", "law": "finance-banking", "services": "productivity-collaboration",
+    "agency": "design-creative", "consulting": "productivity-collaboration",
+    "finance": "finance-banking", "bank": "finance-banking", "banking": "finance-banking",
+    "fintech": "payments-fintech", "payments": "payments-fintech", "crypto": "payments-fintech",
+    "software": "developer-tools", "devtool": "developer-tools", "tech": "developer-tools",
+    "saas": "productivity-collaboration", "b2b-saas": "productivity-collaboration", "startup": "productivity-collaboration",
+    "ai": "ai-ml", "ml": "ai-ml", "security": "security-identity",
+    "retail": "ecommerce-retail", "ecommerce": "ecommerce-retail", "shop": "ecommerce-retail", "store": "ecommerce-retail",
+    "cloud": "cloud-infrastructure", "hosting": "hosting-cdn", "data": "database-data", "database": "database-data",
+    "design": "design-creative", "media": "media-entertainment", "social": "social-communication",
+    "travel": "travel-transport", "clinic": "health", "wellness": "health", "medical": "health",
+    "school": "education", "university": "education",
+}
+  # noqa: E402
 
 
 def load_catalog():
@@ -148,6 +164,11 @@ def main():
             continue
         known = sorted({str(r.get(field)) for r in cat if r.get(field)})
         if val in known:
+            continue
+        if attr == "industry" and val.lower() in INDUSTRY_ALIASES:
+            mapped = INDUSTRY_ALIASES[val.lower()]
+            print(f"(--{attr.replace('_', '-')} '{val}' → using '{mapped}')")
+            setattr(a, attr, mapped)
             continue
         close = [k for k in known if val.lower() in k.lower() or k.lower() in val.lower()]
         if len(close) == 1:

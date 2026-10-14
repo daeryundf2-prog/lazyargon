@@ -1,4 +1,4 @@
-import type { DecodedImage, Hotspot, ImageDiffResult } from "./types"
+import type { DecodedImage, Hotspot, ImageDiffResult } from "./types.ts"
 
 const GRID_SIZE = 8
 

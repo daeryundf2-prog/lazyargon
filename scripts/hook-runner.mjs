@@ -84,7 +84,7 @@ async function main() {
 				}
 				resolve(0);
 			} else {
-				process.stdout.write(stdoutData);
+				process.stdout.write(safeStdout);
 				process.stderr.write(stderrData);
 				resolve(1);
 			}
@@ -95,6 +95,7 @@ async function main() {
 				process.stdout.write("{}\n");
 				resolve(0);
 			} else {
+				process.stdout.write("{}\n");
 				resolve(1);
 			}
 		});

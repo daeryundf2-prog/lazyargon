@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "./test-shim.ts"
 
-import { checkTui } from "./tui-grid"
+import { checkTui } from "./tui-grid.ts"
 
 const ESC = String.fromCharCode(0x1b)
 
