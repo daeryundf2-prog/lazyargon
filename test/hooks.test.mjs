@@ -141,6 +141,33 @@ test("#given lazyargon hooks.json commands #when executed without PLUGIN_ROOT #t
 		const largeMdPass = runShCommand(mdCmd, largePayload);
 		assert.equal(largeMdPass.status, 0, largeMdPass.stderr);
 		assert.deepEqual(JSON.parse(largeMdPass.stdout), {});
+
+		// 5) Subsequent non-file step must NOT walk back to earlier broken files in transcript history
+		fs.writeFileSync(brokenMd, "# Title\n\n| A | B |\n|---|---|\n| 1 | 2 | 3 |\n", "utf8");
+		fs.writeFileSync(brokenJson, '{"version": "invalid-semver", "broken": }', "utf8");
+		const cmdStep = {
+			step_index: 10,
+			source: "MODEL",
+			type: "PLANNER_RESPONSE",
+			status: "DONE",
+			tool_calls: [{ name: "run_command", args: { CommandLine: JSON.stringify("git status") } }],
+		};
+		fs.writeFileSync(
+			path.join(logsDir, "transcript.jsonl"),
+			`${JSON.stringify(mdStep)}\n${JSON.stringify(jsonStep)}\n${JSON.stringify(cmdStep)}\n`,
+			"utf8",
+		);
+		const subsequentPayload = JSON.stringify({
+			conversationId: "conv-e2e",
+			transcriptPath: path.join(logsDir, "transcript.jsonl"),
+			artifactDirectoryPath: brainDir,
+			stepIdx: 11,
+		});
+		for (const cmd of [mdCmd, jsonCmd]) {
+			const res = runShCommand(cmd, subsequentPayload);
+			assert.equal(res.status, 0, res.stderr);
+			assert.deepEqual(JSON.parse(res.stdout), {});
+		}
 	} finally {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 	}
