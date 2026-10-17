@@ -1,0 +1,14 @@
+{
+  "name": "lazyargon",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Antigravity plugin: /ulw autonomous workflow, budgeted subagent fan-out, engineering and design skills, GF-QA verification.",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "doctor": "node scripts/doctor.mjs"
+  }
+}

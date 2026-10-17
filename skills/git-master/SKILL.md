@@ -40,6 +40,18 @@ Missing upstream or missing `main`/`master` is normal. Fall back to the best ava
 
 When a PR body needs screenshots or terminal PNGs, use the repo reference at `docs/reference/github-attachment-upload.md`. The allowed hosting path is GitHub user attachments from the authenticated web attachment flow; never commit temporary images, never use GitHub Releases for PR evidence, and never use external image hosts. Do not log browser cookies, CSRF tokens, S3 form fields, or upload headers.
 
+## PR Readiness Gate
+
+Run this before opening a PR or calling a branch "ready for review". Each item is a command whose output you read, not a belief. Field reports on Gemini 4 Argon (2026-10) describe PRs that ignored failing CI and lint, ignored review-bot comments, duplicated an already-open PR, skipped the repo's own skill files, and turned a ~30-line fix into ~1,200 lines; this gate exists to catch exactly those.
+
+1. **Repo conventions read**: list the `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` / `CONTRIBUTING*` / matching `skills/*/SKILL.md` you read. If none were read this session, read them now.
+2. **Local CI parity**: run the repo's lint, typecheck, and test commands as defined in its CI workflow (`.github/workflows/*`) or package scripts. A red command blocks the gate.
+3. **Duplicate work**: `gh pr list --state open --search "<key terms>"` and `gh pr list --state open --author @me`. If an open PR covers the same change, stop and report it.
+4. **Existing feedback**: on an existing PR, `gh pr view <n> --comments` and `gh pr checks <n>`; every review-bot and human comment is either addressed in the diff or answered.
+5. **Proportionality**: `git diff --stat <base>...HEAD`. When the diff is more than ~3× the size the request implies, list what is outside the request and remove it or ask before keeping it.
+
+Report the five results in ≤10 lines. Any failing item means the PR is not ready.
+
 ## Commit Mode
 
 Commit only the user's requested changes. Preserve unrelated dirty work.

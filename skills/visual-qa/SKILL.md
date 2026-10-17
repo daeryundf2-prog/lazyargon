@@ -118,6 +118,8 @@ CHECK EACH:
 5. Responsive and resize behavior across viewport sizes (web) or terminal resize (TUI).
 6. Do the user-intended FEATURES actually work: interactions, states, navigation (web); input handling, resize, scroll (TUI)? Trace the code paths.
 7. 3D & WebGL Canvas integrity: does the 3D canvas render properly without WebGL context loss, black screen fallback, or memory leaks? Are 3D elements constrained to container boundaries?
+8. Mobile first: the 375px capture is taken and inspected before 768/1280. Overlapping text, horizontal scroll, clipped CJK labels, and tap targets under 44px at 375px are automatic FAIL regardless of the desktop result. Generated layouts break here most often, and the model does not open this viewport unless told.
+9. Numbers on screen: every stat tile, "benchmark" panel, price, or testimonial maps to the brief or a data file. A plausible-looking value with no source is FAIL.
 
 OUTPUT:
 VERDICT: PASS | REVISE | FAIL

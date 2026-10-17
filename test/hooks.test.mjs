@@ -37,6 +37,24 @@ test("#given hook-runner.mjs FAIL_OPEN #when child exits 1 with empty stdout #th
 	assert.match(res.stderr, /err/);
 });
 
+test("#given markdown with a leaked <thought> block #when guard --check runs #then exit 1 with leaked_reasoning_block; tag in code span passes", () => {
+	const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lazyargon-leak-"));
+	try {
+		const leak = path.join(tmpDir, "leak.md");
+		fs.writeFileSync(leak, "# 보고서\n<thinking>\n먼저 파일을 열어야겠다\n</thinking>\n본문\n", "utf8");
+		const fail = spawnSync("node", [path.join(ROOT, "scripts", "markdown_structure_guard.mjs"), "--check", leak], { encoding: "utf8" });
+		assert.equal(fail.status, 1);
+		assert.match(fail.stderr, /leaked_reasoning_block/);
+
+		const clean = path.join(tmpDir, "clean.md");
+		fs.writeFileSync(clean, "# 가이드\n\n가드는 `<thought>` 태그와 \"Thinking:\" 라벨 줄을 막는다.\n\n```\n<thought>\n예시\n</thought>\n```\n", "utf8");
+		const pass = spawnSync("node", [path.join(ROOT, "scripts", "markdown_structure_guard.mjs"), "--check", clean], { encoding: "utf8" });
+		assert.equal(pass.status, 0, pass.stderr);
+	} finally {
+		fs.rmSync(tmpDir, { recursive: true, force: true });
+	}
+});
+
 test("#given lazyargon hooks.json commands #when executed without PLUGIN_ROOT #then pass returns 0 + {} and broken transcript target returns 1", () => {
 	const postHooks = HOOKS_JSON.hooks.PostToolUse[0].hooks;
 	const mdCmd = postHooks.find((h) => h.command.includes("markdown_structure_guard.mjs")).command;

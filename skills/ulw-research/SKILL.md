@@ -104,13 +104,15 @@ Otherwise a parallel wave is the DEFAULT for ulw-research, not an option: a lead
 ```
 invoke_subagent({
   Subagents: [
-    { TypeName: "self", Role: "axis-owner-1", Model: "inherit", Prompt: "<member brief for axis 1 — see below>" },
-    { TypeName: "self", Role: "axis-owner-2", Model: "inherit", Prompt: "<member brief for axis 2>" },
+    { TypeName: "self", Role: "axis-owner-1", Model: "flash", Prompt: "<member brief for axis 1 — see below>" },
+    { TypeName: "self", Role: "axis-owner-2", Model: "flash", Prompt: "<member brief for axis 2>" },
     ...
     { TypeName: "self", Role: "skeptic", Model: "inherit", Prompt: "<debate brief — see below>" },
   ],
 })
 ```
+
+Collection members run on `flash`; the skeptic, every attack/verification lane, and the final synthesis run on `inherit`. The total number of entries never exceeds the budget line in `brief.md`.
 
 The binding rules, in short — one member per axis (ownership, never a job title); the maximum roster the runtime allows; mixed `Model` tiers by design; user's routing words are literal; at least one `pro` skeptic; every lead returns in the `## EXPAND` reply tail; shared state lives in `$SESSION_DIR` files. Full roster rules, the wave lifecycle table (research → refinement wave), and the member brief contract (including the mandatory `## EXPAND` reply tail): [references/wave-composition.md](references/wave-composition.md).
 
@@ -118,15 +120,19 @@ The binding rules, in short — one member per axis (ownership, never a job titl
 
 Launch the entire first wave in one `invoke_subagent` call — every member briefed in a `Subagents` entry starts in parallel; include bounded lanes in the same call for the territories the axis owners cannot reach (read-only sweeps, blocked pages). Sequential launches and "start with one and see" defeat the mode.
 
-Scaling floor — more angles always justify more workers; members and lanes together must meet it:
+**Budget first.** Before sizing the wave, write one line into `brief.md`: `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Without a user-stated budget the default is **4 lanes per wave, 2 waves**; exceeding it needs the user's yes. On Gemini 4 Argon one worker spends roughly 20× the output tokens of a Flash worker and a few heavy lanes exhaust a 5-hour Ultra window, so lane counts are a cost, not a quality knob. Fill the budget with `flash` lanes for collection and reserve `inherit` for the skeptic, verification, and synthesis lanes.
 
-| Query scope | codebase lanes | web lanes | browsing lanes | repo-dive lanes | X lanes | wave members | floor |
+Recommended composition (not a floor — the budget line caps it; when the budget is smaller, drop lanes from the right-hand columns first and keep one browsing lane whenever `Browsing: yes`):
+
+| Query scope | codebase lanes | web lanes | browsing lanes | repo-dive lanes | X lanes | wave members | recommended |
 |---|---|---|---|---|---|---|---|
-| Single topic, codebase only | 1 | 0 | 0 | 0 | 0 | 8 | 9 |
-| Single topic, web only | 0 | 2 | 1 | 1 | 0 | 8 | 12 |
-| Single topic, both | 1 | 2 | 1 | 1 | 0 | 8 | 13 |
-| Multi-faceted | 2 | 4 | 2 | 1 | 0 | 8 | 17 |
-| Full due diligence | 2 | 4 | 2 | 2 | 0 | 8 | 18 |
+| Single topic, codebase only | 1 | 0 | 0 | 0 | 0 | 2 | 3 |
+| Single topic, web only | 0 | 2 | 1 | 0 | 0 | 2 | 5 |
+| Single topic, both | 1 | 2 | 1 | 0 | 0 | 2 | 6 |
+| Multi-faceted | 1 | 3 | 1 | 1 | 0 | 3 | 9 |
+| Full due diligence (user-approved budget) | 2 | 4 | 2 | 2 | 0 | 4 | 14 |
+
+Every lane prompt carries the worker contract from `rules/AGENTS.md` (termination conditions, ≤40-line return, chunked writes) plus the `## EXPAND` tail; the EXPAND tail is capped at 5 leads per lane so the next wave stays inside the budget.
 
 X lanes are 0 in Antigravity — `x_search` does not exist in this runtime (see the X/social role protocol below). When the brief says `X/social signal: yes`, substitute public web sources: `site:x.com`/`site:twitter.com` searches, nitter mirrors, and coverage of the account's statements by indexed outlets. Record the substitution in the brief.
 

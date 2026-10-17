@@ -1,0 +1,102 @@
+# Gemini 4 Argon 실사용 노트 (2026-10-09 ~ 10-17)
+
+출시(9/30 제한 공개, 10/13 GA) 후 2주간 수집한 1차 사용기에서 **둘 이상의 독립 출처가 일치한 관찰**만 적는다. 규칙(`rules/AGENTS.md` `<argon_runtime_constraints>`)과 스킬의 근거 문서다. 수치는 각 출처의 자체 측정이며 재현하지 않았다.
+
+## 1. 호스트(Antigravity) 수준 제약
+
+| 관찰 | 출처 |
+|---|---|
+| 큰 단일 `write_to_file`(10KB+, ~1,200줄)이나 긴 사고 뒤 "Model unavailable, retrying (k/9)" 루프. 실체는 무응답 60초 컷오프(79건 중앙값 60.35초). 100줄 이하 분할로 완화 | Google AI 개발자 포럼 189559 (10/15), note.com masa_wunder(80행 분할로 완주), CyberQ(샌드박스 연결 끊김 25건) |
+| 자동 컴팩션 2회 뒤 재검증 없이 편집 → 존재하지 않는 식별자 6개 도입, 쓰기 후 재열람 없음 | 개발자 포럼 189476 (10/15), Theo(t3.gg: 1시간 파일만 읽다 스레드 초기화) |
+| 첫 토큰 전 5분 이상 사고 → 외부 하네스 헤더 타임아웃, 출력 32K에서 `finish: length`로 파일 유실 | dev.to akartit (opencode), Qiita htani0817 (비스트리밍 10분 종료) |
+| CLI의 컨텍스트 컴팩션이 비결정적 | HN charm137 |
+| API 키 모드(`modelProvider: "gemini"`)에서 `gemini-4-argon` 미인식 → Gemini 3.8 Flash(High)로 무음 폴백 | GitHub antigravity-cli #1228 |
+| Antigravity 앱·CLI의 Argon은 처음엔 Ultra·Enterprise만이었다가 **10/15부터 유료 Pro에도 배포**(체험판 제외). Pro는 3.8 Flash와 별도인 주간 전용 Argon 쿼터, MEDIUM/HIGH만 | Antigravity 블로그(10/13), 클리앙 19277177, i-Style, @antigravity X(10/15), 개발자 포럼 189734/189741/189731 |
+| Windows 샌드박스에서 language server 크래시 | 클리앙 19277539 |
+
+### 1-1. 하네스 차이
+
+| 관찰 | 출처 |
+|---|---|
+| 같은 모델도 하네스에 따라 점수가 크게 갈림: 105개 실버그 벤치에서 Gemini CLI 33 → Antigravity CLI(`agy`) 40.7 | Paweł Huryn |
+| Gemini CLI가 보내는 thinking budget을 Gemini 4가 거부해 어댑터 필요. agy headless는 자기 페이지 스크린샷 7회 확인, Gemini CLI는 브라우저 스크립트 실패 | ohmyunicorn |
+| 외부 하네스는 헤더 타임아웃(5분+ 첫 토큰)과 출력 상한(≥65,536)을 올려야 파일이 유실되지 않음. `max_output_tokens`에 사고 토큰 포함, temperature/top_p 무시 | dev.to akartit, Qiita htani0817 |
+| Argon 전용 컨텍스트 옵션 256K(기본)/512K/900K, 턴당 쿼터 배수 ≈1.3×/≈1.8×(UI 관찰값, 미검증) | LuminaBench, TestingCatalog |
+| 이미지 툴 결과 뒤 대화 전체 재전송으로 캐시 적중 약 4%, T3 Code 연동 시 70~80% | dev.to akartit, Theo |
+
+## 2. 모델 행동
+
+| 관찰 | 출처 |
+|---|---|
+| 출력·사고 토큰 과다: 실행당 ~24K(Sonnet ~3K), AA 과제당 62K(Astra 27K), low→high 전환 시 6배 시간·13배 비용 | HN ariwilson, eesel/AA, i-Style, ritsuto("トークン消費量がえげつない") |
+| 기본 사고 수준 MEDIUM, 벤치 수치는 HIGH 기준. medium/high 점수차(1.4)보다 run 편차(33~46)가 큼 | TechTimes 10/15, Paweł Huryn |
+| 5시간 한도: Ultra에서 무거운 과제 3~4개(또는 10개 미만)로 창 소진, Pro는 질문 몇 개 | 虎嗅, ritsuto, 개발자 포럼 189085, 경향·에펨·디시 |
+| 추론 루프 / 10회 중 1회 루프 또는 에러 | HN gertlabs·saejox·jiggawatts, 클리앙(10분 후 실패) |
+| reasoning 블록 경계 누락 | HN gertlabs·Bobaso |
+| 요청 범위 그대로만 처리("완전성"을 안 물으면 절반만), 모호하면 동일 기능 함수 중복 생성 | CyberQ, masa_wunder |
+| 테스트 통과 즉시 완료 선언, 브라우저 미확인(리뷰 단계 30ms 종료 17/38회) | BrainBytes Lab, AGIラボ(브라우저 0회), Every Vibe Check |
+| 코드베이스 "설명·감사" 환각: 감사 결과 60~70% 허위, 30행 수정을 1,200행으로, 리포 skill 파일 무시 | Theo(t3.gg), Every(리팩터링 21%) |
+| 자기 보고 수치 불일치(글자수 167 vs 실제 163), 산술 오류 | note.com kazu_t, HN eyalitki |
+| 출처 없는 수치("約98%")를 단정형으로 작성, 페이지 안 "Benchmark" 패널에 지어낸 값 | Zenn 大賀, ohmyunicorn |
+| 환각은 낮지만(AA 15%) 유보가 많아서임(어려운 사실 정답률 50% vs Astra 63%), 안전 필터 잦은 발동 | Techzine, DeepLearning.AI, HN dom96, 포럼 189556 |
+| 글쓰기·법률·문서 추론은 최상위(Vals 1위, LexisNexis 인용 검증 호평), 구조 편집 강함, 원샷 초안은 밀도 과다 | HN svara·mwigdahl, 경향, 에펨, Every |
+| 터미널·에이전틱 코딩은 Opus 5.5·Astra 열세(Terminal-Bench 4.0 최하위), 하네스에 따라 극단적으로 갈림(Gemini CLI 33 → agy 40.7) | Google 자체 표, Techzine, Huryn, HN meowface |
+| 프론트엔드 감각은 3.8 Flash보다 좋지만 모바일 레이아웃 깨짐 | TestingCatalog, HN jatins 외, GeekNews |
+| 간접 프롬프트 인젝션 저항 학습(자체 ASR 0.7%), 1차 외부 검증 없음 | eesel/AA, DeepLearning.AI |
+| 한국어 1차 품질 데이터 없음. 일본어 퇴고는 보수적(90본 중 68본 원문 그대로), 중국어는 따옴표 남용, em dash 재등장 | Zenn, 虎嗅, GeekNews |
+| 과잉 검증 루프: 로그에 답이 있는데 검색 15회·웹 33페이지 후 404로 답안 미작성. 시간 제한 없으면 과제당 ~30분 자율 실행 | CyberQ, MindStudio |
+| 비전: 탐지·OCR 벤치는 상위지만 손글씨 JSON 추출·다이얼 판독 실패, 이미지당 13~20초. 모델 오디오 전사에 명백한 오류. 음성·영상 분리 입력 시 날조 최소 | Roboflow, bilibili BV1Sqpy6KE2p, masa_wunder |
+| 장면이 성적 묘사로 넘어가는 시점에 즉시 차단(3.x는 통과) | 개발자 포럼 189556 |
+| 리포 skill 파일 무시, CI/lint 실패·리뷰봇 코멘트 무시, 기존 PR 2건 미확인 | Theo(t3.gg) |
+
+## 2-1. 10/15 ~ 10/17 신규 (이슈 트래커·포럼 원문 확인)
+
+| 관찰 | 출처 |
+|---|---|
+| UI는 1.0M을 표시하지만 요청 메타데이터의 `max_context_tokens`는 256000, 240~280K에서 강제 컴팩션. `AGY_CLI_AUTO_COMPACT_OVERRIDE`는 효과 없음. 컴팩션마다 캐시 0. 요약 뒤 ID·스케일·SHA 날조로 리포트 사실 21/64 오류(recall 테스트는 40/40) | antigravity-cli #1245 |
+| 60초 침묵 절단의 원인이 클라이언트 HTTP 설정(HTTP/2·KeepAlive 비활성)으로 좁혀짐. `write_to_file` 인자 25KB 초과나 긴 thinking이 트리거, 8회 재시도 전부 실패. 약 5,000 출력 토큰 / 100줄 단위 분할로 해결 | antigravity-cli #1255, 개발자 포럼 189747 |
+| agy 1.3.6: 스트림 5분 정지 시 자동 재시도(60초 문제는 미해결), 따옴표 없는 `description:`의 콜론으로 skill·rule·agent 로딩 실패하던 문제 수정, plugin 이름 대소문자 무시 | antigravity-cli 1.3.6 릴리스 노트 |
+| agy 1.4.0: `agy plugin validate --strict --json`이 실제 로더 규칙으로 검사, plugin MCP 헤더 `${TOKEN}` 치환 수정. 같은 버전에서 `agy -p "/skills"`가 빈 목록을 반환하는 회귀 | 1.4.0 릴리스 노트, antigravity-cli #1266 |
+| 규칙 파일이 토큰 예산을 넘으면 잘리지 않고 통째로 빠짐: 118,908B `AGENTS.md`는 0 주입, 24,024B는 전부 주입 | antigravity-cli #1254 |
+| 서브에이전트가 한 턴에 도구 2개 이상을 부르고 그중 하나가 승인 대상이면 승인이 다음 단계로 잘못 가서 병렬 웨이브가 멈춤 | antigravity-cli #1249 |
+| 하루 사이 C++ UAF·race 디버깅, 리버싱·PE 헤더 프롬프트가 Gemini 필터에 차단. 한 번 차단된 스레드는 계속 막힘. 스태프가 Claude는 별도 분류기라며 우회책으로 권장, 오탐 신고에 버전·모델·사고 수준 요청 | 개발자 포럼 189611, 189748 |
+| 쿼터: Pro TL=Medium에서 50줄 작업 하나가 한도의 44%(3.1 Pro는 6%). Pro 첫날 주간 59%, 캐시 히트 약 21.0M으로 캐시 비율 자체는 높음. 턴당 소비는 컨텍스트 길이에 비례, 작업이 바뀌면 새 대화 권고 | 포럼 190078·189788·189731, locdd 100913 |
+| 앱 2.22.0 업데이트 뒤 커스텀 skill 664개가 UI에서 사라짐. 스태프가 skill 경로 5곳 공개 | 포럼 189763 |
+| 일부 지역 결제 Ultra 계정에서 `userTier`가 비어 Starter 쿼터 적용 | 포럼 189620 |
+| Windows 앱 2.23.1에서 긴 작업이 "task cancelled by user"로 자동 취소 | 포럼 189646 |
+
+모순: 공식 발표는 Pro 쿼터가 "weekly-only"인데 5시간 한도 도달 보고가 있다(포럼 190078). 캐시는 "컴팩션마다 0"(#1245)과 "0은 trailer 누락에 의한 기록 착시"(189747)가 엇갈린다. 이 기간 한·일 커뮤니티의 새 1차 후기, 한국어 품질·OCR 직접 자료는 찾지 못했다.
+
+## 3. 규칙으로의 매핑
+
+| 노트 | 규칙·스킬 |
+|---|---|
+| §1 60초 컷오프, 컴팩션 편집 | `<argon_runtime_constraints>` 1–3, `ulw` Step 1 재개 규칙, `frontend` 청크 쓰기 |
+| §1 무음 폴백, Ultra 한정 | `session_start.mjs` 세션 모델 주입, `<model_routing>` |
+| §2 토큰·한도 | `<delegation_rules>` 예산 줄, 레인 티어, `ulw-research` 권장 구성 |
+| §2 루프 | 워커 종료 조건, 1회 재시도 후 제외 |
+| §2 범위 리터럴리즘, 중복 함수 | `ulw` 완전성 게이트, `<anti_slop_invariants>` 중복 구현 금지 |
+| §2 테스트=완료, 감사 환각 | `gf-qa-behavioral-verification` 5–6, `<verification>` 감사 수치 규칙, `dual-verify` Pass 3 |
+| §2 자기 보고 수치 | `<claim_evidence>` 마지막 항목 |
+| §2 밀도·지어낸 수치 | `frontend` 카피 밀도 상한, `diagram-design` 안티패턴, `<anti_slop_invariants>` 밀도 상한 |
+| §2 유보 | `<argon_runtime_constraints>` 7, workspace `GEMINI.md` 모델 유보 규칙, `verify_report.py unverified` |
+| §2 사고 블록 누락 | `markdown_structure_guard` `leaked_reasoning_block` |
+| §1-1, §2-1 실제 상한 256K·컴팩션 후 ID 날조 | `<argon_runtime_constraints>` 2, `.lazyargon/pins.md` + `SessionStart` 재주입, workspace `GEMINI.md` 제약 (2) |
+| §2-1 25KB 인자·긴 thinking 뒤 절단 | `<argon_runtime_constraints>` 1 (100줄·20KB, 사고 후 쓰기 분리) |
+| §2-1 규칙 파일 통째 누락 | `rules/AGENTS.md` 21.9KB → 10KB 축소, 키워드 표 `docs/keyword-routing.md` 분리, workspace `GEMINI.md` 중복 계약 제거, `doctor.mjs` `rules.budget` |
+| §2-1 승인 오배정으로 웨이브 정지 | 워커 계약 `도구 규칙`(승인 도구 한 턴 하나) |
+| §2-1 차단 스레드 지속, 보안 디버깅 차단 | `<argon_runtime_constraints>` 7, workspace `GEMINI.md` 민감 증거 규칙(새 대화·Claude 레인) |
+| §2-1 Pro 배포·주간 쿼터·컨텍스트 비례 소비 | `<argon_runtime_constraints>` 9, workspace `GEMINI.md`·`antigravity-tools.md` 모델 표 |
+| §2-1 description 콜론·skill 소실·validate | `doctor.mjs` `frontmatter.description_colon`, workspace README 트러블슈팅 |
+| §2 과잉 검증 루프(로컬 로그에 답이 있는데 검색 15회·웹 33페이지), 무제한 시 과제당 ~30분 | `<argon_runtime_constraints>` 11, 워커 계약 `시간 예산`·`근거 순서` |
+| §2 리포 skill·CI·리뷰봇·기존 PR 무시, 30행 → 1,200행 | `<argon_runtime_constraints>` 12, `ulw` 저장소 규약 먼저, `git-master` PR Readiness Gate |
+| §1-1 이미지 캐시 적중 저조 | `<argon_runtime_constraints>` 13, workspace `media-analysis` 프레임 1회 판독·20프레임 개괄 |
+| §2 손글씨·다이얼 판독 실패, 모델 전사 오류, 음성/영상 분리 시 날조 최소 | workspace `GEMINI.md` 비전 판독 규칙, `media-analysis` OCR·STT 전용 인용 |
+| §2 성적 묘사 전환 시 즉시 차단(3.x보다 엄격) | workspace `GEMINI.md` 민감 증거 원문은 스크립트가 다룬다 |
+| §2 퇴고 보수성(90본 중 68본 무변경), 출처 없는 수치 단정 | workspace `humanize-korean` Argon 세션 주의 |
+| §1 API 키 모드 무음 폴백 | `scripts/doctor.mjs` `antigravity.model_provider` 경고 |
+| §1 Windows 샌드박스 language server 크래시 | workspace README 트러블슈팅 |
+
+## 4. 출처 목록
+
+HN 50073879 · Techzine 144960 · Analytics Vidhya 10/14 · 경향신문 202610141113011/202610142044005 · AI타임스 216220 · DeepLearning.AI The Batch 10/09 · TestingCatalog 10/11 · online-tech-tips · Antigravity 블로그 10/13 · 개발자 포럼 189559/189476/189085/189556/189699 · GitHub antigravity-cli #1228/#1245/#1249/#1254/#1255/#1266, 릴리스 1.3.6/1.4.0 · @antigravity X 10/15 · 개발자 포럼 189611/189620/189646/189731/189734/189741/189747/189748/189763/189788/190078 · locdd 100913 · CyberQ 10/14 · note.com masa_wunder/kazu_t · Zenn algoartis · 虎嗅 4897290 · ritsuto Substack · dev.to akartit · BrainBytes Lab · ohmyunicorn · BigGo(Theo, Every 요약) · AGIラボ · i-Style · MindStudio · Roboflow · 新智元/163 · bilibili BV1Sqpy6KE2p · LuminaBench · TechTimes 329026 · Qiita htani0817 · 클리앙 19277187/19277177/19277539 · 에펨코리아 10448101474/10444308272 · 디시 thesingularity 1479216, ai_utilize 132243 · 루리웹 77025045 · GeekNews 35306.

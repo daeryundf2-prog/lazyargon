@@ -42,6 +42,10 @@ The following conditions are defects:
 2. **Execute negative paths**: Exercise invalid inputs, missing prerequisites, or error conditions. Confirm the system fails closed and raises contract-specified errors.
 3. **Audit exception boundaries**: Inspect handlers to confirm that contract violations and fatal conditions are not caught and swallowed by broad default handlers.
 4. **Audit test assertions**: Inspect test implementations to confirm assertions check observable output, state changes, or emitted errors rather than self-referential tautologies.
+5. **Open the surface the user will see**: When the change has a visual surface (web page, TUI, rendered document), open it in the real renderer (`$visual-qa`, 375 / 768 / 1280px) and read what is on screen. Rendering is observable only by rendering; a passing suite says nothing about overlap, clipping, or mobile layout.
+6. **Apply the adoption screen before PASS**: A change that passes its tests is still FAIL if it (a) assumes cached or stale data without an invalidation path, (b) depends on private internals or undocumented behavior of a dependency, (c) modifies files outside the declared scope, or (d) expands a small requested change into a large rewrite. These are the documented reasons Argon-authored changes that passed public tests were rejected in human review.
+
+A passing suite ends the test step, not the verification. Argon in particular ends review the moment tests go green; this skill's PASS requires steps 1–6, not step 4 alone.
 
 ## PASS / FAIL / UNKNOWN reporting
 
