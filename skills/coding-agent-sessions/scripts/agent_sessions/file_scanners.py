@@ -5,7 +5,7 @@ from urllib.parse import unquote, urlparse
 
 from .jsonio import as_map, int_value, iter_jsonl, parse_json_text, read_json, text
 from .timeparse import file_time, unix_millis, unix_seconds
-from .transcript import content_text, env_path, existing, flat_parallel, jsonl_parallel, recent
+from .transcript import clean_user_request, content_text, env_path, existing, flat_parallel, jsonl_parallel, recent
 from .types import Json, JsonMap, Session
 
 
@@ -122,7 +122,8 @@ def _gemini_sessions(path: Path) -> list[Session]:
 def _antigravity_sessions(path: Path) -> list[Session]:
     sid = path.parents[2].name if len(path.parents) >= 3 else path.stem
     first_user = last_user = ""
-    created = updated = parent = None
+    created = updated = parent = cwd = None
+    has_user_input = False
     usage: JsonMap = {}
     msg_count = 0
     for data in iter_jsonl(path):
@@ -131,19 +132,30 @@ def _antigravity_sessions(path: Path) -> list[Session]:
         created, updated = created or stamp, stamp or updated
         step_type, content = text(data.get("type")), text(data.get("content")) or ""
         if step_type == "USER_INPUT" or text(data.get("source")) == "USER_EXPLICIT":
-            cleaned = content.removeprefix("<USER_REQUEST>").split("</USER_REQUEST>", 1)[0].strip() or content
+            has_user_input = True
+            cleaned = clean_user_request(content)
             if cleaned:
                 first_user, last_user = first_user or cleaned, cleaned
-        elif step_type == "SYSTEM_MESSAGE" and "[Message]" in content and "sender=" in content:
+        elif not has_user_input and parent is None and step_type == "SYSTEM_MESSAGE" and "[Message]" in content and "sender=" in content:
             s_idx = content.find("sender=") + 7
             s_end = content.find(" ", s_idx)
             sender = content[s_idx:s_end].strip() if s_end > s_idx else ""
             if len(sender) == 36 and "/" not in sender and sender != sid:
-                parent = parent or sender
+                parent = sender
                 c_idx = content.find(" content=", s_end)
                 body = content[c_idx + 9 :].split("</SYSTEM_MESSAGE>")[0].strip() if c_idx != -1 else ""
                 if body:
-                    first_user, last_user = first_user or body, body
+                    first_user = last_user = body
+        if cwd is None:
+            for tc in _json_maps(data.get("tool_calls")):
+                if tc.get("name") == "run_command":
+                    args = as_map(tc.get("args"))
+                    raw_cwd = text(args.get("Cwd")) if args is not None else None
+                    if raw_cwd:
+                        parsed_cwd = text(parse_json_text(raw_cwd)) or raw_cwd.strip().strip('"')
+                        if parsed_cwd:
+                            cwd = parsed_cwd
+                            break
         for tok_key, u_key in (("input_tokens", "input"), ("output_tokens", "output"), ("cache_read_tokens", "cacheRead")):
             val = int_value(data.get(tok_key))
             if val is not None:
@@ -151,7 +163,7 @@ def _antigravity_sessions(path: Path) -> list[Session]:
     if msg_count == 0:
         return []
     usage["message_count"] = msg_count
-    return [Session("gemini", sid, str(path), None, created or file_time(path), updated or created or file_time(path), "google", "antigravity", first_user, usage, parent, "subagent" if parent else None, last_user_message=last_user)]
+    return [Session("gemini", sid, str(path), cwd, created or file_time(path), updated or created or file_time(path), "google", "antigravity", first_user, usage, parent, "subagent" if parent else None, last_user_message=last_user)]
 
 
 def _kimi_session(path: Path) -> Session:

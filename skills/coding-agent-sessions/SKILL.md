@@ -88,7 +88,7 @@ When `--platform` is omitted, the finder searches every registered platform in p
 
 For OpenCode, the finder uses `opencode db path` plus direct SQLite queries first, then `opencode session list --format json` as a fallback. It avoids heavy `messages/` or `parts/` scans during normal list/search, and only falls back to file joins when the OpenCode DB/CLI is unavailable or explicit `--root` values request a nonstandard store.
 
-Usage-only sources such as Copilot OTEL, Mux, Antigravity tokscale cache rows, Synthetic provider retagging, and Cursor IDE usage CSV are excluded from default transcript search because they do not reconstruct user prompts.
+Usage-only sources such as Copilot OTEL, Mux, tokscale cache rows, Synthetic provider retagging, and Cursor IDE usage CSV are excluded from default transcript search because they do not reconstruct user prompts. Antigravity conversations (`~/.gemini/antigravity/brain/*/.system_generated/logs/transcript.jsonl`) are scanned by default under `--platform gemini` (`model="antigravity"`) and support parent/subagent delegation trees.
 
 ## Subagent / Child Sessions
 
@@ -99,6 +99,7 @@ Usage-only sources such as Copilot OTEL, Mux, Antigravity tokscale cache rows, S
 | Claude Code | `projects/<proj>/<session-id>/subagents/agent-*.jsonl` (Task tool) and `.../subagents/workflows/wf_*/agent-*.jsonl` (Workflow) | Directory name = parent session ID; `agent-*.meta.json` holds `agentType` + task description |
 | Codex | Regular threads in `state_*.sqlite` + own rollout JSONL | `thread_spawn_edges` table and `threads.source` / rollout `session_meta.payload.source.subagent.thread_spawn` |
 | OpenCode | Regular sessions in `opencode.db` / `storage/session/` | `session.parent_id` column / `parentID` field; `agent` column names the subagent |
+| Gemini (Antigravity) | `~/.gemini/antigravity/brain/<child-id>/.system_generated/logs/transcript.jsonl` | Initial `SYSTEM_MESSAGE` (before `USER_INPUT`) with 36-char UUID `sender=<parent-id>`; `model="antigravity"`, `agent="subagent"` |
 
 When the user asks whether some specific work was ever done, search with `--include-subagents` — delegated work often lives only in child transcripts, not in the main session. Workflow `journal.jsonl` files are orchestration logs, not sessions.
 

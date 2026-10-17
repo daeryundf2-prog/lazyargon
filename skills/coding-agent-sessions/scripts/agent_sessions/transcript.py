@@ -89,13 +89,25 @@ def nick_role(nickname: str | None, role: str | None) -> str | None:
     return nickname or role
 
 
+def clean_user_request(value: str) -> str:
+    text_val = value
+    if "<USER_REQUEST>" in text_val:
+        text_val = text_val.split("<USER_REQUEST>", 1)[1].split("</USER_REQUEST>", 1)[0]
+    for tag in ("ADDITIONAL_METADATA", "USER_SETTINGS_CHANGE"):
+        open_tag, close_tag = f"<{tag}>", f"</{tag}>"
+        while open_tag in text_val:
+            before, after = text_val.split(open_tag, 1)
+            text_val = before + (after.split(close_tag, 1)[1] if close_tag in after else "")
+    return text_val.strip()
+
+
 def user_text(data: JsonMap, message: JsonMap) -> str:
     if data.get("type") in {"user", "USER_INPUT"} or data.get("source") == "USER_EXPLICIT":
-        value = content_text(data.get("content"))
+        value = clean_user_request(content_text(data.get("content")))
         if value:
             return value
     if message.get("role") == "user":
-        return content_text(message.get("content"))
+        return clean_user_request(content_text(message.get("content")))
     return ""
 
 

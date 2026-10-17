@@ -114,10 +114,11 @@ def _filter(sessions: list[Session], opts: Options) -> list[Session]:
     end = date_bound(opts.date_to, end=True)
     result: list[Session] = []
     for item in sessions:
-        stamp = parse_stamp(item.created_at)
-        if start is not None and stamp is not None and stamp < start:
+        created_stamp = parse_stamp(item.created_at)
+        updated_stamp = parse_stamp(item.updated_at) or created_stamp
+        if start is not None and updated_stamp is not None and updated_stamp < start:
             continue
-        if end is not None and stamp is not None and stamp >= end:
+        if end is not None and created_stamp is not None and created_stamp >= end:
             continue
         if opts.cwd is not None and opts.cwd not in (item.cwd or "").lower():
             continue
