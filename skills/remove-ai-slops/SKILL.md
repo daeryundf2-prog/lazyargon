@@ -77,7 +77,10 @@ The agent looks for these ten categories. The first three are stylistic, the nex
 9. **Missing tests** — behavior present in changed files that is not locked by any regression test. The fix is not to remove code but to ADD the narrowest test that pins the behavior. EXCEPTION: a PROSE file (prompt, `SKILL.md`, rule, markdown) has no behavioral seam — do NOT add a text/word-count/phrase pin for it; that guards a diff, not behavior. Cover only a machine-consumed value (parsed field, sentinel a runtime greps, a doc JSON sample through its real validator) or leave it to review.
 
 ### Structural
-10. **Oversized modules** — any source file exceeding **250 pure LOC** (non-blank, non-comment lines). This is an architectural defect, not a style preference. Measure: `awk '!/^[[:space:]]*$/ && !/^[[:space:]]*(#|\/\/)/' <file> | wc -l`.
+10. **Oversized modules** — any source file exceeding **250 pure LOC** (non-blank, non-comment lines). This is an architectural defect, not a style preference.
+    - Measure (POSIX): `awk '!/^[[:space:]]*$/ && !/^[[:space:]]*(#|\/\/)/' <file> | wc -l`
+    - Measure (Cross-platform Python): `python -c "import re,sys; print(sum(1 for l in open(sys.argv[1],encoding='utf-8') if l.strip() and not re.match(r'^\s*(#|//|--)',l)))" <file>`
+    - Measure (PowerShell): `(Get-Content <file> | Where-Object { $_ -notmatch '^\s*$' -and $_ -notmatch '^\s*(#|//|--)' }).Count`
 
    **When found, do NOT just flag it. Execute a full modular refactoring:**
    1. Run the language-matching `check-no-excuse-rules` script recursively on scope to list all violations — `skills/programming/scripts/{python,rust}/check-no-excuse-rules.py`, `skills/programming/scripts/typescript/check-no-excuse-rules.ts`, or `skills/programming/scripts/{rust,go}/check-no-excuse-rules.sh`.
@@ -106,7 +109,7 @@ A pass is complete only when all applicable gates are green. Skip gates that are
 |---|---|---|
 | Regression tests | project's test runner | all green |
 | Lint | project's linter | zero errors (warnings OK if pre-existing) |
-| Typecheck | `lsp_diagnostics` on changed files + project type-checker | zero new errors |
+| Typecheck | project type-checker (`tsc --noEmit`, `basedpyright`, `cargo check`, `go vet`) | zero new errors |
 | Unit/integration tests | project's test runner | all green (pre-existing failures noted, not introduced) |
 | Static/security scan | project's scanner | zero new findings, or `N/A` if not configured |
 
@@ -114,9 +117,9 @@ A pass is complete only when all applicable gates are green. Skip gates that are
 
 ## Process
 
-### Phase 0: Plan with TodoWrite
+### Phase 0: Lock Scope & Plan
 
-Create todos for all phases below. Mark `in_progress` one at a time.
+Lock the 3-line scope (`목표 / 완료 조건 / 범위`) and track each phase sequentially.
 
 ### Phase 1: Determine scope
 
@@ -168,20 +171,20 @@ File: src/bar.py
   Risk: low
 ```
 
-**Intentional shortcuts:** if the plan deliberately keeps a bounded simplification (a naive scan fine under N rows, a global lock, an O(n²) path), mark it in-code with a `debt:` comment naming the ceiling and the upgrade trigger (in omo, prefix with `// @allow` so the comment-checker treats it as intentional), and list it under "Remaining Risks / Deferred" in the report. That section is the debt ledger — a simplification with a known ceiling and no marker is indistinguishable from a bug.
+**Intentional shortcuts:** if the plan deliberately keeps a bounded simplification (a naive scan fine under N rows, a global lock, an O(n²) path), mark it in-code with a `debt:` comment naming the ceiling and the upgrade trigger, and list it under "Remaining Risks / Deferred" in the report. That section is the debt ledger — a simplification with a known ceiling and no marker is indistinguishable from a bug.
 
 Order rule (safest → riskiest): comments → dead code → defensive → duplication → complexity → abstraction/boundary → performance → tests → oversized-modules. This minimizes blast radius of any one change.
 
-### Phase 4: Parallel slop removal via `invoke_subagent` (`Model: "inherit"`) in batches of 5
+### Phase 4: Parallel slop removal via `invoke_subagent` (`Model: "inherit"`) in batches of 3–5
 
-Files are processed by subagents (`Model: "inherit"`), **batched up to 5 at a time in parallel** via a single `invoke_subagent` call. The `Model: "inherit"` gives the agent high speed and thoroughness to correctly evaluate the 10 categories and respect the KEEP rules without slipping into surface fixes.
+Files are processed by subagents (`Model: "inherit"`), **batched up to 3–5 at a time in parallel** via a single `invoke_subagent` call. `Model: "inherit"` gives the agent high speed and thoroughness to correctly evaluate the 10 categories and respect the KEEP rules without slipping into surface fixes.
 
 **Batching protocol** (strict):
 
-1. Slice the in-scope file list into chunks of up to 5 files.
-2. For each chunk, launch all subagents **in a single `invoke_subagent` call** with `Subagents: [...]`.
-3. Stop tool calling to end your turn. Reactive wakeup will trigger when each subagent finishes.
-4. Once all in the batch complete, collect results and proceed to the next batch of 5. Repeat until every file is processed.
+1. Slice the in-scope file list into chunks of up to 3–5 files.
+2. For each chunk, launch all subagents **in a single `invoke_subagent` call** with `Subagents: [...]`, `toolAction`, and `toolSummary`.
+3. Stop tool calling to end your turn. Reactive wakeup will trigger when each subagent finishes via `send_message`.
+4. Once all in the batch complete, collect results and proceed to the next batch. Repeat until every file is processed.
 5. If total files ≤ 5, launch all in one batch.
 
 **Never** launch all files at once when there are more than 5; **never** launch them serially when more than one remains in the current batch.
@@ -192,7 +195,7 @@ Files are processed by subagents (`Model: "inherit"`), **batched up to 5 at a ti
 {
   "TypeName": "self",
   "Role": "Slop Remover",
-  "Model": "flash",
+  "Model": "inherit",
   "Prompt": "TASK: Remove AI slops from: {file_path}\n\nFirst run the deletion ladder from Phase 3 on this file (delete entirely / reuse existing repo code / platform-stdlib-native / simplify in place); only code that must exist proceeds to smell removal.\n\nThen evaluate EVERY category defined in this skill's 'Categories (what counts as slop)' section, applying that section's KEEP and REFACTOR rules verbatim.\n\nApply changes in this order (safest → riskiest): comments → dead code → defensive → duplication → complexity → abstraction/boundary → performance → oversized-modules.\n\nHard constraints:\n- Behavior MUST be preserved. When equivalence is not obvious, SKIP.\n- Do NOT change public API signatures.\n- Do NOT remove type hints.\n- Do NOT introduce new abstractions or dependencies.\n- Diff stays minimal and scoped to slop removal.\n\nDELIVERABLE: Report changes grouped by category with before/after, why-slop, why-safe. For each skipped issue, give reason.\nSCOPE: {file_path}\nVERIFY: Run tests and typecheck."
 }
 ```

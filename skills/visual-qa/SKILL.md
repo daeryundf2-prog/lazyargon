@@ -292,6 +292,15 @@ Illustrative output (locked field names):
 ```
 
 
+## Korean A4 Print / PDF & Screenshot Annotation QA
+
+When the deliverable is a printable HTML/PDF report, manual, or brochure (or contains annotated screenshots):
+
+1. **Per-page rendered PNG inspection**: Convert the generated PDF to per-page PNGs (`pdftoppm -png -r 150` or `pypdf`/`pymupdf`) in `os.tmpdir()` and inspect every page with `view_file` before declaring completion.
+2. **Annotation & bounding-box precision**: Verify that red highlight boxes, numbered callouts, and cropped regions accurately frame the target text/UI element without clipping characters or spilling outside the target row. Ensure cropped screenshots (`MD-RED`, mobile captures, logs) are magnified enough that detail text is legible when printed on A4.
+3. **Typography & table cell flow**: Enforce body text `>= 10pt`, table cells `>= 9pt`, `word-break: keep-all` on Korean prose, and `white-space: nowrap` on speaker/name/badge columns so 3-syllable Korean names never wrap mid-name. Keep a unified single-hue palette (e.g., navy/slate) unless semantic status requires color.
+4. **Page-break & whitespace hygiene**: Reject orphan headings, split callout cards, or excessive blank bottom margins (`> 30%` of page height) caused by unsplit oversized blocks. Isolate headless browser `--user-data-dir` inside `os.tmpdir()` and delete temporary profiles and `verify_*.png` captures after verification.
+
 ## References
 
 - [ui-loopback](references/ui-loopback.md) — headless browser capture loop

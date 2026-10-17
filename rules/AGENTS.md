@@ -60,7 +60,7 @@ Schema: `Subagents: [{ TypeName, Role, Model, Prompt }]` + `toolAction`, `toolSu
 </delegation_rules>
 
 <keyword_detection>
-Route by each skill's `description`; `/ulw`·"ultrawork" → `$ulw`, "deep research" → `$ulw-research`, "작업 검증" → `$gf-qa-behavioral-verification`, "doctor"·"플러그인 진단" → `node scripts/doctor.mjs`. Forensic, legal, Korean-doc, and humanize keywords are routed by `lazyargon-workspace`'s `GEMINI.md`. Full table: `docs/keyword-routing.md`.
+Route by each skill's `description`; `/ulw`·"ultrawork"·`/goal`·`$boost` → `$ulw`, "deep research" → `$ulw-research`, "작업 검증"·`$review-work` → `$gf-qa-behavioral-verification`, "doctor"·"플러그인 진단" → `node scripts/doctor.mjs`. Forensic, legal, Korean-doc, and humanize keywords are routed by `lazyargon-workspace`'s `GEMINI.md`. Full table: `docs/keyword-routing.md`.
 </keyword_detection>
 
 <verification>
@@ -80,14 +80,13 @@ Identify what proves the claim, run it, read the output, then report. Iterate on
 </claim_evidence>
 
 <data_handling_rules>
-개인정보 기본 양식 규칙 (2026-09-23 확정) — 포렌식 문서 스튜디오(견적서·제안서·CoC·작업증명서·삭제확인증·캔버스 보고서 등)의 기본값/샘플 데이터:
-- **대륜 측 정보는 유지**: 법인명, 주소, 대표전화(02-780-1128), 계좌, 대표변호사·분석관 성명, 직인 등 법무법인(유한) 대륜 측 식별정보는 그대로 둔다.
-- **상대방(의뢰인·발주사·기탁인·의뢰부서·입회인 등) 개인정보는 기본 비워둔다**: `(의뢰사 상호명 입력)`, `(담당자 부서·직위·성명) 귀하`, `의뢰사 입회인` 같은 플레이스홀더로 둔다. 캔버스 스튜디오 컨벤션(홍길동, ○○의원, 010-0000-0000)도 같은 규칙이다.
-- 특정 의뢰사용으로 발행된 개별 산출물(예: `넥스틴_디지털포렌식_견적서_법무법인대륜.html`)에는 적용하지 않는다.
+개인정보 기본 양식 규칙 (2026-09-23 확정) — 포렌식 문서 스튜디오 기본값/샘플 데이터:
+- **대륜 측 정보 유지**: 법인명, 주소, 대표전화(02-780-1128), 계좌, 변호사·분석관 성명, 직인 등 대륜 식별정보는 유지한다.
+- **상대방 개인정보 비움**: `(의뢰사 상호명 입력)`, `(담당자 부서·직위·성명) 귀하`, `의뢰사 입회인`(또는 홍길동, ○○의원, 010-0000-0000) 플레이스홀더로 둔다. 특정 의뢰사용 개별 발행본에는 적용하지 않는다.
 </data_handling_rules>
 
 <anti_slop_invariants>
-글: 샌드위치 도입·마무리 금지, AI 상투어("혁신적인", "다면적인", "심리스한", "중추적인") 금지, 기계적 대구·불릿 중독 금지(초단문과 복문 교차), 장식 이모지·과도한 볼드 금지. 밀도 상한: 문단 4문장, 화면(슬라이드·섹션·카드) 본문 60자, 요약 10줄. 출처 없는 수치는 단정하지 않는다. `$humanize-korean` 2-Pass는 법원 제출물·외부 발행 문서에 필수, 그 외는 변경률·슬롭 검출이 임계 이상일 때만.
+글·보고서: 샌드위치 도입·마무리, AI 상투어("혁신적인", "다면적인", "심리스한", "중추적인"), 기계적 대구·불릿 중독(초단문·복문 교차), 장식 이모지·과도한 볼드 금지. 상한: 문단 4문장, 카드 본문 60자, 요약 10줄. 출처 없는 수치 단정 금지. 포렌식·사실확인 보고서와 녹취록에는 법적 유불리 평가("양날의 검", "방어에 결정적") 및 미요청 요약 콜아웃·자가검증 배지(`[전수 검증 완료]`, `(전문 수록)`)를 넣지 않고 사실만 적는다. STT 시각은 소수점 초(`384.94s`, `.0초`) 대신 `MM분 SS초`(`MM:SS`) 정수로 표기하고 내부 교차검증 메모는 노출하지 않는다. `$humanize-korean` 2-Pass는 법원 제출·외부 발행 문서에 필수.
 
-코드: 당연한 주석 금지(Why만), 보장된 값에 대한 과잉 방어 금지, TODO·NotImplemented·가짜 핸들러 금지, 같은 기능 중복 구현 금지(먼저 `grep`), YAGNI와 파일당 250줄 상한. UI: `aria-label`은 보이는 텍스트를 포함하거나 생략, 한글 버튼·배지·링크는 `word-break: keep-all` 또는 `nowrap`. 큰 변경 뒤 `$remove-ai-slops`.
+코드·실행: 당연한 주석(Why만), 과잉 방어, TODO·가짜 핸들러, 중복 구현(먼저 `grep`) 금지, 파일당 250줄 상한. UI/A4 인쇄: `aria-label`은 보이는 텍스트 포함 또는 생략, 한글 버튼·배지·화자 열은 `word-break: keep-all`/`white-space: nowrap`(3글자 성명 개행 방지), A4 본문 `≥10pt`·표 `≥9pt` 및 PDF 페이지별 PNG 시각 검수 필수. PowerShell은 복잡한 `python -c` 대신 `PYTHONUTF8=1` + 임시 `.py` 실행 후 삭제, Headless 브라우저 `--user-data-dir`은 `os.tmpdir()` 격리 후 삭제. 큰 변경 뒤 `$remove-ai-slops`.
 </anti_slop_invariants>

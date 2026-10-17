@@ -74,10 +74,25 @@ Sizing heuristics and recipes: `references/placement.md`.
 
 ## Hard rules
 
-- **NEVER use pandas.** DuckDB and Polars beat it decisively on every workload this skill
-  covers, and the environments this skill assumes do not ship it — `.df()` on a DuckDB
-  result raises unless pandas is installed; convert with `.pl()` via Arrow instead.
-- Excel files are not read directly: export to CSV or Parquet first.
+- **NEVER use pandas.** DuckDB and Polars beat it decisively on every analytical workload this skill covers, and the environments this skill assumes do not ship it — `.df()` on a DuckDB result raises unless pandas is installed; convert with `.pl()` via Arrow instead.
+- For analytical queries over large Excel inputs, convert or stream rows into SQLite/CSV/Parquet first; for **client-facing or court-submitted `.xlsx` deliverables**, format the final workbook with `openpyxl` (see below).
+
+## Large-Scale Text / Subtitle (VTT/STT) & Excel Corpus Pipeline
+
+When auditing thousands of subtitle files (`.vtt`, `.srt`, Whisper STT JSON/TXT), chat exports, or multi-sheet `.xlsx` logs:
+
+1. **SQLite FTS5 Indexing (`sqlite3` stdlib)**:
+   - Instead of re-scanning raw text/VTT/Excel files on every keyword query, parse once into a local SQLite database with an `fts5` virtual table (`CREATE VIRTUAL TABLE docs_fts USING fts5(source_file, timestamp_str, speaker, content)`).
+   - Normalize timestamps at ingest time to integer `MM분 SS초` or `HH:MM:SS` (strip fractional seconds like `384.94s` or `.0초`).
+   - Run Windows Python scripts with `$env:PYTHONUTF8="1"` via a temporary `.py` file (deleted right after execution) rather than complex nested-quote `python -c` one-liners in PowerShell.
+2. **STT Phonetic False-Positive Filtering (음차 오인식·위양성 대조)**:
+   - Whisper/auto-caption STT transcripts frequently contain homophone or phonetic transliteration errors for domain terms, proper nouns, and foreign words.
+   - Query candidate phonetic variants broadly in FTS/regex first, then inspect surrounding context lines (`±3~5` utterances) and cross-check against primary documents/metadata to filter out false positives before citing any hit as evidence. Never expose internal multi-pass cross-check notes in the final user-facing report.
+3. **Deliverable `.xlsx` Formatting (`openpyxl`)**:
+   - Raw unstyled Excel dumps clip CJK text and look unfinished. Whenever producing a deliverable `.xlsx` workbook with `openpyxl`, apply:
+     - **Header styling & freeze panes**: Navy/slate header fill (`PatternFill("solid", fgColor="1B365D")`), bold white font (`Malgun Gothic`, `10pt`), and `ws.freeze_panes = "A2"`.
+     - **Line wrapping & vertical alignment**: `Alignment(wrap_text=True, vertical="top")` on all data cells so multi-line transcripts and notes are readable without manual resizing.
+     - **CJK-aware auto column width**: Measure cell string lengths weighting Korean/CJK characters as `1.7–2.0x` ASCII width, clamp column widths to a sensible range (e.g. `min=12`, `max=65`), and set explicit row heights or auto-fit for wrapped rows.
 
 ## Output contract
 

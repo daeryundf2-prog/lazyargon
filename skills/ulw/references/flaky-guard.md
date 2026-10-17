@@ -25,8 +25,17 @@ flowchart TD
 ### Step 1: Repeat Stress Loop (20회 반복 스트레스 런)
 표준 쉘 반복 명령으로 동일 테스트를 연속 실행하여 간헐적 실패를 재현하고 실패 로그를 수집합니다.
 
+```powershell
+# Windows PowerShell: 20회 연속 스트레스 실행 (실패 즉시 중단)
+1..20 | ForEach-Object {
+  Write-Host "=== Run $_/20 ==="
+  npm test
+  if ($LASTEXITCODE -ne 0) { throw "FAILED on iteration $_" }
+}
+```
+
 ```bash
-# 20회 연속 스트레스 실행 (실패 즉시 중단 및 로그 확인)
+# POSIX (bash/zsh): 20회 연속 스트레스 실행 (실패 즉시 중단 및 로그 확인)
 for i in $(seq 1 20); do
   echo "=== Run $i/20 ==="
   npm test || { echo "FAILED on iteration $i"; exit 1; }

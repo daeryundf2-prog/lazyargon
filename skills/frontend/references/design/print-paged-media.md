@@ -63,14 +63,23 @@ Fragmentation support is uneven, and reading the stylesheet will not tell you wh
 
 Treat every fragmentation rule as a hypothesis until you have seen the rendered page.
 
-## 6. Verify by rendering every page
+## 6. Verify by rendering every page & cleaning up temporary profiles
 
-A paged deliverable is verified by looking at its pages. Render them and inspect each one:
+A paged deliverable is verified by looking at its pages. Render them to PNG (via `pdftoppm` or `PyMuPDF`/`fitz`) and inspect each page via `view_file`:
 
 ```bash
-pdftoppm -png -r 150 report.pdf out/page   # one PNG per page
+pdftoppm -png -r 150 report.pdf out/page   # or python -m fitz render
 ```
 
-Read every page image for: blank or near-empty pages, a block stranded alone after a keep-together push, a table or figure split mid-exhibit, a heading orphaned at a page foot, clipped or overflowing text, and a running header or footer that drifted or vanished.
+Read every page image with `view_file` (using absolute paths) for: blank or near-empty pages, a block stranded alone after a keep-together push, a table or figure split mid-exhibit, a heading orphaned at a page foot, clipped or overflowing text, bounding-box/highlight coordinate drift on annotated evidence images, and a running header or footer that drifted or vanished.
 
-Extracting the text proves the words are present. It cannot see any defect in this list - layout is exactly the information that extraction discards. Fix, re-render, and look again until the pages are clean; the same standard governs the `ulw-research` delivery gate and the `/ulw` verification wave.
+- **Headless Browser Profile Isolation & Cleanup**: When converting HTML to PDF via Headless Chrome/Edge (`--headless --print-to-pdf`), always pass `--user-data-dir` pointing to an isolated directory under `os.tmpdir()` (or `$env:TEMP`) and delete both the temporary profile directory and intermediate page PNGs (`verify_*.png`, `out/page*.png`) immediately after verification completes.
+
+## 7. Korean A4 Print / Legal & Forensic Document Standards
+
+When generating Korean A4 print deliverables (forensic reports, fact-finding briefs, transcript tables, estimates, and court exhibits):
+
+- **Minimum Print Typography Floor**: Body copy must be at least **`10pt`** (`13.3px+`, line-height `1.55–1.65`) and data/evidence tables at least **`9pt`** (`12px+`). Never shrink Korean body or table text below `9pt` to force a single-page fit; readable multi-page flow always beats illegible micro-type.
+- **Transcript & Speaker Column Wrapping (`white-space: nowrap`)**: In dialogue transcripts, call logs, and metadata tables, apply `white-space: nowrap` (and a fixed minimum width such as `min-width: 4.5em`) to speaker/name/timestamp/badge columns so 3–4 syllable Korean names (`홍길동`, `김분석관`, `박대리`) never wrap mid-name onto two lines. Apply `word-break: keep-all` on prose cells.
+- **Restrained Single-Tone Palette (Navy / Slate)**: Use a unified deep navy (`#1B365D` / `#0F172A`) and neutral slate (`#334155` / `#64748B` / `#F8FAFC`) palette across headers, table rules, and badges. Avoid multi-colored rainbow badges, decorative gradients, or unrequested summary callout boxes.
+- **Screenshot & Evidence Annotation Alignment**: When overlaying bounding boxes, redaction masks, or highlight callouts onto captured screenshots inside a paged report, render the final PDF to page-by-page PNGs and inspect via `view_file` to confirm that CSS/SVG/Canvas coordinates have not shifted relative to the underlying image during A4 scaling.

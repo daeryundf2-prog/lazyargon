@@ -3,6 +3,7 @@
   "displayName": "LazyArgon",
   "version": "1.1.0",
   "description": "Antigravity autonomous execution (/ulw) tuned for Gemini 4 Argon: budgeted subagent fan-out, chunked writes, post-compaction re-reads, software engineering, debugging, refactoring, UI/UX/AX design system, 39-type editorial diagram design, SVG logo design, and data science.",
+  "hooks": "./hooks.json",
   "suggestedPrompts": [
     "/ulw 현재 프로젝트의 버그를 추적하고 테스트까지 통과시켜줘",
     "이 아키텍처를 브랜드 에디토리얼 다이어그램(diagram-design)으로 도식화해줘",

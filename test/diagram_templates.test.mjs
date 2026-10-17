@@ -78,12 +78,17 @@ test("#given references directory #when scanned #then required markdown guides a
 });
 
 test("#given docs reference local paths #when each path is resolved #then every referenced file exists", async () => {
-	const docs = [
+	const skillsRoot = join(root, "skills");
+	const entries = await readdir(skillsRoot, { withFileTypes: true });
+	const allSkillDocs = entries.filter((e) => e.isDirectory()).map((e) => join(skillsRoot, e.name, "SKILL.md"));
+
+	const diagramDocs = new Set([
 		join(skillDir, "SKILL.md"),
 		...(await listMarkdown(join(skillDir, "references"))),
 		...(await listMarkdown(join(root, "commands"))),
 		...(await listMarkdown(join(root, "prompts"))),
-	];
+	]);
+	const docs = [...new Set([...allSkillDocs, ...diagramDocs])];
 
 	const missing = [];
 	for (const doc of docs) {
@@ -99,13 +104,13 @@ test("#given docs reference local paths #when each path is resolved #then every 
 
 		// Bare path mentions rooted at a shipped top-level directory.
 		for (const match of content.matchAll(
-			/(?:^|[\s(`"'])((?:assets|references|scripts|commands|prompts)\/[A-Za-z0-9_][A-Za-z0-9_.\-/]*)/g,
+			/(?:^|[\s(`"'])((?:assets|references|scripts|commands|prompts)\/[A-Za-z0-9_][A-Za-z0-9_.\-/*{}<>]*)/g,
 		)) {
 			refs.add(match[1].replace(/[.,;:)\]"'`]+$/g, ""));
 		}
 
 		for (const ref of refs) {
-			if (ref.includes("<") || ref.endsWith("/")) continue; // placeholders and dir mentions
+			if (ref.includes("<") || ref.includes("{") || ref.includes("*") || ref.endsWith("/")) continue; // placeholders and dir mentions
 			const candidates = [join(dirname(doc), ref), join(skillDir, ref), join(root, ref)];
 			let found = false;
 			for (const candidate of candidates) {

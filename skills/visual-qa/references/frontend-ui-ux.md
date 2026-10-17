@@ -53,7 +53,7 @@ Focus on high-impact moments. One well-orchestrated page load with staggered rev
 ## Spatial Composition & 3D WebGL
 - Unexpected layouts: Asymmetry, overlap, diagonal flow, grid-breaking elements, generous negative space OR controlled density.
 - **3D & Interactive WebGL**: Integrate modern Three.js / React Three Fiber (R3F) elements (3D interactive globes, canvas cards, particle fields, floating geometry, procedural shaders) for memorable hero and feature sections.
-- **Copy-Paste Over Heavy Bundles**: Prefer modular, copy-paste 3D components (shadcn/ui style from 21st.dev, Aceternity UI, pmndrs/drei) over monolithic packages. Always follow the Single Canvas Multi-View pattern (`threejs-r3f.md`) to avoid WebGL context limits.
+- **Copy-Paste Over Heavy Bundles**: Prefer modular, copy-paste 3D components (shadcn/ui style from 21st.dev, Aceternity UI, pmndrs/drei) over monolithic packages. Always follow the Single Canvas Multi-View pattern (e.g. `@react-three/drei` `View` portaling into a single shared `<Canvas>`) to avoid WebGL context limits.
 
 ## Visual Details
 Create atmosphere and depth-gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, custom cursors, grain overlays. Never default to solid colors.

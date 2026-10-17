@@ -45,7 +45,9 @@ This skill is an index. Detailed per-language rules live under `references/`. Lo
 ## The 250 Pure LOC Ceiling (Non-Negotiable)
 
 **A source file whose pure LOC (non-blank, non-comment lines) exceeds 250 is architecturally broken.**
-- Measure: `awk '!/^[[:space:]]*$/ && !/^[[:space:]]*(\/\/|#|--)/' <file> | wc -l`
+- Measure (POSIX): `awk '!/^[[:space:]]*$/ && !/^[[:space:]]*(\/\/|#|--)/' <file> | wc -l`
+- Measure (Cross-platform Python): `python -c "import re,sys; print(sum(1 for l in open(sys.argv[1],encoding='utf-8') if l.strip() and not re.match(r'^\s*(//|#|--)',l)))" <file>`
+- Measure (PowerShell): `(Get-Content <file> | Where-Object { $_ -notmatch '^\s*$' -and $_ -notmatch '^\s*(//|#|--)' }).Count`
 - ≤ 200 LOC: Healthy
 - 200 - 250 LOC: Warning band (propose split)
 - \> 250 LOC: **DEFECT** — split by responsibility into smaller cohesive units immediately.

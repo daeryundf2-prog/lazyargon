@@ -1,6 +1,6 @@
 ---
 name: vector-diagram
-description: "고해상도 벡터 다이어그램 & 아키텍처 구조도 코드 렌더링 스킬. 래스터 생성(generate_image)의 한글 글리프 깨짐과 쿼터 소진을 차단하고, XeLaTeX/Tectonic(Apple SD Gothic Neo), Graphviz, Mermaid, Python SVG로 300DPI 무결점 벡터 이미지를 생성합니다. Triggers: vector diagram, diagram render, latex diagram, tectonic diagram, graphviz, 흐름도 생성, 구조도 생성, 벡터 다이어그램, 한글 다이어그램, 차트 렌더링"
+description: "고해상도 벡터 다이어그램 & 아키텍처 구조도 코드 렌더링 스킬. 래스터 생성(generate_image)의 한글 글리프 깨짐과 쿼터 소진을 차단하고, XeLaTeX/Tectonic(Malgun Gothic / Pretendard / Apple SD Gothic Neo), Graphviz, Mermaid, Python SVG로 300DPI 무결점 벡터 이미지를 생성합니다. Triggers: vector diagram, diagram render, latex diagram, tectonic diagram, graphviz, 흐름도 생성, 구조도 생성, 벡터 다이어그램, 한글 다이어그램, 차트 렌더링"
 ---
 
 # Vector Diagram: Code-Based High-Precision Diagram Renderer
@@ -12,11 +12,11 @@ description: "고해상도 벡터 다이어그램 & 아키텍처 구조도 코�
 ```mermaid
 flowchart TD
     Req["다이어그램 / 구조도 / 흐름도 요청"] --> Decide{"렌더링 엔진 선택"}
-    Decide -- "LaTeX / 복합 타이포" --> LaTeX["1. XeLaTeX / Tectonic<br/>fontspec + Apple SD Gothic Neo"]
+    Decide -- "LaTeX / 복합 타이포" --> LaTeX["1. XeLaTeX / Tectonic<br/>fontspec + Malgun Gothic / Pretendard"]
     Decide -- "노드 그래프 / 상태 전이" --> Dot["2. Graphviz (dot)<br/>-Gdpi=300 고해상도"]
     Decide -- "웹 / 빠른 흐름도" --> Mmd["3. Mermaid CLI / SVG"]
     
-    LaTeX --> PDFtoPNG["PDF → 300 DPI PNG 변환 (pdftoppm)"]
+    LaTeX --> PDFtoPNG["PDF → 300 DPI PNG 변환 (pdftoppm / PyMuPDF)"]
     Dot --> PDFtoPNG
     Mmd --> PDFtoPNG
     
@@ -29,13 +29,14 @@ flowchart TD
 ## 3대 렌더링 엔진 & 레시피
 
 ### 1. XeLaTeX / Tectonic (고급 출판 및 한글 타이포 다이어그램)
-macOS 및 리눅스 환경에서 한글 폰트(`Apple SD Gothic Neo` 또는 `Noto Sans CJK KR`)를 완벽하게 지원하는 Ti*k*Z / PGF 다이어그램을 생성합니다.
+Windows(`Malgun Gothic`, `Pretendard`), macOS(`Apple SD Gothic Neo`), Linux(`Noto Sans CJK KR`) 환경에 맞는 한글 시스템 폰트를 지정하여 Ti*k*Z / PGF 다이어그램을 생성합니다.
 
 ```latex
 % diagram.tex
 \documentclass[tikz,border=10pt]{standalone}
 \usepackage{fontspec}
-\setmainfont{Apple SD Gothic Neo} % macOS 기본 한글 (Linux: Noto Sans CJK KR)
+% OS별 기본 한글 폰트: Windows = Malgun Gothic (또는 Pretendard), macOS = Apple SD Gothic Neo, Linux = Noto Sans CJK KR
+\setmainfont{Malgun Gothic}
 \usetikzlibrary{shapes,arrows.meta,positioning}
 
 \begin{document}
@@ -62,14 +63,14 @@ pdftoppm -png -r 300 diagram.pdf diagram_output
 ---
 
 ### 2. Graphviz (방대한 아키텍처 및 모듈 의존성 그래프)
-노드와 엣지 관계를 직관적인 DOT 언어로 작성하고 300 DPI로 렌더링합니다.
+노드와 엣지 관계를 직관적인 DOT 언어로 작성하고 300 DPI로 렌더링합니다. Windows에서는 `"Malgun Gothic"` 또는 `"Pretendard"`를 기본 지정합니다.
 
 ```dot
 // arch.dot
 digraph Architecture {
-    graph [dpi=300, fontname="Apple SD Gothic Neo", rankdir=LR];
-    node [fontname="Apple SD Gothic Neo", shape=box, style=rounded];
-    edge [fontname="Apple SD Gothic Neo"];
+    graph [dpi=300, fontname="Malgun Gothic", rankdir=LR];
+    node [fontname="Malgun Gothic", shape=box, style=rounded];
+    edge [fontname="Malgun Gothic"];
 
     Client [label="클라이언트 (GJC/Codex)"];
     Harness [label="LazyArgon 하네스"];
@@ -87,7 +88,7 @@ dot -Tpng -Gdpi=300 arch.dot -o arch.png
 ---
 
 ### 3. Mermaid CLI / Python SVG
-간단한 시퀀스 다이어그램이나 웹 연동 다이어그램은 `mmdc` 또는 Python `matplotlib`/`cairo`를 사용합니다.
+간단한 시퀀스 다이어그램이나 웹 연동 다이어그램은 `mmdc` 또는 Python `matplotlib`/`cairo`를 사용합니다. (`matplotlib` 사용 시 `plt.rcParams['font.family'] = 'Malgun Gothic'` 설정)
 
 ```bash
 mmdc -i sequence.mmd -o sequence.png -s 3 -b transparent
@@ -99,5 +100,5 @@ mmdc -i sequence.mmd -o sequence.png -s 3 -b transparent
 
 1. **`generate_image` 래스터 생성 절대 금지**: 다이어그램을 AI 확산 모델로 그리면 글자가 흐려지고 텍스트가 왜곡됩니다.
 2. **시스템 미설치 도구 강제 설치 금지**: 머신에 이미 설치된 도구(`tectonic`, `xelatex`, `dot`, `python`)를 우선 탐색하여 사용합니다.
-3. **한글 폰트 명시**: LaTeX 컴파일 시 반드시 `\usepackage{fontspec}` 및 `\setmainfont{Apple SD Gothic Neo}`를 선언합니다.
-4. **산출물 이중 검증**: 생성된 PNG 파일에 대해 `file <output.png>` 및 `$visual-qa`를 통해 라벨 깨짐 여부를 검수합니다.
+3. **크로스플랫폼 한글 폰트 명시**: OS 환경에 맞춰 Windows는 `Malgun Gothic`/`Pretendard`, macOS는 `Apple SD Gothic Neo`, Linux는 `Noto Sans CJK KR`를 명시적으로 선언합니다.
+4. **산출물 이중 검증**: 생성된 PNG 파일에 대해 `$visual-qa` (`view_file` 절대경로 시각 검수)를 통해 라벨 깨짐 여부를 검수합니다.
