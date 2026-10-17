@@ -49,3 +49,37 @@ test("#given API-key mode without an Argon mapping #when doctor runs #then model
 		fs.rmSync(home, { recursive: true, force: true });
 	}
 });
+
+test("#given live_rpc mock payload #when customization has STATUS_ERROR #then doctor fails and reports the errored item", () => {
+	const okMock = JSON.stringify({
+		states: [
+			{ name: "lazyargon/skills/ulw", status: "STATUS_ENABLED" },
+			{ name: "lazyargon-workspace/skills/forensic-report", status: "STATUS_ENABLED" },
+		],
+	});
+	const okRes = spawnSync("node", [path.join(ROOT, "scripts", "doctor.mjs"), "--json"], {
+		cwd: ROOT,
+		encoding: "utf8",
+		env: { ...process.env, LAZYARGON_LS_RPC_MOCK_JSON: okMock },
+	});
+	assert.equal(okRes.status, 0);
+	const okCheck = JSON.parse(okRes.stdout).checks.find((c) => c.id === "antigravity.live_rpc");
+	assert.equal(okCheck.status, "ok");
+	assert.match(okCheck.detail, /ENABLED 2개/);
+
+	const errMock = JSON.stringify({
+		states: [
+			{ name: "lazyargon/skills/ulw", status: "STATUS_ENABLED" },
+			{ name: "lazyargon/hooks.json", status: "STATUS_ERROR", error: "invalid hook format" },
+		],
+	});
+	const errRes = spawnSync("node", [path.join(ROOT, "scripts", "doctor.mjs"), "--json"], {
+		cwd: ROOT,
+		encoding: "utf8",
+		env: { ...process.env, LAZYARGON_LS_RPC_MOCK_JSON: errMock },
+	});
+	assert.equal(errRes.status, 1);
+	const errCheck = JSON.parse(errRes.stdout).checks.find((c) => c.id === "antigravity.live_rpc");
+	assert.equal(errCheck.status, "fail");
+	assert.match(errCheck.detail, /lazyargon\/hooks\.json/);
+});

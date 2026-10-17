@@ -209,6 +209,97 @@ function descriptionColons() {
 	add("frontmatter.description_colon", bad.length ? "warn" : "ok", bad.length ? `따옴표 없는 description 에 콜론 — agy <1.3.6 에서 로딩 실패: ${bad.join(", ")}` : "따옴표 없는 콜론 description 없음");
 }
 
+function discoverLiveLanguageServer() {
+	if (process.env.LAZYARGON_LS_RPC_MOCK_JSON) {
+		return { mockJson: process.env.LAZYARGON_LS_RPC_MOCK_JSON };
+	}
+	if (process.platform === "win32") return null;
+	const ps = spawnSync("ps", ["-ax", "-o", "pid=,command="], { encoding: "utf8", timeout: 2000 });
+	if (ps.error || ps.status !== 0) return null;
+	for (const line of (ps.stdout || "").split("\n")) {
+		if (!line.includes("language_server") || !line.includes("--csrf_token")) continue;
+		const pidMatch = line.trim().match(/^(\d+)\s+/);
+		const tokenMatch = line.match(/--csrf_token[=\s]+([^\s]+)/);
+		if (!pidMatch || !tokenMatch) continue;
+		const pid = pidMatch[1];
+		const token = tokenMatch[1];
+		const lsof = spawnSync("lsof", ["-Pan", "-p", pid, "-iTCP", "-sTCP:LISTEN"], { encoding: "utf8", timeout: 2000 });
+		if (lsof.error || lsof.status !== 0) continue;
+		const ports = [...(lsof.stdout || "").matchAll(/127\.0\.0\.1:(\d+)/g)].map((m) => m[1]);
+		if (ports.length > 0) return { pid, token, ports };
+	}
+	return null;
+}
+
+function liveRpcCheck() {
+	const info = discoverLiveLanguageServer();
+	if (!info) {
+		add("antigravity.live_rpc", "ok", "language_server 미감지 (오프라인/헤드리스 — 정적 검사만 수행)");
+		return;
+	}
+	let data = null;
+	if (info.mockJson) {
+		try {
+			data = JSON.parse(info.mockJson);
+		} catch (e) {
+			add("antigravity.live_rpc", "fail", `모의 RPC JSON 파싱 실패: ${e.message}`);
+			return;
+		}
+	} else {
+		for (const port of info.ports) {
+			const res = spawnSync(
+				"curl",
+				[
+					"-sS",
+					"-m",
+					"2",
+					"-X",
+					"POST",
+					`http://127.0.0.1:${port}/exa.language_server_pb.LanguageServerService/GetCustomizationStates`,
+					"-H",
+					`x-codeium-csrf-token: ${info.token}`,
+					"-H",
+					"Content-Type: application/json",
+					"-d",
+					"{}",
+				],
+				{ encoding: "utf8", timeout: 2500 },
+			);
+			if (!res.error && res.status === 0 && res.stdout && res.stdout.trim().startsWith("{")) {
+				try {
+					const parsed = JSON.parse(res.stdout);
+					if (Array.isArray(parsed.states) || Array.isArray(parsed.customizations)) {
+						data = parsed;
+						break;
+					}
+				} catch {
+					// try next port
+				}
+			}
+		}
+	}
+	if (!data) {
+		add("antigravity.live_rpc", "ok", "language_server RPC 응답 없음 (비활성 포트 — 정적 검사만 수행)");
+		return;
+	}
+	const items = Array.isArray(data.states) ? data.states : Array.isArray(data.customizations) ? data.customizations : [];
+	const pluginItems = items.filter((it) => {
+		const s = JSON.stringify(it);
+		return s.includes("lazyargon");
+	});
+	const errored = pluginItems.filter((it) => {
+		const st = String(it.status || it.state || "");
+		return /ERROR|INVALID|FAILED/i.test(st) || Boolean(it.error);
+	});
+	if (errored.length > 0) {
+		const summary = errored.map((it) => `${it.name || it.path || "unknown"}(${it.status || it.error})`).join(", ");
+		add("antigravity.live_rpc", "fail", `실시간 로더 오류 ${errored.length}건: ${summary}`);
+		return;
+	}
+	const enabledCount = items.filter((it) => String(it.status || "").includes("ENABLED")).length;
+	add("antigravity.live_rpc", "ok", `실시간 로더 정상 (전체 ENABLED ${enabledCount}개, lazyargon 계열 ${pluginItems.length}개, 오류 0건)`);
+}
+
 nodeVersion();
 pythonVersion();
 hooksWiring();
@@ -219,6 +310,7 @@ scopeLock();
 modelProvider();
 rulesBudget();
 descriptionColons();
+liveRpcCheck();
 
 const args = process.argv.slice(2);
 const strict = args.includes("--strict");

@@ -190,3 +190,42 @@ test("#given lazyargon hooks.json commands #when executed without PLUGIN_ROOT #t
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 	}
 });
+
+test("#given PreToolUse write_chunk_guard.mjs #when payload is within or exceeds chunk budget #then allows small write and denies >250 lines or >24KB", () => {
+	const preCmd = HOOKS_JSON.hooks.PreToolUse[0].hooks[0].command;
+
+	// 1) Small write (10 lines) -> allow (exit 0)
+	const smallPayload = JSON.stringify({
+		toolCall: {
+			name: "write_to_file",
+			args: { TargetFile: "/tmp/small.js", CodeContent: "const a = 1;\n".repeat(10) },
+		},
+	});
+	const allowRes = runShCommand(preCmd, smallPayload);
+	assert.equal(allowRes.status, 0, allowRes.stderr);
+	assert.equal(JSON.parse(allowRes.stdout).decision, "allow");
+
+	// 2) Oversized line count (260 lines) -> deny (exit 1)
+	const manyLinesPayload = JSON.stringify({
+		toolCall: {
+			name: "write_to_file",
+			args: { TargetFile: "/tmp/huge.js", CodeContent: "const a = 1;\n".repeat(260) },
+		},
+	});
+	const denyLinesRes = runShCommand(preCmd, manyLinesPayload);
+	assert.equal(denyLinesRes.status, 1);
+	const denyLinesJson = JSON.parse(denyLinesRes.stdout);
+	assert.equal(denyLinesJson.decision, "deny");
+	assert.match(denyLinesJson.reason, /Argon 60s stream cutoff guard/);
+
+	// 3) Oversized byte count (>24KB in single line) -> deny (exit 1)
+	const manyBytesPayload = JSON.stringify({
+		toolCall: {
+			name: "replace_file_content",
+			args: { TargetFile: "/tmp/huge.js", ReplacementContent: "x".repeat(25 * 1024) },
+		},
+	});
+	const denyBytesRes = runShCommand(preCmd, manyBytesPayload);
+	assert.equal(denyBytesRes.status, 1);
+	assert.equal(JSON.parse(denyBytesRes.stdout).decision, "deny");
+});
