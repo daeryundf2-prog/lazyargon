@@ -300,10 +300,98 @@ function liveRpcCheck() {
 	add("antigravity.live_rpc", "ok", `실시간 로더 정상 (전체 ENABLED ${enabledCount}개, lazyargon 계열 ${pluginItems.length}개, 오류 0건)`);
 }
 
+// google-research/harness2 (tree.py, prompts.py):
+// (1) 스킬 폴더가 있어도 라우팅 표/규칙에서 언급되지 않으면 에이전트가 열지 않는 사문(dead weight)이 된다.
+// (2) SKILL.md / rules/*.md 가 호출하는 scripts/<file>.(py|mjs|sh) 가 디스크에 없으면 런타임에 즉시 실패한다.
+function skillsRoutingCoverage() {
+	const extraRoot = process.env.LAZYARGON_TEST_SKILL_ROOT;
+	const targets = [
+		{
+			label: "lazyargon",
+			pluginRoot: extraRoot || root,
+			indexFiles: [join(extraRoot || root, "rules", "AGENTS.md"), join(extraRoot || root, "docs", "keyword-routing.md")],
+		},
+	];
+	const wsRoot = join(root, "..", "lazyargon-workspace");
+	if (!extraRoot && existsSync(join(wsRoot, "skills"))) {
+		targets.push({
+			label: "lazyargon-workspace",
+			pluginRoot: wsRoot,
+			indexFiles: [join(wsRoot, "rules", "GEMINI.md"), join(wsRoot, "skills", "lazyforensic", "SKILL.md")],
+		});
+	}
+	const unrouted = [];
+	let totalSkills = 0;
+	for (const t of targets) {
+		const skillsDir = join(t.pluginRoot, "skills");
+		if (!existsSync(skillsDir)) continue;
+		const indexText = t.indexFiles
+			.filter((f) => existsSync(f))
+			.map((f) => readFileSync(f, "utf8"))
+			.join("\n");
+		for (const name of readdirSync(skillsDir)) {
+			const skillMd = join(skillsDir, name, "SKILL.md");
+			if (!existsSync(skillMd)) continue;
+			totalSkills += 1;
+			if (!indexText.includes(name)) {
+				unrouted.push(`${t.label}/${name}`);
+			}
+		}
+	}
+	add(
+		"skills.routing_coverage",
+		unrouted.length ? "fail" : "ok",
+		unrouted.length ? `라우팅 표 미등재(dead-weight) 스킬: ${unrouted.join(", ")}` : `${totalSkills}개 스킬 라우팅 표 등재 확인`,
+	);
+}
+
+function skillsScriptRefs() {
+	const extraRoot = process.env.LAZYARGON_TEST_SKILL_ROOT;
+	const roots = extraRoot ? [extraRoot] : [root, join(root, "..", "lazyargon-workspace")].filter((r) => existsSync(join(r, "skills")));
+	const rx = /(?:python3?|node)\s+(?:-[A-Za-z0-9]+\s+)*["']?((?:\.\/)?(?:skills\/[a-z0-9_-]+\/)?scripts\/[A-Za-z0-9_.-]+\.(?:py|mjs|sh))["']?/g;
+	const missing = [];
+	let checked = 0;
+	for (const r of roots) {
+		const mdFiles = [];
+		const rulesDir = join(r, "rules");
+		if (existsSync(rulesDir)) {
+			for (const f of readdirSync(rulesDir)) if (f.endsWith(".md")) mdFiles.push({ file: join(rulesDir, f), skillDir: null });
+		}
+		const skillsDir = join(r, "skills");
+		if (existsSync(skillsDir)) {
+			for (const name of readdirSync(skillsDir)) {
+				const sdir = join(skillsDir, name);
+				const smd = join(sdir, "SKILL.md");
+				if (existsSync(smd)) mdFiles.push({ file: smd, skillDir: sdir });
+			}
+		}
+		for (const { file, skillDir } of mdFiles) {
+			const text = readFileSync(file, "utf8");
+			for (const m of text.matchAll(rx)) {
+				const rawRel = m[1].replace(/^\.\//, "");
+				if (/^(?:xxx|example|your_|sample)/i.test(rawRel.split("/").pop() || "")) continue;
+				checked += 1;
+				const inPlugin = join(r, rawRel);
+				const inSkill = skillDir ? join(skillDir, rawRel) : null;
+				if (!existsSync(inPlugin) && (!inSkill || !existsSync(inSkill))) {
+					missing.push(`${file}: ${rawRel}`);
+				}
+			}
+		}
+	}
+	add(
+		"skills.script_refs",
+		missing.length ? "fail" : "ok",
+		missing.length ? `존재하지 않는 스크립트 참조: ${missing.join("; ")}` : `${checked}개 스크립트 호출 경로 실존 확인`,
+	);
+}
+
 nodeVersion();
 pythonVersion();
 hooksWiring();
 skillsFrontmatter();
+skillsRoutingCoverage();
+skillsScriptRefs();
 guardParity();
 manifestVersions();
 scopeLock();

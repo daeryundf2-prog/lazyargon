@@ -69,3 +69,4 @@ invoke_subagent(
 - `P1 (Concurrency Hazard)`: 비동기 레이스 수정 전까지 완료 선언 금지.
 - `P2 (Type/Boundary Gap)`: 타입 및 경계 조건 즉시 보강.
 - `P3 (Adoption Screen)`: 스테일 데이터 가정·비공개 내부 API 의존·범위 밖 수정·요청 대비 과대 변경은 테스트 통과와 무관하게 기각한다.
+- `P4 (Blind Comparison & KEEP_BASE — harness2)`: 두 후보 구현이나 리팩토링 전후를 비교할 때는 "수정본/고도화본"이라는 라벨에 가산점을 주지 않고(익명 비교), 실행된 렌더링/출력 증거와 요청사항 대조만으로 판정한다. 변경이 관찰 가능한 개선을 입증하지 못하면 원본(`KEEP_BASE`)을 채택한다.

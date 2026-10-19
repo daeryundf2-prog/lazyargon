@@ -14,7 +14,7 @@ test("#given repo #when doctor --json runs #then every structural check is ok an
 	const data = JSON.parse(res.stdout);
 	assert.equal(data.ok, true);
 	const byId = Object.fromEntries(data.checks.map((c) => [c.id, c]));
-	for (const id of ["node", "hooks.scripts", "hooks.session_start", "skills", "versions"]) {
+	for (const id of ["node", "hooks.scripts", "hooks.session_start", "skills", "skills.routing_coverage", "skills.script_refs", "versions"]) {
 		assert.equal(byId[id]?.status, "ok", `${id}: ${byId[id]?.detail}`);
 	}
 	assert.ok(["ok", "warn"].includes(byId["guard_pack.sync"].status), byId["guard_pack.sync"].detail);
@@ -82,4 +82,31 @@ test("#given live_rpc mock payload #when customization has STATUS_ERROR #then do
 	const errCheck = JSON.parse(errRes.stdout).checks.find((c) => c.id === "antigravity.live_rpc");
 	assert.equal(errCheck.status, "fail");
 	assert.match(errCheck.detail, /lazyargon\/hooks\.json/);
+});
+
+test("#given unrouted skill and missing script ref #when doctor runs #then harness2 surface checks fail", () => {
+	const fakeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "lazyargon-h2-"));
+	try {
+		fs.mkdirSync(path.join(fakeRoot, "rules"), { recursive: true });
+		fs.mkdirSync(path.join(fakeRoot, "skills", "orphan-skill"), { recursive: true });
+		fs.writeFileSync(path.join(fakeRoot, "rules", "AGENTS.md"), "# Rules\n", "utf8");
+		fs.writeFileSync(
+			path.join(fakeRoot, "skills", "orphan-skill", "SKILL.md"),
+			'---\nname: orphan-skill\ndescription: "test"\n---\nRun `python scripts/ghost_helper.py` now.\n',
+			"utf8",
+		);
+		const res = spawnSync("node", [path.join(ROOT, "scripts", "doctor.mjs"), "--json"], {
+			cwd: ROOT,
+			encoding: "utf8",
+			env: { ...process.env, LAZYARGON_TEST_SKILL_ROOT: fakeRoot },
+		});
+		assert.equal(res.status, 1);
+		const byId = Object.fromEntries(JSON.parse(res.stdout).checks.map((c) => [c.id, c]));
+		assert.equal(byId["skills.routing_coverage"]?.status, "fail");
+		assert.match(byId["skills.routing_coverage"]?.detail, /orphan-skill/);
+		assert.equal(byId["skills.script_refs"]?.status, "fail");
+		assert.match(byId["skills.script_refs"]?.detail, /scripts\/ghost_helper\.py/);
+	} finally {
+		fs.rmSync(fakeRoot, { recursive: true, force: true });
+	}
 });

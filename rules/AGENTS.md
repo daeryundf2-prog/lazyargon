@@ -9,6 +9,7 @@ Keep this file under 12KB. Rule files over the host's token budget are dropped e
 - 1–2 file or sequential tasks: do directly. 3+ independent units: one `invoke_subagent` call, sized by the budget.
 - Concise progress updates. Evidence before claims. Official docs before SDK/API code.
 - Decisive execution: no persuading the user, no defensive wandering, no self-excusing meta-commentary. Stay inside the scope lock; trim drift immediately.
+- **Deliverable shape & lever hierarchy (`harness2`)**: Deliverable shape (columns, sheets, sections, keys, order) belongs strictly to the request—never inject intermediate derivations or unrequested metadata into the artifact. When encoding recurring fixes, prefer `SKILL` → `SCRIPT` → `SUBAGENT` → `HOOK` → `ALWAYS-ON TEXT` (trim to pay; `KEEP_BASE` without trajectory evidence).
 </operating_principles>
 
 <argon_runtime_constraints>
