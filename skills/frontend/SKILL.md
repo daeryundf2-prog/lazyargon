@@ -52,6 +52,7 @@ The reference library has one architecture file, 12 taste skills (Layer A — *h
 | File | Read when |
 |---|---|
 | `design-system-architecture.md` | The project has no `DESIGN.md` (defines the structure you must create first — 8 sections plus a greenfield-only `## 0. Research Log`), or you are extracting a design system from existing UI code. |
+| `material-first-workflow.md` | Building a greenfield brand showcase, landing page, or interactive product catalog without AI slop — enforces the 3-Document Separation (Purpose / UX & Data Flow / Visual Direction), the Material-First Gate (`products.ts` + `content.ts` + Fixed/Variable asset prompt templates before UI code), Bottom-Up assembly (`■ Material` + `● Component/Taxonomy` + `◆ Slot`), and Reverse-Order doc updates. |
 
 ### Layer A — taste skills (pick AT MOST ONE style skill; they encode opposing philosophies)
 
@@ -134,6 +135,7 @@ Domains: `product` `style` `typography` `color` `landing` `chart` `ux` `react` `
 ## Shared axioms (all four rulesets agree — apply always)
 
 - **No design system = no UI work.** `DESIGN.md` exists before components do; every color, font size, and spacing value traces back to a token in it.
+- **Material-First before screens (greenfield brand/product pages).** Never jump straight to full-screen generation. Separate Purpose (one-sentence worldview + explicit exclusions), UX & Data Flow (typed `products.ts` / hierarchical `content.ts` + component assembly list), and Visual Direction (`DESIGN.md` tokens + Fixed/Variable asset templates) per `references/design/material-first-workflow.md`, then assemble bottom-up from primitives to page. When a section feels empty, update the UX/Data doc first, generate the missing material, and then wire the component.
 - **Concrete reference = contract.** When a screenshot, mockup, or annotated reference exists, match its pixels, copy, component structure, and responsive intent unless the user accepts a deviation.
 - **Never weaken UX OR flatten the surface to buy points.** No dropping animations, hiding content, simplifying interactions, or replacing rendered/lit material with flat fills and flat geometric primitives for a Lighthouse score or a deadline. Hit 100 AND keep the surface dimensional — both, or neither.
 - **No emojis as icons.** SVG icon sets only (Lucide, Heroicons, Radix, Phosphor).

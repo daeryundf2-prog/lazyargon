@@ -32,4 +32,5 @@
 | "visual-qa", "pixel diff", "ui check", "시각적 검증" | `$visual-qa` | Multimodal UI verification & CJK precision review |
 | "image-prompt", "공냥 프롬프트", "이미지 프롬프트" | `$image-prompt` | Image generation prompt compiler & playbook |
 | "logo design", "로고 디자인", "로고 제작", "logo-design" | `$logo-design` | Professional SVG logo & brand identity design |
+| "material-first", "AI 티 안나게", "DDD 워크플로우", "재료 선제작", "3문서 분리" | `docs/material-first-design.md` | Universal Material-First Design Orchestration across Web, HTML/PDF Reports, Diagrams, Images & Logos |
 | "doctor", "플러그인 진단", "plugin doctor" | `node scripts/doctor.mjs` | Plugin environment & consistency diagnostics (read-only) |

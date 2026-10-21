@@ -219,9 +219,9 @@ New debt is recorded here at the moment it is accepted — never silently.
 1. **Select references before taste** — no visual reference means `_INDEX.md` shortlist of 2-3 Layer B candidates, then exactly one Layer A style skill and one Layer B brand/design-system reference. Use `open-design` only when the curated set has no fit.
 2. **Assemble from references** — extract tokens, layout grammar, component anatomy, states, motion, and taste decisions, then recombine them into project-specific primitives. Customize for the user's product; never copy logos, trademarked assets, or brand-specific copy.
 3. **Define the system** — atmosphere, palette, typography, spacing, and one depth strategy, grounded in the selected references and product semantics. Sanity-check the palette and type pairing with one `ui-ux-db` domain search (CLI in `references/ui-ux-db/README.md`).
-4. **Document initial primitives** — only components you are about to build, including variants and states.
-5. **Write it to `DESIGN.md`** at project root.
-6. **Build a primitive showcase first** — exercise each primitive's default, hover, active, focus, disabled, loading, empty, and error states at mobile/tablet/desktop widths before composing product screens.
+4. **Document initial primitives & data materials** — only components you are about to build, including variants and states. For brand showcases, landing pages, and product catalogs, follow `material-first-workflow.md` to create typed domain data (`src/data/products.ts`), hierarchical copy data (`src/data/content.ts`), and Fixed/Variable image prompt templates before writing component JSX.
+5. **Write it to `DESIGN.md`** at project root (and optional `docs/01-brief.md` + `docs/02-ux-flow.md` for 3-document separation).
+6. **Build a primitive showcase first (Bottom-Up)** — exercise each primitive's default, hover, active, focus, disabled, loading, empty, and error states at mobile/tablet/desktop widths before composing product screens. Assemble smallest-to-largest (`Card` → `Grid` → `Section` → `Page`).
 
 ### For Existing Projects (Extraction)
 
