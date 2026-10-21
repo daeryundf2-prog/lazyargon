@@ -26,11 +26,16 @@ test("#given host modelName #when session starts #then runtime block quotes it a
 });
 
 test("#given no model in payload #when session starts #then model is unknown, never inferred", () => {
-	const res = run("{}", ROOT);
-	assert.equal(res.status, 0, res.stderr);
-	const out = JSON.parse(res.stdout);
-	assert.match(out.additionalContext, /세션 모델: unknown/);
-	assert.match(out.additionalContext, /범위 잠금 \(\.lazyargon\/ulw-scope\.md\)\n\n없음/);
+	const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lazyargon-nosession-"));
+	try {
+		const res = run("{}", tmp);
+		assert.equal(res.status, 0, res.stderr);
+		const out = JSON.parse(res.stdout);
+		assert.match(out.additionalContext, /세션 모델: unknown/);
+		assert.match(out.additionalContext, /범위 잠금 \(\.lazyargon\/ulw-scope\.md\)\n\n없음/);
+	} finally {
+		fs.rmSync(tmp, { recursive: true, force: true });
+	}
 });
 
 test("#given .lazyargon/ulw-scope.md in cwd #when session starts #then scope lock head is injected", () => {

@@ -85,14 +85,15 @@ When auditing thousands of subtitle files (`.vtt`, `.srt`, Whisper STT JSON/TXT)
    - Instead of re-scanning raw text/VTT/Excel files on every keyword query, parse once into a local SQLite database with an `fts5` virtual table (`CREATE VIRTUAL TABLE docs_fts USING fts5(source_file, timestamp_str, speaker, content)`).
    - Normalize timestamps at ingest time to integer `MM분 SS초` or `HH:MM:SS` (strip fractional seconds like `384.94s` or `.0초`).
    - Run Windows Python scripts with `$env:PYTHONUTF8="1"` via a temporary `.py` file (deleted right after execution) rather than complex nested-quote `python -c` one-liners in PowerShell.
-2. **STT Phonetic False-Positive Filtering (음차 오인식·위양성 대조)**:
-   - Whisper/auto-caption STT transcripts frequently contain homophone or phonetic transliteration errors for domain terms, proper nouns, and foreign words.
+2. **STT Phonetic False-Positive Filtering & Server STT Verification (음차 오인식·위양성 대조)**:
+   - Server/auto-caption STT transcripts frequently contain homophone or phonetic transliteration errors for domain terms, proper nouns, and foreign words.
+   - Use `lazyargon-workspace/scripts/local_stt.py` (`--verify-text` / `verify_transcript_similarity`) to emit integer timestamps (`start_mmss`/`start_kor`) and verify server STT (`recognize_google` parallel chunks) similarity against draft transcripts before citing.
    - Query candidate phonetic variants broadly in FTS/regex first, then inspect surrounding context lines (`±3~5` utterances) and cross-check against primary documents/metadata to filter out false positives before citing any hit as evidence. Never expose internal multi-pass cross-check notes in the final user-facing report.
-3. **Deliverable `.xlsx` Formatting (`openpyxl`)**:
+3. **Deliverable `.xlsx` Formatting (`openpyxl` & `crime_schedule_xlsx.py`)**:
    - Raw unstyled Excel dumps clip CJK text and look unfinished. Whenever producing a deliverable `.xlsx` workbook with `openpyxl`, apply:
      - **Header styling & freeze panes**: Navy/slate header fill (`PatternFill("solid", fgColor="1B365D")`), bold white font (`Malgun Gothic`, `10pt`), and `ws.freeze_panes = "A2"`.
      - **Line wrapping & vertical alignment**: `Alignment(wrap_text=True, vertical="top")` on all data cells so multi-line transcripts and notes are readable without manual resizing.
-     - **CJK-aware auto column width**: Measure cell string lengths weighting Korean/CJK characters as `1.7–2.0x` ASCII width, clamp column widths to a sensible range (e.g. `min=12`, `max=65`), and set explicit row heights or auto-fit for wrapped rows.
+     - **CJK-aware auto column width & row height**: Measure cell string lengths weighting Korean/CJK characters as `1.7–2.0x` ASCII width, clamp column widths to a sensible range (e.g. `min=12`, `max=65`), and set explicit row heights. For court-submitted `범죄일람표` workbooks, use `lazyargon-workspace/scripts/crime_schedule_xlsx.py` (`calc_visual_lines` CJK row-height auto-sizing, court-standard `범죄일람표` styler, YouTube time-jump URL builder, and G/H column issue-consistency audit).
 
 ## Output contract
 

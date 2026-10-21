@@ -81,7 +81,8 @@ function skillsFrontmatter() {
 }
 
 function guardParity() {
-	const sibling = join(root, "..", "lazyargon-workspace", "scripts");
+	const wsRoot = join(root, "..", "lazyargon-workspace");
+	const sibling = join(wsRoot, "scripts");
 	if (!existsSync(sibling)) {
 		add("guard_pack.sync", "warn", "인접 lazyargon-workspace 없음 — 동기화 검사 생략");
 		return;
@@ -95,6 +96,13 @@ function guardParity() {
 			continue;
 		}
 		if (readFileSync(a, "utf8") !== readFileSync(b, "utf8")) drift.push(`${g}: 내용 상이`);
+	}
+	const gRoot = join(wsRoot, "GEMINI.md");
+	const gRules = join(wsRoot, "rules", "GEMINI.md");
+	if (existsSync(gRoot) && existsSync(gRules)) {
+		if (!readFileSync(gRoot).equals(readFileSync(gRules))) {
+			drift.push("GEMINI.md!=rules/GEMINI.md");
+		}
 	}
 	add("guard_pack.sync", drift.length ? "fail" : "ok", drift.length ? `${drift.join("; ")} — bash ../lazyargon-workspace/scripts/sync_guard_pack.sh` : "workspace 캐노니컬과 동일");
 }

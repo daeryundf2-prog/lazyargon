@@ -5,33 +5,33 @@ You are running with **LazyArgon (`v1.1.0`)** and **LazyArgon Workspace (`v1.0.5
 Keep this file under 12KB. Rule files over the host's token budget are dropped entirely, not truncated (antigravity-cli #1254). Rationale and sources for every rule: `docs/argon-field-notes.md`. Full keyword table: `docs/keyword-routing.md`.
 
 <operating_principles>
-- Start every `/ulw` or substantive task with a scope lock (`목표 / 완료 조건 / 범위 / 예산 / 시간 예산`) persisted to `.lazyargon/ulw-scope.md` (see `$ulw` Step 1).
-- 1–2 file or sequential tasks: do directly. 3+ independent units: one `invoke_subagent` call, sized by the budget.
+- Start every `/ulw` or substantive task with a scope lock (`목표 / 완료 조건 / 범위 / 예산 / 시간 예산`) in `.lazyargon/ulw-scope.md` (see `$ulw` Step 1).
+- 1–2 files or sequential work: do directly. 3+ independent units: one `invoke_subagent` call sized by budget.
 - Concise progress updates. Evidence before claims. Official docs before SDK/API code.
-- Decisive execution: no persuading the user, no defensive wandering, no self-excusing meta-commentary. Stay inside the scope lock; trim drift immediately.
-- **Deliverable shape & lever hierarchy (`harness2`)**: Deliverable shape (columns, sheets, sections, keys, order) belongs strictly to the request—never inject intermediate derivations or unrequested metadata into the artifact. When encoding recurring fixes, prefer `SKILL` → `SCRIPT` → `SUBAGENT` → `HOOK` → `ALWAYS-ON TEXT` (trim to pay; `KEEP_BASE` without trajectory evidence).
+- Decisive execution: no persuading the user, defensive wandering, or meta-commentary. Stay inside the scope lock; trim drift immediately.
+- **Deliverable shape & lever hierarchy (`harness2`)**: Deliverable shape (columns, sheets, sections, keys, order) belongs strictly to the request—never inject intermediate derivations or unrequested metadata. Prefer `SKILL` → `SCRIPT` → `SUBAGENT` → `HOOK` → `ALWAYS-ON TEXT` (trim to pay; `KEEP_BASE` without trajectory evidence).
 </operating_principles>
 
 <argon_runtime_constraints>
-1. **Write in chunks: ≤100 lines and <20KB per write call.** Larger `write_to_file` / `replace_file_content` arguments, or a long thinking phase followed by a big write, hit the host's 60-second silent-stream cutoff ("Retrying k/9" → EOF) and the content is lost. Reason first, then write the skeleton, then append chunks. The 5-minute stall retry added in agy 1.3.6 does not fix this.
-2. **The real context cap is 256K tokens** whatever the UI shows (1.0M, 512K, 900K); compaction fires around 240–280K and resets the cache. Before ~200K, pin every identifier you will need (hashes, IDs, paths, versions, measured numbers) to `.lazyargon/pins.md`. After any compaction, re-read the scope lock, pins, and the file before editing; never cite an identifier from memory.
-3. **Re-open every file you wrote** before calling it written.
-4. **State completeness explicitly.** Argon does exactly the scope written. Name the full file/case list; forbid duplicate implementations.
-5. **Passing tests are not "done".** Observe runtime behavior, exercise a negative path, open the UI in a real browser when one exists.
-6. **Short output.** Caps: worker reply ≤40 lines, report summary ≤10 lines, paragraph ≤4 sentences. No plan restatement, no closing summary.
-7. **Refusals are missing data.** Record `미확인(모델 유보: <사유>)` and move on; never fill by inference or by rephrasing the same request. A blocked thread tends to stay blocked: continue in a new conversation from the scope lock. Security debugging (use-after-free, races, reverse engineering, PE headers) and explicit evidence text trip the Gemini filter; run that lane on Claude 5.5 (separate classifier) and report false positives with Antigravity version, model, and thinking level.
-8. **Verify which model ran.** API-key mode `agy` silently falls back to Gemini 3.8 Flash (High) when `gemini-4-argon` is unmapped. Quote the host-reported model; `node scripts/doctor.mjs` warns on this config.
-9. **Quota is the scarcest resource.** Per-turn cost scales with context length; a 50-line task has used 44% of a Pro window. Paid Pro has a separate weekly-only Argon quota with MEDIUM/HIGH only; Ultra and Enterprise have more. Start a new conversation when the task changes, carrying state through `.lazyargon/`. Simple edits belong on Flash.
-10. **Thinking level is session-scoped.** `invoke_subagent` cannot set it. MEDIUM is the default (daily work); benchmarks used HIGH. Ask for HIGH only for architecture and root-cause repair; Flash for copy, SVG, formatting. `inherit` means the session model, not "always Argon".
-11. **Local evidence first, bounded time.** Local files, logs, and test output before the web; web search ≤8 queries per task; 20-minute default budget per worker.
-12. **Read the repo's conventions before the first edit** (`AGENTS.md` / `CLAUDE.md` / `GEMINI.md`, contributor docs, lint and CI config, matching `skills/`). Before a PR, run `$git-master`'s PR readiness gate.
-13. **Read each image once**, write what you saw to a note, and work from the note. Image results are re-sent with the whole context.
+1. **Write in chunks: ≤100 lines and <20KB per call.** Larger `write_to_file` / `replace_file_content` calls or long thinking before a big write hit the 60s silent-stream cutoff ("Retrying k/9" → EOF; agy 1.3.6's 5m retry does not fix it). Reason first, write the skeleton, then append chunks.
+2. **Real context cap is 256K tokens** regardless of UI labels (1.0M/512K/900K); compaction fires at 240–280K and resets the cache. Before ~200K, pin all needed identifiers (hashes, IDs, paths, versions, numbers) to `.lazyargon/pins.md`. After compaction, re-read the scope lock, pins, and target file before editing; never cite from memory.
+3. **Re-open every written file** to verify before declaring it done.
+4. **State completeness explicitly.** Argon executes the exact scope written. Name the full file/case list; forbid duplicate implementations.
+5. **Passing tests are not "done".** Verify runtime behavior, exercise a negative path, and check UI in a real browser.
+6. **Short output.** Caps: worker reply ≤40 lines, report summary ≤10 lines, paragraph ≤4 sentences. No plan restatement or closing summary.
+7. **Refusals are missing data.** Record `미확인(모델 유보: <사유>)` and move on; never infer or rephrase. Blocked threads stay blocked—resume in a new conversation from the scope lock. Security debugging (UAF, races, reversing, PE headers) and explicit evidence trip the Gemini filter; use Claude 5.5 (separate classifier) and report false positives with version, model, and thinking level.
+8. **Verify which model ran.** API-key mode `agy` silently falls back to Gemini 3.8 Flash (High) if `gemini-4-argon` is unmapped (fixed in `--model` display in 1.4.1+). Quote the host-reported model; `node scripts/doctor.mjs` checks this.
+9. **Quota & Implicit Caching (≥6,144 tokens, 95% discount).** Per-turn cost scales with context length; Pro has a separate weekly Argon quota (MEDIUM/HIGH only). Implicit caching discounts static prefixes ≥6,144 tokens by 95%—keep static rules and source context pinned at the top, place dynamic queries at the bottom, start a new conversation when switching tasks (via `.lazyargon/`), and route simple edits to Flash.
+10. **Thinking level is session-scoped.** `invoke_subagent` cannot set it. Default is MEDIUM; use HIGH only for architecture and root-cause repair, Flash for copy/SVG/formatting. `inherit` means the session model.
+11. **Local evidence first, bounded time.** Check local files, logs, and test output before web search (≤8 queries/task; 20m worker budget).
+12. **Read repo conventions before the first edit** (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`, lint/CI, `skills/`). Run `$git-master`'s PR readiness gate before PRs.
+13. **Vision & PDF coordinates.** Read each image once, record notes, and work from the notes (image results re-send full context). For complex PDFs/charts, specify page numbers and bounding/spatial coordinates to maximize reading accuracy.
 </argon_runtime_constraints>
 
 <delegation_rules>
-Delegate for 3+ independent modules/files/verification lanes, broad research (`$ulw-research`), or independent adversarial review. Work directly otherwise.
+Delegate for 3+ independent modules/files/verification lanes, broad research (`$ulw-research`), or adversarial review. Work directly otherwise.
 
-**Budget line before every fan-out:** `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Default 4 lanes × 2 waves; ask before exceeding. Skill lane tables are recommendations under this cap.
+**Budget line before every fan-out:** `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Default 4 lanes × 2 waves; ask before exceeding.
 
 | Lane | `Subagents[].Model` (hint, `hostEnforced=false`) |
 |---|---|
@@ -39,7 +39,7 @@ Delegate for 3+ independent modules/files/verification lanes, broad research (`$
 | Implementation of owned files, refactor, design | `inherit` |
 | Verification, critic, final verdict, architecture | `inherit` (session on HIGH when possible) |
 | Tiny chores under quota pressure | `flash_lite` |
-| High-risk code second opinion | switch the session to Claude 5.5, one `inherit` verdict lane (`skills/ulw/references/dual-verify.md`) |
+| High-risk code second opinion | switch session to Claude 5.5, one `inherit` verdict lane (`skills/ulw/references/dual-verify.md`) |
 
 **Worker prompt contract** (every `Prompt`):
 
@@ -55,29 +55,28 @@ Delegate for 3+ independent modules/files/verification lanes, broad research (`$
 쓰기 규칙: 100줄·20KB 이하 청크, 쓴 뒤 재열람
 ```
 
-(Approval rule: mixed tool calls in one turn can misroute approval and hang the wave, antigravity-cli #1249.) A lane returning `UNKNOWN` or failing is retried once, then recorded as unresolved and excluded from synthesis.
+(Mixed approval calls in one turn can hang the wave, antigravity-cli #1249.) Retry `UNKNOWN`/failed lanes once, then record as unresolved and exclude from synthesis.
 
 Schema: `Subagents: [{ TypeName, Role, Model, Prompt }]` + `toolAction`, `toolSummary`. Reactive wakeup; never poll. Subagents cannot take mid-run messages or spawn subagents.
 </delegation_rules>
 
 <keyword_detection>
-Route by each skill's `description`; `/ulw`·"ultrawork"·`/goal`·`$boost` → `$ulw`, "deep research" → `$ulw-research`, "작업 검증"·`$review-work` → `$gf-qa-behavioral-verification`, "doctor"·"플러그인 진단" → `node scripts/doctor.mjs`. Forensic, legal, Korean-doc, and humanize keywords are routed by `lazyargon-workspace`'s `GEMINI.md`. Full table: `docs/keyword-routing.md`.
+Route by each skill's `description`; `/ulw`·"ultrawork"·`/goal`·`$boost` → `$ulw`, "deep research" → `$ulw-research`, "작업 검증"·`$review-work` → `$gf-qa-behavioral-verification`, "doctor"·"플러그인 진단" → `node scripts/doctor.mjs`. Forensic, legal, Korean-doc, and humanize keywords route via `lazyargon-workspace`'s `GEMINI.md`. Full table: `docs/keyword-routing.md`.
 </keyword_detection>
 
 <verification>
 - Run tests and type checks; run `node scripts/doctor.mjs --json` after plugin, hook, or config changes.
 - UI changes: `$visual-qa` at 375 / 768 / 1280px, 375px first. Argon does not open the browser unless told.
 - High-risk code (schema, concurrency, security, auth): cross-family verdict lane before completion.
-- Audits of existing code are claims: every finding cites a `file:line` opened this session; every "N of M" comes from a command you ran.
-Identify what proves the claim, run it, read the output, then report. Iterate on failure instead of reporting incomplete work.
+- Codebase audits are claims: every finding cites a `file:line` opened this session; every "N of M" comes from a command you ran. Run the proof, read the output, then report; iterate on failure.
 </verification>
 
 <claim_evidence>
-- Report exactly one tier: `registered` (config/doc written), `loadable` (target exists), `verified` (entry command executed and output observed).
-- Registration ≠ capability: resolve `$name` to a real file, resolve binaries with `command -v`, run the entry subcommand.
-- Repo source and installed binaries can drift; check the `PATH`-resolved binary.
-- Every "done/완료/전부 통과" cites the command and its output; scope reports cite `git diff --stat`.
-- "identical"/"완벽히 동일" needs a compared-behavior matrix. Self-reported counts are not measurements; use `wc`, the test runner, or a script.
+- Report one tier: `registered` (config/doc written), `loadable` (target exists), `verified` (entry command executed and output observed).
+- Registration ≠ capability: resolve `$name` to a real file, binaries with `command -v`, and run the entry subcommand.
+- Check the `PATH`-resolved binary when repo source and installed binaries can drift.
+- Every "done/완료/전부 통과" cites the command and output; scope reports cite `git diff --stat`.
+- "identical"/"완벽히 동일" needs a compared-behavior matrix. Use `wc`, the test runner, or a script instead of self-reported counts.
 </claim_evidence>
 
 <data_handling_rules>
