@@ -78,6 +78,17 @@
 | 한국어 초장문·법률/문서 추론("문과 최강"): 1.5만자 이상 초장문·법률/비즈니스 윤문에서 맥락 이탈 없는 최상위 문장력 확인. ①역할 부여 → ②원문 Context 상단 선주입 → ③3단계 사고(쟁점→리스크→초안) → ④출력 포맷 하단 고정의 4단 프롬프트 구조 정석화. 단순 질의에도 기본 thinking 토큰이 대량 차감되어 가벼운 작업은 Flash 분리 필수 | 아카라이브(10/18), 루리웹(10/17), 위시켓, 클리앙, 에펨코리아 |
 | 일본·중국 실사용 및 PDF 비전: 일본 Zenn(10/18) 퇴고 실험에서 불필요한 완곡어(헤징)를 제거하고 원문 단정형을 보존하는 특성 및 Blender/MuJoCo MCP 자율 루프(note.com 10/19, Qiita 10/17) 확인. 중국 知乎(10/19)에서 비표준 워크플로·레거시 마이그레이션 강점과 함께 2026 지식을 보유하고도 컷오프 질문에 2025년이라 답하는 MoE 자기인식 불일치 보고. 복합 PDF·도표는 페이지 번호와 바운딩/공간 레이아웃 좌표를 명시할 때 판독 정확도가 급상승 | Zenn(10/18), note.com(10/19), Qiita(10/17), 知乎(10/19) |
 
+## 2-3. 10/21 ~ 10/26 신규 (CLI 1.4.4~1.4.6·롱런타임·캐시 프리픽스·실무 세션 포렌식/카빙)
+
+| 관찰 | 출처 |
+|---|---|
+| `antigravity-cli` 1.4.4~1.4.6: idle CPU 점유율 최적화(정적 화면 리프레시 일시 정지), 장문 대화 히스토리 터미널 렌더링 최적화, 대화형 `/diff` 내 접힌 라인 검색 매칭수 표기, Cron 스케줄 분산, 모델 안전필터 발동 시 "retrying..." 무한 무음 재시도 루프 수정, `plugin.json` 단일 문자열 경로 로딩 패치 | GitHub antigravity-cli 릴리스 1.4.4~1.4.6 |
+| thinking_level: HIGH와 HTTP 타임아웃: 복잡한 추론 시 첫 토큰 전 지연(2~4분) 발생 환경에서 프록시/VPN 타임아웃 방지를 위한 300초+ 타임아웃 및 keep-alive 유지 필수 | Google AI 개발자 포럼 (10/22~10/25) |
+| 암시적 캐싱(Implicit Caching) 접두사 민감도: 프롬프트 상단 정적 접두사가 1바이트라도 변경(가변 타임스탬프 등)되면 캐시 히트(95% 할인)가 0%로 무효화됨. 동적 메타데이터는 반드시 최하단에 배치 | Gen AI SDK 문서, 개발자 포럼 |
+| PostToolUse 사후 게이트 오탐 버그: 실무 포렌식 세션(a0551456)에서 `.lazyargon/pins.md` 등 내부 에이전트 오케스트레이션/핀 파일 쓰기를 보고서로 오인해 FAIL_CLOSED로 차단하는 문제 실측 확인. 내부 메타 파일 제외 필수 | 로컬 세션 a0551456 (10/22) |
+| SQLite freelist/WAL 카빙 및 세션 복구 실증: 삭제된 대화 복원 실무에서 `sqlite-evidence-query`의 freelist/WAL 카빙과 protobuf 디코딩을 통한 세션 복구 성공 확인 | 로컬 세션 1049b798 (10/22) |
+| SPA 동적 라이브 채증 시 DOM 대기: 동적 라이브(숲 악플 채증 등) 시 `locator.click` 타임아웃 및 브라우저 evaluate 레퍼런스 에러 방지를 위한 waitForSelector 필수 | 로컬 세션 edb82dff, 4ce21098 |
+
 ## 3. 규칙으로의 매핑
 
 | 노트 | 규칙·스킬 |
@@ -111,7 +122,12 @@
 | §2-2 암시적 캐싱(≥6,144 토큰 정적 접두사 95% 할인)·롱 디코드 `CONTINUATION`·4단 프롬프트 구조 | `rules/AGENTS.md` `<argon_runtime_constraints>` (정적 규칙·원문 상단 고정, 동적 질의 하단 배치), `legal-draft-builder`·`forensic-report` 초안 구조 |
 | §2-2 복합 PDF 페이지 번호·바운딩 좌표 명시 시 판독률 급상승 | `rules/AGENTS.md` `<argon_runtime_constraints>` 13, workspace `korean-doc-parser`·`media-analysis` |
 | §2-2 한국어 초장문·완곡어 제거 특성 및 Flash/Argon 엄격 분리 | `<delegation_rules>` 레인 분리, `humanize-korean` 단정형 보존 |
+| §2-3 CLI 1.4.4+ 안전필터 무한루프 수정, 300s+ 타임아웃 | `<argon_runtime_constraints>` 14, 워커 계약 |
+| §2-3 암시적 캐시 보존(정적 접두사 불변, 가변 메타 최하단) | `<argon_runtime_constraints>` 9, 15 |
+| §2-3 PostToolUse 내부 메타파일 오탐 방지 | `lazyargon-workspace/scripts/hallucination_guard.mjs` `isAgentInternalFile` |
+| §2-3 SQLite freelist/WAL 카빙 및 세션 복구 | `skills/sqlite-evidence-query/SKILL.md` |
+| §2-3 SPA 동적 증거 채증 시 DOM 대기 | `skills/web-evidence-capture/SKILL.md` |
 
 ## 4. 출처 목록
 
-HN 50073879 · Techzine 144960 · Analytics Vidhya 10/14 · 경향신문 202610141113011/202610142044005 · AI타임스 216220 · DeepLearning.AI The Batch 10/09 · TestingCatalog 10/11 · online-tech-tips · Antigravity 블로그 10/13 · 개발자 포럼 189559/189476/189085/189556/189699 · GitHub antigravity-cli #1228/#1245/#1249/#1254/#1255/#1266, 릴리스 1.3.6/1.4.0/1.4.1/1.4.2/1.4.3 · @antigravity X 10/15 · 개발자 포럼 189611/189620/189646/189731/189734/189741/189747/189748/189763/189788/190078 · Gen AI SDK 문서(Implicit Caching / `CONTINUATION`) · locdd 100913 · CyberQ 10/14 · note.com masa_wunder/kazu_t/10-19 · Zenn algoartis/10-18 · 虎嗅 4897290 · 知乎 10/19 · ritsuto Substack · dev.to akartit · BrainBytes Lab · ohmyunicorn · BigGo(Theo, Every 요약) · AGIラボ · i-Style · MindStudio · Roboflow · 新智元/163 · bilibili BV1Sqpy6KE2p · LuminaBench · TechTimes 329026 · Qiita htani0817/10-17 · 클리앙 19277187/19277177/19277539 · 에펨코리아 10448101474/10444308272 · 디시 thesingularity 1479216, ai_utilize 132243 · 루리웹 77025045/10-17 · 아카라이브 10/18 · 위시켓 · GeekNews 35306 · GitHub `google-research/harness2` (`arXiv:2610.14224`).
+HN 50073879 · Techzine 144960 · Analytics Vidhya 10/14 · 경향신문 202610141113011/202610142044005 · AI타임스 216220 · DeepLearning.AI The Batch 10/09 · TestingCatalog 10/11 · online-tech-tips · Antigravity 블로그 10/13 · 개발자 포럼 189559/189476/189085/189556/189699 · GitHub antigravity-cli #1228/#1245/#1249/#1254/#1255/#1266, 릴리스 1.3.6/1.4.0/1.4.1/1.4.2/1.4.3/1.4.4/1.4.5/1.4.6 · @antigravity X 10/15 · 개발자 포럼 189611/189620/189646/189731/189734/189741/189747/189748/189763/189788/190078/190412/190533 · Gen AI SDK 문서(Implicit Caching / `CONTINUATION`) · locdd 100913 · CyberQ 10/14 · note.com masa_wunder/kazu_t/10-19/10-24 · Zenn algoartis/10-18/10-23 · 虎嗅 4897290 · 知乎 10/19/10-24 · ritsuto Substack · dev.to akartit · BrainBytes Lab · ohmyunicorn · BigGo(Theo, Every 요약) · AGIラボ · i-Style · MindStudio · Roboflow · 新智元/163 · bilibili BV1Sqpy6KE2p · LuminaBench · TechTimes 329026 · Qiita htani0817/10-17/10-23 · 클리앙 19277187/19277177/19277539/19280145 · 에펨코리아 10448101474/10444308272 · 디시 thesingularity 1479216, ai_utilize 132243 · 루리웹 77025045/10-17 · 아카라이브 10/18/10-24 · 위시켓 · GeekNews 35306 · GitHub `google-research/harness2` (`arXiv:2610.14224`) · 로컬 brain 세션 실무(a0551456, 1049b798, edb82dff, 4ce21098).

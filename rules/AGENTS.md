@@ -26,6 +26,8 @@ Keep this file under 12KB. Rule files over the host's token budget are dropped e
 11. **Local evidence first, bounded time.** Check local files, logs, and test output before web search (≤8 queries/task; 20m worker budget).
 12. **Read repo conventions before the first edit** (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`, lint/CI, `skills/`). Run `$git-master`'s PR readiness gate before PRs.
 13. **Vision & PDF coordinates.** Read each image once, record notes, and work from the notes (image results re-send full context). For complex PDFs/charts, specify page numbers and bounding/spatial coordinates to maximize reading accuracy.
+14. **Safety filter loop & timeouts (300s+).** agy 1.4.4+ resolves infinite silent retries on filter hits. On filter refusal, record `미확인(모델 유보: 안전 필터)` immediately and move on. For HIGH thinking, maintain ≥300s keep-alive.
+15. **Implicit cache prefix invariance.** Top static rule/evidence prefix must remain byte-identical across turns to preserve the 95% discount (≥6,144 tokens); place dynamic timestamps/metadata strictly at the bottom.
 </argon_runtime_constraints>
 
 <delegation_rules>
