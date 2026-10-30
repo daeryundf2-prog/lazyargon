@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -336,6 +336,85 @@ test("Wave 2-3: autoresearch_loop.mjs immutable harness lock, KEEP/DISCARD, 4-ru
 		const mutated = runCli(SCRIPTS.autoresearch, ["step", "--ledger", ledger, "--metric", "10.0", "--hypothesis", "rigged eval"]);
 		assert.equal(mutated.status, 2);
 		assert.equal(mutated.json.status, "ABORT_MUTATED_HARNESS");
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+function runCliAsync(script, args = []) {
+	return new Promise((resolvePromise) => {
+		const child = spawn(process.execPath, [script, ...args], { stdio: ["ignore", "pipe", "pipe"] });
+		let stdout = "";
+		let stderr = "";
+		child.stdout.on("data", (d) => { stdout += d.toString(); });
+		child.stderr.on("data", (d) => { stderr += d.toString(); });
+		child.on("close", (status) => {
+			let json = null;
+			try { json = JSON.parse((stdout || stderr).trim()); } catch {}
+			resolvePromise({ status, stdout, stderr, json });
+		});
+	});
+}
+
+test("Pass 3 Regression: dag_ulw.mjs 10-way parallel settle, define boundary exit 2, codegraph broken symlink, autoresearch 10-way parallel step & failed rollback", async () => {
+	const tmp = mkdtempSync(join(tmpdir(), "lazyargon-p3-"));
+	try {
+		// 1. dag_ulw define missing --spec and missing file -> exit 2 JSON error
+		const missingDef = runCli(SCRIPTS.dag, ["define", "--file", join(tmp, "nonexistent.json")]);
+		assert.equal(missingDef.status, 2);
+		assert.equal(JSON.parse(missingDef.stderr.trim()).ok, false);
+
+		// 2. dag_ulw 10-way parallel settle preserves all 10 verified states
+		const parDagFile = join(tmp, "par-dag.json");
+		const nodes = Array.from({ length: 10 }, (_, i) => ({ id: `n${i}`, deps: [], write_scope: [`src/f${i}.mjs`] }));
+		assert.equal(runCli(SCRIPTS.dag, ["define", "--file", parDagFile, "--spec", JSON.stringify({ goal: "Par", nodes })]).status, 0);
+		await Promise.all(
+			nodes.map((n) => runCliAsync(SCRIPTS.dag, ["settle", "--file", parDagFile, "--node", n.id, "--state", "verified", "--evidence", `pass-${n.id}`])),
+		);
+		const finalDag = JSON.parse(readFileSync(parDagFile, "utf8"));
+		assert.equal(finalDag.nodes.filter((n) => n.state === "verified").length, 10);
+
+		// 3. codegraph broken symlink ignored cleanly & build --out atomic write
+		const cgDir = join(tmp, "cg");
+		mkdirSync(cgDir, { recursive: true });
+		writeFileSync(join(cgDir, "ok.mjs"), "export const a = 1;\n", "utf8");
+		symlinkSync(join(cgDir, "missing-target.mjs"), join(cgDir, "broken-link.mjs"));
+		const cgOut = join(tmp, "cg-out.json");
+		const cgRes = runCli(SCRIPTS.codegraph, ["build", "--root", cgDir, "--out", cgOut]);
+		assert.equal(cgRes.status, 0);
+		assert.ok(cgRes.json.nodes["ok.mjs"]);
+		assert.equal(cgRes.json.nodes["broken-link.mjs"], undefined);
+		assert.ok(existsSync(cgOut));
+
+		// 4. autoresearch_loop 10-way parallel step preserves all 11 TSV lines + failed rollbackCmd -> rolled_back: false
+		const arDir = join(tmp, "ar");
+		mkdirSync(arDir, { recursive: true });
+		const evalFile = join(arDir, "eval.mjs");
+		const ledgerFile = join(arDir, "experiment-ledger.tsv");
+		writeFileSync(evalFile, "console.log(100);\n", "utf8");
+		assert.equal(runCli(SCRIPTS.autoresearch, ["init", "--ledger", ledgerFile, "--eval-script", evalFile]).status, 0);
+		await Promise.all(
+			Array.from({ length: 10 }, (_, i) =>
+				runCliAsync(SCRIPTS.autoresearch, ["step", "--ledger", ledgerFile, "--metric", String(100 - i), "--hypothesis", `p${i}`]),
+			),
+		);
+		const tsvLines = readFileSync(ledgerFile, "utf8").trim().split(/\r?\n/);
+		assert.equal(tsvLines.length, 11);
+
+		const failRb = runCli(SCRIPTS.autoresearch, [
+			"step",
+			"--ledger",
+			ledgerFile,
+			"--metric",
+			"999",
+			"--rollback-cmd",
+			`${process.execPath} -e "process.exit(1)"`,
+			"--hypothesis",
+			"failed rollback",
+		]);
+		assert.equal(failRb.status, 0);
+		assert.equal(failRb.json.verdict, "DISCARD");
+		assert.equal(failRb.json.rolled_back, false);
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}

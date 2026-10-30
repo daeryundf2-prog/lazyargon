@@ -78,7 +78,7 @@ test("lazy_tui.mjs --once and --json render 4 panels with real memory.db stats, 
 
 		writeFileSync(
 			join(stateDir, "ulw-dag.json"),
-			JSON.stringify({ nodes: [{ id: "wave1", status: "verified" }, { id: "wave2", status: "running" }] }),
+			JSON.stringify({ nodes: [{ id: "wave1", state: "verified" }, { id: "wave2", status: "running" }, { id: "wave3", state: "reported_done" }] }),
 		);
 		writeFileSync(join(stateDir, "pins.md"), "- [fact] hash: abc123\n- [fact] target: lazy_tui.mjs\n");
 		writeFileSync(
@@ -103,6 +103,7 @@ test("lazy_tui.mjs --once and --json render 4 panels with real memory.db stats, 
 		assert.equal(state.llm_calls, 0);
 		assert.equal(state.panels.dag_ulw.counts.verified, 1);
 		assert.equal(state.panels.dag_ulw.counts.running, 1);
+		assert.equal(state.panels.dag_ulw.counts.reported_done, 1);
 		assert.equal(state.panels.memory_rag.active, 1);
 		assert.equal(state.panels.memory_rag.superseded, 1);
 		assert.equal(state.panels.memory_rag.edges, 1);

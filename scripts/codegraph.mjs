@@ -3,7 +3,7 @@
  * codegraph.mjs — Lightweight AST/Import Graph & Personalized PageRank Handoff (v2.0 Wave 2-1)
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,8 +22,14 @@ function collectSourceFiles(rootDir) {
 		for (const ent of readdirSync(dir, { withFileTypes: true })) {
 			if (ent.name === "node_modules" || ent.name === ".git" || ent.name === ".lazyargon") continue;
 			const full = join(dir, ent.name);
-			if (ent.isDirectory()) visit(full);
-			else if (CODE_EXTS.has(extname(ent.name).toLowerCase())) files.push(full);
+			let st;
+			try {
+				st = statSync(full);
+			} catch {
+				continue;
+			}
+			if (st.isDirectory()) visit(full);
+			else if (st.isFile() && CODE_EXTS.has(extname(ent.name).toLowerCase())) files.push(full);
 		}
 	};
 	if (existsSync(rootDir)) visit(resolve(rootDir));
@@ -209,8 +215,11 @@ function main() {
 	if (cmd === "build") {
 		const out = getOpt("--out", "");
 		if (out) {
-			mkdirSync(dirname(resolve(out)), { recursive: true });
-			writeFileSync(out, `${JSON.stringify(graph, null, 2)}\n`, "utf8");
+			const absOut = resolve(out);
+			mkdirSync(dirname(absOut), { recursive: true });
+			const tmp = `${absOut}.${process.pid}.${Date.now()}.tmp`;
+			writeFileSync(tmp, `${JSON.stringify(graph, null, 2)}\n`, "utf8");
+			renameSync(tmp, absOut);
 		}
 		console.log(JSON.stringify(graph, null, 2));
 	} else if (cmd === "handoff") {

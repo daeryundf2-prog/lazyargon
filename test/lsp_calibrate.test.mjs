@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -123,6 +123,17 @@ test("lsp_diagnostics.mjs: rename-preview identifies affected imports and barrel
 		assert.ok(preview.affected_files.includes("src/index.mjs"));
 		assert.deepEqual(preview.barrel_files, ["src/index.mjs"]);
 		assert.ok(preview.updates.some((u) => u.file === "src/consumer.mjs" && u.new_specifier === "./new_helper.mjs"));
+
+		// Broken symlink ignored during walkFiles & missing --from/--to returns JSON error + exit 2
+		symlinkSync(join(srcDir, "dangling_target.mjs"), join(srcDir, "dangling_link.mjs"));
+		const checkWithSymlink = runDiagnosticsCheck({ root: dir });
+		assert.equal(checkWithSymlink.error_count, 0);
+
+		const badRenameCli = spawnSync(process.execPath, [lspScript, "rename-preview", "--from", "src/old_helper.mjs"], { encoding: "utf8" });
+		assert.equal(badRenameCli.status, 2);
+		const badRenameJson = JSON.parse(badRenameCli.stdout.trim());
+		assert.equal(badRenameJson.schema, "language_diagnostic_evidence/v1");
+		assert.match(badRenameJson.error, /rename-preview requires --from/);
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}

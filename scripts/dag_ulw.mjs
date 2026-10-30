@@ -2,28 +2,47 @@
 /**
  * dag_ulw.mjs — Explicit DAG Orchestration & Disjoint Write-Scope Enforcer (v2.0 Wave 1-4)
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmdirSync, writeFileSync } from "node:fs";
 import { dirname, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MAX_NODES = 48;
 const VALID_STATES = new Set(["not_run", "running", "reported_done", "verified", "failed", "ESCALATE_ARCHITECTURE"]);
+const SLEEP_BUF = new Int32Array(new SharedArrayBuffer(4));
+
+export function withFileLock(filePath, fn) {
+	const lockDir = `${resolve(filePath)}.lock`;
+	mkdirSync(dirname(lockDir), { recursive: true });
+	const deadline = Date.now() + 10000;
+	while (true) {
+		try {
+			mkdirSync(lockDir);
+			break;
+		} catch (e) {
+			if (e.code !== "EEXIST" || Date.now() > deadline) throw e;
+			Atomics.wait(SLEEP_BUF, 0, 0, 5);
+		}
+	}
+	try {
+		return fn();
+	} finally {
+		try {
+			rmdirSync(lockDir);
+		} catch {
+			// lock already released
+		}
+	}
+}
 
 export function normalizeScope(p) {
-	const raw = String(p || "").trim().replace(/\\/g, "/");
-	if (!raw) return "";
-	const norm = posix.normalize(raw).replace(/^\.\//, "").replace(/\/+$/, "");
+	const s = String(p || "").trim().replace(/\\/g, "/");
+	if (!s) return "";
+	const norm = posix.normalize(s).replace(/^\.\//, "").replace(/\/+$/, "");
 	return norm === "." ? "" : norm;
 }
 
 function scopeToRegex(norm) {
-	const body = norm.replace(/(\*\*\/|\*\*|\*|\?|[.+^${}()|[\]\\])/g, (m) => {
-		if (m === "**/") return "(?:.+/)?";
-		if (m === "**") return ".*";
-		if (m === "*") return "[^/]*";
-		if (m === "?") return "[^/]";
-		return `\\${m}`;
-	});
+	const body = norm.replace(/(\*\*\/|\*\*|\*|\?|[.+^${}()|[\]\\])/g, (m) => (m === "**/" ? "(?:.+/)?" : m === "**" ? ".*" : m === "*" ? "[^/]*" : m === "?" ? "[^/]" : `\\${m}`));
 	return new RegExp(`^${body}(?:/.*)?$`);
 }
 
@@ -49,12 +68,8 @@ export function scopesOverlap(scopeA = [], scopeB = []) {
 }
 
 export function detectCycleKahn(nodes) {
-	const inDeg = new Map();
-	const adj = new Map();
-	for (const n of nodes) {
-		inDeg.set(n.id, 0);
-		adj.set(n.id, []);
-	}
+	const inDeg = new Map(nodes.map((n) => [n.id, 0]));
+	const adj = new Map(nodes.map((n) => [n.id, []]));
 	for (const n of nodes) {
 		for (const d of n.deps || []) {
 			if (!adj.has(d)) throw new Error(`Unknown dependency '${d}' in node '${n.id}'`);
@@ -121,28 +136,18 @@ export function computeReadyBatch(dag, strictDisjoint = false) {
 	const stateMap = new Map(dag.nodes.map((n) => [n.id, n.state]));
 	const runningNodes = dag.nodes.filter((n) => n.state === "running");
 	const availableLanes = Math.max(0, (dag.budget?.lanes || 4) - runningNodes.length);
-	const candidates = dag.nodes.filter(
-		(n) => n.state === "not_run" && (n.deps || []).every((d) => stateMap.get(d) === "verified"),
-	);
-	const selected = [];
-	const deferred = [];
-	const deferred_conflicts = [];
-	const conflicts = [];
+	const candidates = dag.nodes.filter((n) => n.state === "not_run" && (n.deps || []).every((d) => stateMap.get(d) === "verified"));
+	const selected = [], deferred = [], deferred_conflicts = [], conflicts = [];
 	for (const cand of candidates) {
 		const hit = [...runningNodes, ...selected].find((sel) => scopesOverlap(cand.write_scope, sel.write_scope));
 		if (hit) {
 			conflicts.push({ node: cand.id, conflicts_with: hit.id, write_scope: cand.write_scope });
 			deferred_conflicts.push(cand.id);
 			deferred.push(cand.id);
-		} else if (selected.length < availableLanes) {
-			selected.push(cand);
-		} else {
-			deferred.push(cand.id);
-		}
+		} else if (selected.length < availableLanes) selected.push(cand);
+		else deferred.push(cand.id);
 	}
-	if (strictDisjoint && conflicts.length > 0) {
-		return { ok: false, code: 2, error: "Disjoint write_scope violation among ready nodes", conflicts, deferred_conflicts };
-	}
+	if (strictDisjoint && conflicts.length > 0) return { ok: false, code: 2, error: "Disjoint write_scope violation among ready nodes", conflicts, deferred_conflicts };
 	return { ok: true, ready: selected.map((n) => n.id), deferred, deferred_conflicts, conflicts, available_lanes: availableLanes };
 }
 
@@ -170,12 +175,8 @@ export function applyRepair(dag, nodeId) {
 	const node = dag.nodes.find((n) => n.id === nodeId);
 	if (!node) return { ok: false, code: 2, error: `Node '${nodeId}' not found` };
 	node.repairs = (node.repairs || 0) + 1;
-	if (node.repairs > 2) {
-		node.state = "ESCALATE_ARCHITECTURE";
-		return { ok: true, escalated: true, state: node.state, repairs: node.repairs, node };
-	}
-	node.state = "running";
-	return { ok: true, escalated: false, state: node.state, repairs: node.repairs, node };
+	node.state = node.repairs > 2 ? "ESCALATE_ARCHITECTURE" : "running";
+	return { ok: true, escalated: node.repairs > 2, state: node.state, repairs: node.repairs, node };
 }
 
 export function buildPromptPack(dag, nodeId) {
@@ -191,52 +192,56 @@ export function buildPromptPack(dag, nodeId) {
 }
 
 function loadDag(file) {
-	if (!existsSync(file)) {
-		console.error(`DAG file not found: ${file}`);
-		process.exit(2);
-	}
+	if (!existsSync(file)) { console.error(`DAG file not found: ${file}`); process.exit(2); }
 	return JSON.parse(readFileSync(file, "utf8"));
 }
 
 function saveDag(file, dag) {
-	mkdirSync(dirname(resolve(file)), { recursive: true });
-	writeFileSync(file, `${JSON.stringify(dag, null, 2)}\n`, "utf8");
+	const abs = resolve(file);
+	mkdirSync(dirname(abs), { recursive: true });
+	const tmp = `${abs}.${process.pid}.${Date.now()}.tmp`;
+	writeFileSync(tmp, `${JSON.stringify(dag, null, 2)}\n`, "utf8");
+	renameSync(tmp, abs);
 }
 
 function main() {
 	const args = process.argv.slice(2);
 	const cmd = args[0] || "status";
-	const getOpt = (f, d = "") => {
-		const i = args.indexOf(f);
-		return i >= 0 && args[i + 1] ? args[i + 1] : d;
-	};
+	const getOpt = (f, d = "") => { const i = args.indexOf(f); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
 	const file = getOpt("--file", ".lazyargon/ulw-dag.json");
 	if (cmd === "define") {
-		const spec = JSON.parse(getOpt("--spec", "") || readFileSync(file, "utf8"));
-		const res = validateAndNormalizeDag(spec);
-		if (!res.ok) {
-			console.error(JSON.stringify(res));
-			process.exit(res.code || 2);
+		let spec;
+		try {
+			const rawSpec = getOpt("--spec", "") || (existsSync(file) ? readFileSync(file, "utf8") : "");
+			if (!rawSpec.trim()) throw new Error("Missing --spec or readable DAG file");
+			spec = JSON.parse(rawSpec);
+		} catch (err) {
+			console.error(JSON.stringify({ ok: false, code: 2, error: err.message }));
+			process.exit(2);
 		}
-		saveDag(file, res.dag);
-		console.log(JSON.stringify(res.dag, null, 2));
+		const res = validateAndNormalizeDag(spec);
+		if (!res.ok) { console.error(JSON.stringify(res)); process.exit(res.code || 2); }
+		withFileLock(file, () => saveDag(file, res.dag));
+		return console.log(JSON.stringify(res.dag, null, 2));
+	}
+	if (cmd === "settle" || cmd === "repair") {
+		const res = withFileLock(file, () => {
+			const dag = loadDag(file);
+			const out = cmd === "settle" ? applySettle(dag, getOpt("--node"), getOpt("--state", "verified"), getOpt("--evidence", "")) : applyRepair(dag, getOpt("--node"));
+			if (out.ok) saveDag(file, dag);
+			return out;
+		});
+		console.log(JSON.stringify(res, null, 2));
+		if (!res.ok) process.exit(res.code || 2);
 		return;
 	}
 	const dag = loadDag(file);
-	const handlers = {
-		ready: () => computeReadyBatch(dag, args.includes("--strict-disjoint")),
-		settle: () => applySettle(dag, getOpt("--node"), getOpt("--state", "verified"), getOpt("--evidence", "")),
-		repair: () => applyRepair(dag, getOpt("--node")),
-		"prompt-pack": () => buildPromptPack(dag, getOpt("--node")),
-	};
+	const handlers = { ready: () => computeReadyBatch(dag, args.includes("--strict-disjoint")), "prompt-pack": () => buildPromptPack(dag, getOpt("--node")) };
 	if (handlers[cmd]) {
 		const res = handlers[cmd]();
-		if (res.ok && (cmd === "settle" || cmd === "repair")) saveDag(file, dag);
 		console.log(JSON.stringify(res, null, 2));
 		if (!res.ok) process.exit(res.code || 2);
-	} else {
-		console.log(JSON.stringify(dag, null, 2));
-	}
+	} else console.log(JSON.stringify(dag, null, 2));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

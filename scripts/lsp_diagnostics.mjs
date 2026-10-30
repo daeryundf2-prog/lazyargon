@@ -5,7 +5,7 @@
  *   node scripts/lsp_diagnostics.mjs [check|rename-preview] [--files f1,f2] [--root <dir>] [--from <old>] [--to <new>] [--json]
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -34,8 +34,14 @@ function walkFiles(dir, exts = CODE_EXTS, acc = []) {
 	for (const entry of readdirSync(dir, { withFileTypes: true })) {
 		if (IGNORE_DIRS.has(entry.name)) continue;
 		const full = join(dir, entry.name);
-		if (entry.isDirectory()) walkFiles(full, exts, acc);
-		else if (exts.has(extname(entry.name))) acc.push(full);
+		let st;
+		try {
+			st = statSync(full);
+		} catch {
+			continue;
+		}
+		if (st.isDirectory()) walkFiles(full, exts, acc);
+		else if (st.isFile() && exts.has(extname(entry.name))) acc.push(full);
 	}
 	return acc;
 }
@@ -86,7 +92,9 @@ export function runSnapshot({ files = [], root = process.cwd(), baseline = ".laz
 	const baselinePath = resolve(root, baseline);
 	mkdirSync(dirname(baselinePath), { recursive: true });
 	const payload = { schema: "language_diagnostic_evidence/v1", mode: "snapshot", baseline_path: baselinePath, baseline_errors: check.diagnostics.length, checked_count: check.checked_count, error_count: check.diagnostics.length, diagnostics: check.diagnostics, worktree_isolated: true };
-	writeFileSync(baselinePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+	const tmp = `${baselinePath}.${process.pid}.${Date.now()}.tmp`;
+	writeFileSync(tmp, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+	renameSync(tmp, baselinePath);
 	return payload;
 }
 
@@ -179,6 +187,10 @@ function parseCli(argv) {
 if (resolve(fileURLToPath(import.meta.url)) === resolve(process.argv[1] || "")) {
 	const opts = parseCli(process.argv.slice(2));
 	if (opts.cmd === "rename-preview") {
+		if (!opts.from || !opts.to) {
+			console.log(JSON.stringify({ schema: "language_diagnostic_evidence/v1", error: "rename-preview requires --from <oldPath> and --to <newPath>" }));
+			process.exit(2);
+		}
 		console.log(JSON.stringify(runRenamePreview(opts), null, 2));
 		process.exit(0);
 	}

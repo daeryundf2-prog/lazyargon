@@ -73,7 +73,9 @@ def extractive_compress(text: str, q_tokens: list[str]) -> str:
 
 def open_db(db_path: Path) -> sqlite3.Connection:
     from lazy_memory import init_db
-    return init_db(db_path)
+    conn = init_db(db_path)
+    conn.execute("PRAGMA busy_timeout=30000")
+    return conn
 
 
 def cmd_index(db_path: Path, args: argparse.Namespace) -> dict[str, Any]:
@@ -82,13 +84,14 @@ def cmd_index(db_path: Path, args: argparse.Namespace) -> dict[str, Any]:
     conn = init_db(db_path)
     if args.content or args.subject:
         cmd_resolve(conn, args)
+    conn.execute("BEGIN IMMEDIATE")
     rows = conn.execute("SELECT * FROM memories WHERE status='active'").fetchall()
     conn.execute("DELETE FROM memories_fts")
     for r in rows:
         morph = " ".join(extract_morphemes(f"{r['subject']} {r['predicate']} {r['object']} {r['content']}"))
         conn.execute("UPDATE memories SET morph_tokens=? WHERE id=?", (morph, r["id"]))
         conn.execute("INSERT INTO memories_fts VALUES(?,?,?,?,?)", (r["id"], r["content"], morph, r["subject"], r["object"]))
-    conn.commit()
+    conn.execute("COMMIT")
     conn.close()
     return {"ok": True, "indexed": len(rows)}
 
@@ -150,8 +153,9 @@ def build_recall_pack(db_path: Path, max_bytes: int) -> str:
     if not db_path.is_file():
         return ""
     try:
-        conn = sqlite3.connect(str(db_path))
+        conn = sqlite3.connect(str(db_path), timeout=30.0)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout=30000")
         mems = conn.execute("SELECT * FROM memories WHERE status='active' ORDER BY hit_count DESC, valid_from DESC LIMIT 10").fetchall()
         edges = conn.execute("SELECT src, rel, dst FROM entity_edges WHERE valid_to IS NULL LIMIT 8").fetchall()
         conn.close()

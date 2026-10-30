@@ -43,10 +43,11 @@ function collectDagState(cwd) {
 			const dag = JSON.parse(readFileSync(dagPath, "utf8"));
 			const nodes = Array.isArray(dag.nodes) ? dag.nodes : [];
 			for (const n of nodes) {
-				const st = n.status in counts ? n.status : "not_run";
+				const raw = n.state || n.status || "not_run";
+				const st = raw in counts ? raw : "not_run";
 				counts[st] += 1;
 			}
-			return { source: "ulw-dag.json", nodes: nodes.map((n) => ({ id: n.id, status: n.status || "not_run" })), counts, summary: `${nodes.length} DAG nodes loaded` };
+			return { source: "ulw-dag.json", nodes: nodes.map((n) => ({ id: n.id, status: n.state || n.status || "not_run" })), counts, summary: `${nodes.length} DAG nodes loaded` };
 		} catch {
 			// fallback to scope
 		}

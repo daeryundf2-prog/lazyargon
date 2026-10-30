@@ -4,12 +4,45 @@
  * Inspired by karpathy/autoresearch + OMH Measured Loop Discipline
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const TSV_HEADER = "iter\tcommit\tmetric\tdelta\tverdict\thypothesis";
+const SLEEP_BUF = new Int32Array(new SharedArrayBuffer(4));
+
+export function withLock(cwd, fn) {
+	const lockDir = join(resolve(cwd), ".lazyargon", "experiment.lock");
+	mkdirSync(dirname(lockDir), { recursive: true });
+	const deadline = Date.now() + 15000;
+	while (true) {
+		try {
+			mkdirSync(lockDir);
+			break;
+		} catch (e) {
+			if (e.code !== "EEXIST" || Date.now() > deadline) throw e;
+			Atomics.wait(SLEEP_BUF, 0, 0, 5);
+		}
+	}
+	try {
+		return fn();
+	} finally {
+		try {
+			rmdirSync(lockDir);
+		} catch {
+			// lock already released
+		}
+	}
+}
+
+function writeAtomic(filePath, content) {
+	const abs = resolve(filePath);
+	mkdirSync(dirname(abs), { recursive: true });
+	const tmp = `${abs}.${process.pid}.${Date.now()}.tmp`;
+	writeFileSync(tmp, content, "utf8");
+	renameSync(tmp, abs);
+}
 
 const IDEA_LADDER = [
 	{ stall: 1, rung: "Rung 1 (Local Parameter/Constant Tuning)", advice: "Adjust threshold, batch size, or local heuristic weight without changing interfaces." },
@@ -54,24 +87,26 @@ export function initExperiment({ ledgerPath = ".lazyargon/experiment-ledger.tsv"
 	if (!evalScript || !existsSync(evalScript)) {
 		return { ok: false, code: 2, error: `Evaluation script not found: ${evalScript}` };
 	}
-	const absEval = resolve(evalScript);
-	const evalSha256 = sha256File(absEval);
 	const baseDir = dirname(resolve(ledgerPath));
-	const lockPath = resolveLockPath(ledgerPath);
-	mkdirSync(baseDir, { recursive: true });
-	const lockData = {
-		schema: "lazyargon_experiment_lock/v1",
-		eval_script: absEval,
-		eval_sha256: evalSha256,
-		direction: direction === "max" ? "max" : "min",
-		harness_mutable: false,
-		best_metric: null,
-		stall_count: 0,
-		snapshots: snapshotDirFiles(baseDir, rollbackFiles),
-	};
-	writeFileSync(lockPath, `${JSON.stringify(lockData, null, 2)}\n`, "utf8");
-	writeFileSync(resolve(ledgerPath), `${TSV_HEADER}\n`, "utf8");
-	return { ok: true, lock_path: lockPath, ledger_path: resolve(ledgerPath), lock: lockData };
+	return withLock(baseDir, () => {
+		const absEval = resolve(evalScript);
+		const evalSha256 = sha256File(absEval);
+		const lockPath = resolveLockPath(ledgerPath);
+		mkdirSync(baseDir, { recursive: true });
+		const lockData = {
+			schema: "lazyargon_experiment_lock/v1",
+			eval_script: absEval,
+			eval_sha256: evalSha256,
+			direction: direction === "max" ? "max" : "min",
+			harness_mutable: false,
+			best_metric: null,
+			stall_count: 0,
+			snapshots: snapshotDirFiles(baseDir, rollbackFiles),
+		};
+		writeAtomic(lockPath, `${JSON.stringify(lockData, null, 2)}\n`);
+		writeAtomic(resolve(ledgerPath), `${TSV_HEADER}\n`);
+		return { ok: true, lock_path: lockPath, ledger_path: resolve(ledgerPath), lock: lockData };
+	});
 }
 
 export function stepExperiment({
@@ -85,103 +120,82 @@ export function stepExperiment({
 	rollbackCmd = "",
 }) {
 	const baseDir = dirname(resolve(ledgerPath));
-	const lockPath = resolveLockPath(ledgerPath);
-	if (!existsSync(lockPath)) {
-		return { ok: false, code: 2, status: "LOCK_MISSING", error: `Experiment lock not found at ${lockPath}` };
-	}
-	const lock = JSON.parse(readFileSync(lockPath, "utf8"));
-	const targetEval = evalScript ? resolve(evalScript) : lock.eval_script;
-	if (!existsSync(targetEval)) {
-		return { ok: false, code: 2, status: "ABORT_MUTATED_HARNESS", error: "Evaluation script missing" };
-	}
-	const currentSha = sha256File(targetEval);
-	if (currentSha !== lock.eval_sha256) {
-		return {
-			ok: false,
-			code: 2,
-			status: "ABORT_MUTATED_HARNESS",
-			error: `Immutable harness violation: expected ${lock.eval_sha256}, got ${currentSha}`,
-		};
-	}
-
-	let rawMetric = metric;
-	let log_path = null;
-	if ((rawMetric === undefined || rawMetric === "" || rawMetric === null) && metricCmd) {
-		const run = spawnSync(metricCmd, { shell: true, cwd: baseDir, encoding: "utf8" });
-		const out = `${run.stdout || ""}${run.stderr || ""}`;
-		log_path = join(baseDir, "experiment-last.log");
-		writeFileSync(log_path, out, "utf8");
-		if (basename(baseDir) !== ".lazyargon") {
-			const dotLog = join(baseDir, ".lazyargon", "experiment-last.log");
-			mkdirSync(dirname(dotLog), { recursive: true });
-			writeFileSync(dotLog, out, "utf8");
+	return withLock(baseDir, () => {
+		const lockPath = resolveLockPath(ledgerPath);
+		if (!existsSync(lockPath)) {
+			return { ok: false, code: 2, status: "LOCK_MISSING", error: `Experiment lock not found at ${lockPath}` };
 		}
-		const nums = [...String(run.stdout || out).matchAll(/-?\d+(?:\.\d+)?/g)];
-		if (nums.length > 0) rawMetric = nums[nums.length - 1][0];
-	}
-
-	const numMetric = Number(rawMetric);
-	if (!Number.isFinite(numMetric)) {
-		return { ok: false, code: 2, error: `Invalid numeric metric: ${rawMetric}` };
-	}
-	const dir = direction || lock.direction || "min";
-	const prevBest = lock.best_metric;
-	const improved = prevBest === null || (dir === "min" ? numMetric < prevBest : numMetric > prevBest);
-	const delta = prevBest === null ? 0 : Number((numMetric - prevBest).toFixed(6));
-	const verdict = improved ? "KEEP" : "DISCARD";
-	let rolled_back = false;
-
-	if (improved) {
-		lock.best_metric = numMetric;
-		lock.stall_count = 0;
-		lock.snapshots = snapshotDirFiles(baseDir, rollbackFiles, lock.snapshots);
-	} else {
-		lock.stall_count = (lock.stall_count || 0) + 1;
-		if (rollbackCmd) {
-			spawnSync(rollbackCmd, { shell: true, cwd: baseDir, encoding: "utf8" });
-			rolled_back = true;
+		const lock = JSON.parse(readFileSync(lockPath, "utf8"));
+		const targetEval = evalScript ? resolve(evalScript) : lock.eval_script;
+		if (!existsSync(targetEval)) {
+			return { ok: false, code: 2, status: "ABORT_MUTATED_HARNESS", error: "Evaluation script missing" };
 		}
-		if (rollbackFiles.length > 0) {
+		const currentSha = sha256File(targetEval);
+		if (currentSha !== lock.eval_sha256) {
+			return { ok: false, code: 2, status: "ABORT_MUTATED_HARNESS", error: `Immutable harness violation: expected ${lock.eval_sha256}, got ${currentSha}` };
+		}
+
+		let rawMetric = metric;
+		let log_path = null;
+		if ((rawMetric === undefined || rawMetric === "" || rawMetric === null) && metricCmd) {
+			const run = spawnSync(metricCmd, { shell: true, cwd: baseDir, encoding: "utf8", timeout: 30000 });
+			const out = `${run.stdout || ""}${run.stderr || ""}`;
+			log_path = join(baseDir, "experiment-last.log");
+			writeFileSync(log_path, out, "utf8");
+			if (basename(baseDir) !== ".lazyargon") {
+				const dotLog = join(baseDir, ".lazyargon", "experiment-last.log");
+				mkdirSync(dirname(dotLog), { recursive: true });
+				writeFileSync(dotLog, out, "utf8");
+			}
+			const nums = [...String(run.stdout || out).matchAll(/-?\d+(?:\.\d+)?/g)];
+			if (nums.length > 0) rawMetric = nums[nums.length - 1][0];
+		}
+
+		const numMetric = Number(rawMetric);
+		if (!Number.isFinite(numMetric)) {
+			return { ok: false, code: 2, error: `Invalid numeric metric: ${rawMetric}` };
+		}
+		const dir = direction || lock.direction || "min";
+		const prevBest = lock.best_metric;
+		const improved = prevBest === null || (dir === "min" ? numMetric < prevBest : numMetric > prevBest);
+		const delta = prevBest === null ? 0 : Number((numMetric - prevBest).toFixed(6));
+		const verdict = improved ? "KEEP" : "DISCARD";
+		let rolled_back = false;
+
+		if (improved) {
+			lock.best_metric = numMetric;
+			lock.stall_count = 0;
+			lock.snapshots = snapshotDirFiles(baseDir, rollbackFiles, lock.snapshots);
+		} else {
+			lock.stall_count = (lock.stall_count || 0) + 1;
+			if (rollbackCmd) {
+				const res = spawnSync(rollbackCmd, { shell: true, cwd: baseDir, encoding: "utf8", timeout: 30000 });
+				if (res.status === 0) rolled_back = true;
+			}
 			for (const rf of rollbackFiles) {
 				const absRf = existsSync(rf) ? resolve(rf) : resolve(baseDir, rf);
 				if (lock.snapshots && Object.hasOwn(lock.snapshots, absRf)) {
 					writeFileSync(absRf, lock.snapshots[absRf], "utf8");
+					rolled_back = true;
 				} else {
-					spawnSync("git", ["checkout", "--", absRf], { cwd: dirname(absRf), encoding: "utf8" });
+					const res = spawnSync("git", ["checkout", "--", absRf], { cwd: dirname(absRf), encoding: "utf8", timeout: 30000 });
+					if (res.status === 0) rolled_back = true;
 				}
 			}
-			rolled_back = true;
 		}
-	}
-	writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
+		writeAtomic(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
 
-	const existingLines = existsSync(ledgerPath)
-		? readFileSync(ledgerPath, "utf8").trim().split(/\r?\n/)
-		: [TSV_HEADER];
-	const iter = Math.max(1, existingLines.length);
-	const commit = getShortCommit();
-	const cleanHyp = String(hypothesis).replace(/[\t\r\n]+/g, " ").trim();
-	const row = `${iter}\t${commit}\t${numMetric}\t${delta >= 0 ? `+${delta}` : delta}\t${verdict}\t${cleanHyp}`;
-	writeFileSync(resolve(ledgerPath), `${existingLines.join("\n")}\n${row}\n`, "utf8");
+		const existingLines = existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8").trim().split(/\r?\n/) : [TSV_HEADER];
+		const iter = Math.max(1, existingLines.length);
+		const commit = getShortCommit();
+		const cleanHyp = String(hypothesis).replace(/[\t\r\n]+/g, " ").trim();
+		const row = `${iter}\t${commit}\t${numMetric}\t${delta >= 0 ? `+${delta}` : delta}\t${verdict}\t${cleanHyp}`;
+		writeAtomic(resolve(ledgerPath), `${existingLines.join("\n")}\n${row}\n`);
 
-	const ladderEntry =
-		lock.stall_count > 0 ? IDEA_LADDER[Math.min(lock.stall_count, IDEA_LADDER.length) - 1] : null;
-	const summary_line = `[ITER ${iter}] verdict=${verdict} metric=${numMetric} best=${lock.best_metric} delta=${delta} (${cleanHyp})`;
-
-	return {
-		ok: true,
-		iter,
-		commit,
-		metric: numMetric,
-		best_metric: lock.best_metric,
-		delta,
-		verdict,
-		rolled_back,
-		log_path,
-		stall_count: lock.stall_count,
-		idea_ladder: ladderEntry,
-		summary_line,
-	};
+		const ladderEntry = lock.stall_count > 0 ? IDEA_LADDER[Math.min(lock.stall_count, IDEA_LADDER.length) - 1] : null;
+		const summary_line = `[ITER ${iter}] verdict=${verdict} metric=${numMetric} best=${lock.best_metric} delta=${delta} (${cleanHyp})`;
+		return { ok: true, iter, commit, metric: numMetric, best_metric: lock.best_metric, delta, verdict, rolled_back, log_path, stall_count: lock.stall_count, idea_ladder: ladderEntry, summary_line };
+	});
 }
 
 export function statusExperiment(ledgerPath = ".lazyargon/experiment-ledger.tsv") {

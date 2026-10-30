@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -208,6 +208,36 @@ test("Adversarial Auditor 3 regression suite (8 fixes)", () => {
 		assert.ok(qMode.json?.results?.length <= 2);
 		const totalBytes = qMode.json.results.reduce((acc, r) => acc + Buffer.byteLength(r.snippet || "", "utf8"), 0);
 		assert.ok(totalBytes <= 45, `Expected total snippet bytes <= 45, got ${totalBytes}`);
+	} finally {
+		rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+function runPyAsync(script, args) {
+	return new Promise((resolve) => {
+		const p = spawn("python3", [script, ...args], { stdio: ["ignore", "pipe", "pipe"] });
+		let out = "", err = "";
+		p.stdout.on("data", (d) => { out += d; });
+		p.stderr.on("data", (d) => { err += d; });
+		p.on("close", (code) => resolve({ status: code, stdout: out.trim(), stderr: err }));
+	});
+}
+
+test("Pass 3 Concurrency: 16 parallel core-append and 12 parallel resolve UPDATE", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "lazy-conc-"));
+	const db = join(dir, ".lazyargon", "memory.db"), pins = join(dir, ".lazyargon", "pins.md");
+	try {
+		const coreRes = await Promise.all(Array.from({ length: 16 }, (_, i) => runPyAsync(memPy, ["core-append", "--pins", pins, "--subject", `k${i}`, "--object", `v${i}`, "--json"])));
+		for (const r of coreRes) assert.equal(r.status, 0, `core-append failed: ${r.stderr}`);
+		assert.equal(readFileSync(pins, "utf8").trim().split("\n").filter(Boolean).length, 16);
+
+		const resList = await Promise.all(Array.from({ length: 12 }, (_, i) => runPyAsync(memPy, ["resolve", "--db", db, "--kind", "fact", "--subject", "사건", "--predicate", "상태", "--object", `단계_${i}`, "--op", "UPDATE", "--json"])));
+		for (const r of resList) assert.equal(r.status, 0, `resolve failed: ${r.stderr}`);
+
+		const check = spawnSync("python3", ["-c", "import sqlite3,sys,json; c=sqlite3.connect(sys.argv[1]); print(json.dumps({'active':c.execute(\"SELECT COUNT(*) FROM memories WHERE status='active'\").fetchone()[0],'fts':c.execute('SELECT COUNT(*) FROM memories_fts').fetchone()[0]}))", db], { encoding: "utf8" });
+		const counts = JSON.parse(check.stdout.trim());
+		assert.equal(counts.active, 1);
+		assert.equal(counts.fts, 1);
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}
