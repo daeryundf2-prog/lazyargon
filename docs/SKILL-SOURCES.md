@@ -1,8 +1,8 @@
 # LazyArgon v2.0 Upstream Harness & Skill Sources (`SKILL-SOURCES.md`)
 
-`@rlaope` 원문 19대 키워드 및 20개 글로벌 핵심 업스트림 하네스의 고정 버전(`pinned_sha`)과 LazyArgon 내부 구현 매핑 원장이다. 정형 영수증은 `docs/skill-source-receipts.json`(`skill_source_closure_audit/v1`)에서 관리하며 `scripts/upstream_radar.mjs`로 상시 감사한다.
+`@rlaope` 원문 19대 키워드 및 32개 글로벌 1위 업스트림 하네스의 고정 버전(`pinned_sha`)과 LazyArgon 내부 구현 매핑 원장이다. 정형 영수증은 `docs/skill-source-receipts.json`(`skill_source_closure_audit/v1`)에서 관리하며 `scripts/upstream_radar.mjs`로 상시 감사한다.
 
-## 1. 20대 업스트림 하네스 매핑 원장
+## 1. 32대 글로벌 1위 업스트림 하네스 매핑 원장
 
 | # | 키워드 | 업스트림 레포 (`repo`) | 고정 SHA / 태그 (`pinned_sha`) | LazyArgon 매핑 타겟 (`mapped_targets`) |
 | :--- | :--- | :--- | :--- | :--- |
@@ -26,6 +26,18 @@
 | 18 | `letta` | `letta-ai/letta` | `letta-dreaming-v1` | `scripts/lazy_memory.py` |
 | 19 | `autorag` | `MarkrAI/AutoRAG` | `autorag-rrf-v1` | `scripts/lazy_rag.py` |
 | 20 | `harness2` | `google-research/harness2` | `harness2-keep-base` | `scripts/doctor.mjs`, `scripts/lazy_slop_cleaner.mjs` |
+| 21 | `Claude Code Hook & Subagent Harness` | `anthropics/claude-code` | `v1.0.24` | `hooks.json`, `scripts/session_start.mjs` |
+| 22 | `OpenAI Codex CLI Sandbox Harness` | `openai/codex` | `codex-cli-01a8f2c` | `skills/programming/SKILL.md` |
+| 23 | `Gemini CLI Agent Runtime` | `google-gemini/gemini-cli` | `a4c91e2` | `rules/AGENTS.md`, `scripts/doctor.mjs` |
+| 24 | `OpenCode TUI & LSP Harness` | `anomalyco/opencode` | `9b3d41e` | `scripts/lazy_tui.mjs`, `scripts/lsp_diagnostics.mjs` |
+| 25 | `Aider RepoMap PageRank Harness` | `Aider-AI/aider` | `7c2e89a` | `scripts/codegraph.mjs` |
+| 26 | `OpenHands Runtime Verification` | `All-Hands-AI/OpenHands` | `5f1b30d` | `skills/gf-qa-behavioral-verification/SKILL.md` |
+| 27 | `SWE-agent ACI Debugging` | `SWE-agent/SWE-agent` | `3e8a71c` | `skills/debugging/SKILL.md` |
+| 28 | `Continue Context Rerank` | `ContinueDev/continue` | `4d9c20b` | `scripts/lazy_rag.py` |
+| 29 | `Cline Plan/Act & Browser QA` | `cline/cline` | `8a1f64e` | `skills/visual-qa/SKILL.md` |
+| 30 | `Firecrawl Web Evidence & Deep Research` | `mendableai/firecrawl` | `2c7e51a` | `skills/ulw-research/SKILL.md` |
+| 31 | `ast-grep Structural Codemod` | `ast-grep/ast-grep` | `6b4d92f` | `skills/ast-grep/SKILL.md` |
+| 32 | `Biome Fast Lint & Format Guard` | `biomejs/biome` | `1f8e34c` | `skills/programming/SKILL.md`, `scripts/lsp_diagnostics.mjs` |
 
 ## 2. 클로저 감사 및 상시 트래킹 (`upstream_radar.mjs`)
 

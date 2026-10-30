@@ -40,20 +40,60 @@ function tryParseJson(text) {
 	}
 }
 
-export function extractWriteContent(payload) {
-	if (!payload || typeof payload !== "object") return "";
+function resolveToolArgs(payload) {
+	if (!payload || typeof payload !== "object") return null;
 	let args =
 		payload.toolCall?.args ??
 		payload.toolCall?.arguments ??
 		payload.tool_input ??
 		payload.input ??
 		payload.args ??
+		payload.parameters ??
 		payload;
 	if (typeof args === "string") args = tryParseJson(args) || {};
-	if (!args || typeof args !== "object") return "";
+	return args && typeof args === "object" ? args : null;
+}
+
+export function extractTargetFile(payload) {
+	const args = resolveToolArgs(payload);
+	if (!args) return "";
+	for (const k of [
+		"Path",
+		"TargetFile",
+		"target_file",
+		"file_path",
+		"filepath",
+		"path",
+		"target_path",
+		"targetpath",
+		"output",
+		"file",
+		"filename",
+	]) {
+		if (typeof args[k] === "string" && args[k].trim()) return args[k].trim();
+	}
+	return "";
+}
+
+export function extractWriteBody(payload) {
+	const args = resolveToolArgs(payload);
+	if (!args) return "";
 
 	const parts = [];
-	for (const k of ["CodeContent", "code_content", "ReplacementContent", "replacement_content", "content", "new_str", "new_string", "text"]) {
+	for (const k of [
+		"Content",
+		"CodeContent",
+		"code_content",
+		"Replacement",
+		"ReplacementContent",
+		"replacement_content",
+		"Target",
+		"content",
+		"replacement",
+		"new_str",
+		"new_string",
+		"text",
+	]) {
 		if (typeof args[k] === "string" && args[k].length > 0) parts.push(args[k]);
 	}
 	let chunks = args.ReplacementChunks ?? args.replacement_chunks ?? args.edits;
@@ -61,12 +101,23 @@ export function extractWriteContent(payload) {
 	if (Array.isArray(chunks)) {
 		for (const c of chunks) {
 			if (!c || typeof c !== "object") continue;
-			const piece = c.ReplacementContent ?? c.replacement_content ?? c.new_str ?? c.new_string ?? c.content ?? "";
+			const piece =
+				c.ReplacementContent ??
+				c.replacement_content ??
+				c.Replacement ??
+				c.replacement ??
+				c.Content ??
+				c.content ??
+				c.new_str ??
+				c.new_string ??
+				"";
 			if (typeof piece === "string" && piece.length > 0) parts.push(piece);
 		}
 	}
 	return parts.join("\n");
 }
+
+export const extractWriteContent = extractWriteBody;
 
 function allow() {
 	process.stdout.write(`${JSON.stringify({ decision: "allow" })}\n`);

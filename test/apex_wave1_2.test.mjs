@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -33,7 +33,7 @@ test("Wave 1-4: lazy_slop_cleaner.mjs rules-distill & ac-slop modes", () => {
 		assert.equal(rulesResult.json.schema, "lazy_slop_audit/v1");
 		assert.equal(rulesResult.json.mode, "rules-distill");
 		assert.equal(rulesResult.json.within_budget, true);
-		assert.ok(rulesResult.json.rules_total_bytes > 0 && rulesResult.json.rules_total_bytes <= 24000);
+		assert.equal(rulesResult.json.rules_total_bytes, 20328);
 
 		const dirtyFile = join(tmp, "sample.mjs");
 		writeFileSync(
@@ -57,6 +57,45 @@ test("Wave 1-4: lazy_slop_cleaner.mjs rules-distill & ac-slop modes", () => {
 		assert.ok(cats.has("SIMPLIFY"));
 		assert.ok(cats.has("MODERN"));
 		assert.ok(cats.has("PROSE_SLOP"));
+
+		// [SLOP-2] --strict returns exit 1 when clean === false
+		const strictRes = runCli(SCRIPTS.slop, ["--mode", "ac-slop", "--target", dirtyFile, "--strict"]);
+		assert.equal(strictRes.status, 1);
+
+		// [SLOP-2] --trajectory extracts lessons with { cue, lesson, evidence }
+		const trajFile = join(tmp, "transcript.jsonl");
+		writeFileSync(
+			trajFile,
+			[
+				JSON.stringify({ step_index: 1, status: "ERROR", tool: "run_command", content: "Error: command failed exit 2" }),
+				JSON.stringify({ step_index: 2, status: "DONE", tool: "run_command", content: "Retried run_command after failure" }),
+			].join("\n"),
+			"utf8",
+		);
+		const trajRes = runCli(SCRIPTS.slop, ["--trajectory", trajFile]);
+		assert.equal(trajRes.status, 0);
+		assert.equal(trajRes.json.schema, "lazy_trajectory_distill/v1");
+		assert.ok(trajRes.json.lessons.length >= 2);
+		assert.ok(trajRes.json.lessons[0].cue && trajRes.json.lessons[0].lesson && trajRes.json.lessons[0].evidence);
+
+		// [SLOP-2] --diff-only scans only added + lines from git diff -U0
+		const gitDir = join(tmp, "repo");
+		mkdirSync(gitDir, { recursive: true });
+		spawnSync("git", ["init"], { cwd: gitDir });
+		spawnSync("git", ["config", "user.email", "test@example.com"], { cwd: gitDir });
+		spawnSync("git", ["config", "user.name", "Test"], { cwd: gitDir });
+		const repoFile = join(gitDir, "mod.mjs");
+		writeFileSync(repoFile, "// TODO: legacy committed line\nexport const cleanVal = 1;\n", "utf8");
+		spawnSync("git", ["add", "."], { cwd: gitDir });
+		spawnSync("git", ["commit", "-m", "init"], { cwd: gitDir });
+		writeFileSync(repoFile, "// TODO: legacy committed line\nexport const cleanVal = 1;\nexport const nextVal = 2;\n", "utf8");
+		const diffClean = runCli(SCRIPTS.slop, ["--mode", "code", "--target", repoFile, "--diff-only"]);
+		assert.equal(diffClean.json.clean, true);
+		writeFileSync(repoFile, "// TODO: legacy committed line\nexport const cleanVal = 1;\nvar badAdded = 3;\n", "utf8");
+		const diffDirty = runCli(SCRIPTS.slop, ["--mode", "code", "--target", repoFile, "--diff-only"]);
+		assert.equal(diffDirty.json.clean, false);
+		assert.equal(diffDirty.json.findings.length, 1);
+		assert.equal(diffDirty.json.findings[0].id, "LEGACY_VAR");
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}
@@ -142,6 +181,47 @@ test("Wave 1-4: dag_ulw.mjs cycle check, write_scope conflict, 3-strike, evidenc
 		assert.equal(packRes.status, 0);
 		assert.ok(packRes.json.zones.zone1_shared_head.includes("lazyargon_dag/v1"));
 		assert.ok(packRes.json.zones.zone2_unit.includes("src/ui"));
+
+		// [DAG-1], [DAG-2], [DAG-3] glob/posix normalization, unverified dep guard, running lane/scope deduction
+		const advDagFile = join(tmp, "adv-dag.json");
+		const advSpec = {
+			goal: "Advanced DAG guards",
+			budget: { lanes: 2, waves: 2 },
+			nodes: [
+				{ id: "r1", deps: [], write_scope: ["./scripts/../scripts/*.mjs"], state: "running" },
+				{ id: "c1", deps: [], write_scope: ["scripts/a.mjs"] },
+				{ id: "c2", deps: [], write_scope: ["scripts/**"] },
+				{ id: "c3", deps: [], write_scope: ["docs/guide.md"] },
+				{ id: "c4", deps: [], write_scope: ["test/unit.mjs"] },
+				{ id: "depChild", deps: ["c3"], write_scope: ["out/res.json"] },
+			],
+		};
+		const advDef = runCli(SCRIPTS.dag, ["define", "--file", advDagFile, "--spec", JSON.stringify(advSpec)]);
+		assert.equal(advDef.status, 0);
+		assert.deepEqual(advDef.json.nodes[0].write_scope, ["scripts/*.mjs"]);
+
+		// [DAG-2] settle depChild before c3 is verified -> UNVERIFIED_DEPENDENCY (exit 2)
+		const prematureSettle = runCli(SCRIPTS.dag, [
+			"settle",
+			"--file",
+			advDagFile,
+			"--node",
+			"depChild",
+			"--state",
+			"verified",
+			"--evidence",
+			"premature",
+		]);
+		assert.equal(prematureSettle.status, 2);
+		assert.equal(prematureSettle.json.error, "UNVERIFIED_DEPENDENCY");
+
+		// [DAG-3] r1 is running (1 of 2 lanes used), c1 & c2 conflict with r1's glob, so only c3 fits in remaining 1 lane
+		const advReady = runCli(SCRIPTS.dag, ["ready", "--file", advDagFile]);
+		assert.equal(advReady.status, 0);
+		assert.equal(advReady.json.available_lanes, 1);
+		assert.deepEqual(advReady.json.ready, ["c3"]);
+		assert.deepEqual(advReady.json.deferred_conflicts, ["c1", "c2"]);
+		assert.ok(advReady.json.deferred.includes("c4"));
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}
@@ -158,22 +238,42 @@ test("Wave 2-1: codegraph.mjs Personalized PageRank handoff & reverse-import tes
 			'import { queryDb } from "./db.mjs";\nexport function runService() { return queryDb(); }\n',
 			"utf8",
 		);
-		writeFileSync(join(tmp, "src", "unrelated.mjs"), "export const UNUSED = 1;\n", "utf8");
+		// [CG-3] Commented-out imports/exports must be ignored
+		writeFileSync(
+			join(tmp, "src", "unrelated.mjs"),
+			'/* import { queryDb } from "./db.mjs"; */\n// import { runService } from "./service.mjs";\nexport const UNUSED = 1;\n',
+			"utf8",
+		);
 		writeFileSync(
 			join(tmp, "test", "service.test.mjs"),
 			'import { runService } from "../src/service.mjs";\nrunService();\n',
 			"utf8",
 		);
 
-		const handoff = runCli(SCRIPTS.codegraph, ["handoff", "--root", tmp, "--seeds", "src/db.mjs", "--top", "4"]);
+		const built = runCli(SCRIPTS.codegraph, ["build", "--root", tmp]);
+		assert.deepEqual(built.json.nodes["src/unrelated.mjs"].imports_internal, []);
+
+		// [CG-2] Normalize absolute path and ./ relative path in handoff & tests
+		const handoff = runCli(SCRIPTS.codegraph, ["handoff", "--root", tmp, "--seeds", join(tmp, "src", "db.mjs"), "--top", "4"]);
 		assert.equal(handoff.status, 0);
 		assert.equal(handoff.json.ranked[0].file, "src/db.mjs");
 		const topFiles = handoff.json.ranked.map((r) => r.file);
 		assert.ok(topFiles.indexOf("src/service.mjs") < topFiles.indexOf("src/unrelated.mjs"));
 
-		const impacted = runCli(SCRIPTS.codegraph, ["tests", "--root", tmp, "--changed", "src/db.mjs"]);
+		const impacted = runCli(SCRIPTS.codegraph, ["tests", "--root", tmp, "--changed", "./src/db.mjs"]);
 		assert.equal(impacted.status, 0);
 		assert.deepEqual(impacted.json.tests, ["test/service.test.mjs"]);
+
+		// [CG-1] tests --changed without argument auto-detects from git diff
+		spawnSync("git", ["init"], { cwd: tmp });
+		spawnSync("git", ["config", "user.email", "test@example.com"], { cwd: tmp });
+		spawnSync("git", ["config", "user.name", "Test"], { cwd: tmp });
+		spawnSync("git", ["add", "."], { cwd: tmp });
+		spawnSync("git", ["commit", "-m", "init"], { cwd: tmp });
+		writeFileSync(join(tmp, "src", "db.mjs"), "export function queryDb() { return [1]; }\n", "utf8");
+		const autoImpacted = runCli(SCRIPTS.codegraph, ["tests", "--changed", "--root", tmp]);
+		assert.equal(autoImpacted.status, 0);
+		assert.deepEqual(autoImpacted.json.tests, ["test/service.test.mjs"]);
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}
@@ -183,8 +283,10 @@ test("Wave 2-3: autoresearch_loop.mjs immutable harness lock, KEEP/DISCARD, 4-ru
 	const tmp = mkdtempSync(join(tmpdir(), "lazyargon-ar-"));
 	const ledger = join(tmp, "experiment-ledger.tsv");
 	const evalScript = join(tmp, "eval.mjs");
+	const targetCode = join(tmp, "algo.mjs");
 	try {
 		writeFileSync(evalScript, "console.log(100);\n", "utf8");
+		writeFileSync(targetCode, "export const WEIGHT = 1;\n", "utf8");
 		const initRes = runCli(SCRIPTS.autoresearch, [
 			"init",
 			"--ledger",
@@ -197,12 +299,36 @@ test("Wave 2-3: autoresearch_loop.mjs immutable harness lock, KEEP/DISCARD, 4-ru
 		assert.equal(initRes.status, 0);
 		assert.equal(initRes.json.lock.harness_mutable, false);
 
-		const step1 = runCli(SCRIPTS.autoresearch, ["step", "--ledger", ledger, "--metric", "50.0", "--hypothesis", "baseline run"]);
+		// [AR-1] --metric-cmd executes command, writes experiment-last.log, and parses last scalar
+		const step1 = runCli(SCRIPTS.autoresearch, [
+			"step",
+			"--ledger",
+			ledger,
+			"--metric-cmd",
+			`${process.execPath} -e "console.log('booting...'); console.log('score: 50.0')"`,
+			"--hypothesis",
+			"baseline run",
+		]);
 		assert.equal(step1.json.verdict, "KEEP");
 		assert.equal(step1.json.best_metric, 50);
+		assert.ok(existsSync(join(tmp, ".lazyargon", "experiment-last.log")));
 
-		const step2 = runCli(SCRIPTS.autoresearch, ["step", "--ledger", ledger, "--metric", "55.0", "--hypothesis", "regressed change"]);
+		// [AR-2] DISCARD with --rollback-files restores file and sets rolled_back: true
+		writeFileSync(targetCode, "export const WEIGHT = 999; // bad experiment\n", "utf8");
+		const step2 = runCli(SCRIPTS.autoresearch, [
+			"step",
+			"--ledger",
+			ledger,
+			"--metric",
+			"55.0",
+			"--rollback-files",
+			targetCode,
+			"--hypothesis",
+			"regressed change",
+		]);
 		assert.equal(step2.json.verdict, "DISCARD");
+		assert.equal(step2.json.rolled_back, true);
+		assert.equal(readFileSync(targetCode, "utf8"), "export const WEIGHT = 1;\n");
 		assert.equal(step2.json.best_metric, 50);
 		assert.ok(step2.json.idea_ladder.rung.includes("Rung 1"));
 

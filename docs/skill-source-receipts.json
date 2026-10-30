@@ -22,6 +22,18 @@
     { "repo": "mem0ai/mem0", "url": "https://github.com/mem0ai/mem0", "pinned_sha": "mem0-graph-v1", "keyword": "mem0", "mapped_targets": ["scripts/lazy_memory.py"] },
     { "repo": "letta-ai/letta", "url": "https://github.com/letta-ai/letta", "pinned_sha": "letta-dreaming-v1", "keyword": "letta", "mapped_targets": ["scripts/lazy_memory.py"] },
     { "repo": "MarkrAI/AutoRAG", "url": "https://github.com/MarkrAI/AutoRAG", "pinned_sha": "autorag-rrf-v1", "keyword": "autorag", "mapped_targets": ["scripts/lazy_rag.py"] },
-    { "repo": "google-research/harness2", "url": "https://github.com/google-research/harness2", "pinned_sha": "harness2-keep-base", "keyword": "harness2", "mapped_targets": ["scripts/doctor.mjs", "scripts/lazy_slop_cleaner.mjs"] }
+    { "repo": "google-research/harness2", "url": "https://github.com/google-research/harness2", "pinned_sha": "harness2-keep-base", "keyword": "harness2", "mapped_targets": ["scripts/doctor.mjs", "scripts/lazy_slop_cleaner.mjs"] },
+    { "repo": "anthropics/claude-code", "url": "https://github.com/anthropics/claude-code", "pinned_sha": "v1.0.24", "keyword": "Claude Code Hook & Subagent Harness", "mapped_targets": ["hooks.json", "scripts/session_start.mjs"] },
+    { "repo": "openai/codex", "url": "https://github.com/openai/codex", "pinned_sha": "codex-cli-01a8f2c", "keyword": "OpenAI Codex CLI Sandbox Harness", "mapped_targets": ["skills/programming/SKILL.md"] },
+    { "repo": "google-gemini/gemini-cli", "url": "https://github.com/google-gemini/gemini-cli", "pinned_sha": "a4c91e2", "keyword": "Gemini CLI Agent Runtime", "mapped_targets": ["rules/AGENTS.md", "scripts/doctor.mjs"] },
+    { "repo": "anomalyco/opencode", "url": "https://github.com/anomalyco/opencode", "pinned_sha": "9b3d41e", "keyword": "OpenCode TUI & LSP Harness", "mapped_targets": ["scripts/lazy_tui.mjs", "scripts/lsp_diagnostics.mjs"] },
+    { "repo": "Aider-AI/aider", "url": "https://github.com/Aider-AI/aider", "pinned_sha": "7c2e89a", "keyword": "Aider RepoMap PageRank Harness", "mapped_targets": ["scripts/codegraph.mjs"] },
+    { "repo": "All-Hands-AI/OpenHands", "url": "https://github.com/All-Hands-AI/OpenHands", "pinned_sha": "5f1b30d", "keyword": "OpenHands Runtime Verification", "mapped_targets": ["skills/gf-qa-behavioral-verification/SKILL.md"] },
+    { "repo": "SWE-agent/SWE-agent", "url": "https://github.com/SWE-agent/SWE-agent", "pinned_sha": "3e8a71c", "keyword": "SWE-agent ACI Debugging", "mapped_targets": ["skills/debugging/SKILL.md"] },
+    { "repo": "ContinueDev/continue", "url": "https://github.com/ContinueDev/continue", "pinned_sha": "4d9c20b", "keyword": "Continue Context Rerank", "mapped_targets": ["scripts/lazy_rag.py"] },
+    { "repo": "cline/cline", "url": "https://github.com/cline/cline", "pinned_sha": "8a1f64e", "keyword": "Cline Plan/Act & Browser QA", "mapped_targets": ["skills/visual-qa/SKILL.md"] },
+    { "repo": "mendableai/firecrawl", "url": "https://github.com/mendableai/firecrawl", "pinned_sha": "2c7e51a", "keyword": "Firecrawl Web Evidence & Deep Research", "mapped_targets": ["skills/ulw-research/SKILL.md"] },
+    { "repo": "ast-grep/ast-grep", "url": "https://github.com/ast-grep/ast-grep", "pinned_sha": "6b4d92f", "keyword": "ast-grep Structural Codemod", "mapped_targets": ["skills/ast-grep/SKILL.md"] },
+    { "repo": "biomejs/biome", "url": "https://github.com/biomejs/biome", "pinned_sha": "1f8e34c", "keyword": "Biome Fast Lint & Format Guard", "mapped_targets": ["skills/programming/SKILL.md", "scripts/lsp_diagnostics.mjs"] }
   ]
 }

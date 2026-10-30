@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { runDiagnosticsCheck, runRenamePreview } from "../scripts/lsp_diagnostics.mjs";
+import { runDiagnosticsCheck, runRenamePreview, runSnapshot, runVerify } from "../scripts/lsp_diagnostics.mjs";
 import { MODEL_PRESETS, SHARED_PREAMBLE_MAX_BYTES, calibrateModel } from "../scripts/model_calibrate.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -44,23 +44,63 @@ test("lsp_diagnostics.mjs: check passes on valid .mjs, .py, .json files", () => 
 	}
 });
 
-test("lsp_diagnostics.mjs: check detects syntax errors and exits with code 1", () => {
+test("lsp_diagnostics.mjs: check detects syntax errors across .mjs, .py, .ts, .json and exits with code 1", () => {
 	const dir = mkdtempSync(join(tmpdir(), "lazyargon-lsp-err-"));
 	try {
 		const badMjs = join(dir, "broken.mjs");
 		const badJson = join(dir, "broken.json");
+		const badPy = join(dir, "broken.py");
+		const badTs = join(dir, "broken.ts");
 		writeFileSync(badMjs, "export const x = ;\n", "utf8");
 		writeFileSync(badJson, "{ invalid json ", "utf8");
+		writeFileSync(badPy, "def broken(:\n    pass\n", "utf8");
+		writeFileSync(badTs, "const x: = ;\nfunction unclosed() {\n", "utf8");
 
-		const cli = spawnSync(process.execPath, [lspScript, "check", "--files", `${badMjs},${badJson}`, "--root", dir, "--json"], {
+		const walkRes = runDiagnosticsCheck({ root: dir });
+		assert.equal(walkRes.checked_count, 4);
+		assert.equal(walkRes.error_count, 4);
+
+		const cli = spawnSync(process.execPath, [lspScript, "check", "--files", `${badMjs},${badJson},${badPy},${badTs}`, "--root", dir, "--json"], {
 			encoding: "utf8",
 		});
 		assert.equal(cli.status, 1);
 		const parsed = JSON.parse(cli.stdout);
 		assert.equal(parsed.schema, "language_diagnostic_evidence/v1");
 		assert.equal(parsed.no_new_diagnostics_observed, false);
-		assert.equal(parsed.error_count, 2);
-		assert.equal(parsed.diagnostics.length, 2);
+		assert.equal(parsed.error_count, 4);
+		assert.equal(parsed.diagnostics.length, 4);
+	} finally {
+		rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test("lsp_diagnostics.mjs: snapshot and verify subcommands track baseline vs new diagnostics and fail closed on unknown cmd", () => {
+	const dir = mkdtempSync(join(tmpdir(), "lazyargon-lsp-snap-"));
+	try {
+		writeFileSync(join(dir, "legacy_broken.mjs"), "export const a = ;\n", "utf8");
+		writeFileSync(join(dir, "valid.ts"), "export const ok: number = 1;\n", "utf8");
+
+		const snapCli = spawnSync(process.execPath, [lspScript, "snapshot", "--root", dir], { encoding: "utf8" });
+		assert.equal(snapCli.status, 0);
+		const snapData = JSON.parse(snapCli.stdout);
+		assert.equal(snapData.mode, "snapshot");
+		assert.equal(snapData.baseline_errors, 1);
+
+		const verifyOk = spawnSync(process.execPath, [lspScript, "verify", "--root", dir], { encoding: "utf8" });
+		assert.equal(verifyOk.status, 0);
+		const verifyOkData = JSON.parse(verifyOk.stdout);
+		assert.equal(verifyOkData.no_new_diagnostics_observed, true);
+		assert.equal(verifyOkData.new_diagnostics.length, 0);
+
+		writeFileSync(join(dir, "new_broken.ts"), "const bad: = ;\n", "utf8");
+		const verifyFail = spawnSync(process.execPath, [lspScript, "verify", "--root", dir], { encoding: "utf8" });
+		assert.equal(verifyFail.status, 1);
+		const verifyFailData = JSON.parse(verifyFail.stdout);
+		assert.equal(verifyFailData.no_new_diagnostics_observed, false);
+		assert.equal(verifyFailData.new_diagnostics.length, 1);
+
+		const unknownCli = spawnSync(process.execPath, [lspScript, "nonexistent-subcmd"], { encoding: "utf8" });
+		assert.equal(unknownCli.status, 2);
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}

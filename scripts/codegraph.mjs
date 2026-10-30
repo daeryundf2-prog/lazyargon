@@ -2,14 +2,18 @@
 /**
  * codegraph.mjs — Lightweight AST/Import Graph & Personalized PageRank Handoff (v2.0 Wave 2-1)
  */
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const CODE_EXTS = new Set([".mjs", ".js", ".ts", ".tsx", ".py"]);
 
-function normalizeRel(root, fullPath) {
-	return relative(root, fullPath).replace(/\\/g, "/");
+export function normalizeRel(root, fullPath) {
+	const s = String(fullPath || "").trim();
+	if (!s) return "";
+	if (!root) return s.replace(/\\/g, "/").replace(/^\.\//, "");
+	return relative(resolve(root), resolve(root, s)).replace(/\\/g, "/");
 }
 
 function collectSourceFiles(rootDir) {
@@ -53,19 +57,24 @@ function resolveInternalImport(rootDir, fromFile, spec, knownFiles) {
 }
 
 export function extractSymbolsAndImports(text, isPy = false) {
+	const cleaned = String(text || "")
+		.replace(/\/\*[\s\S]*?\*\//g, "")
+		.replace(/^\s*\/\/.*$/gm, "")
+		.replace(/^\s*#.*$/gm, "")
+		.replace(/(?<!:)\/\/.*$/gm, "");
 	const symbols = new Set();
 	const rawImports = new Set();
 	if (isPy) {
-		for (const m of text.matchAll(/^\s*(?:def|class)\s+([A-Za-z_][A-Za-z0-9_]*)/gm)) symbols.add(m[1]);
-		for (const m of text.matchAll(/^\s*from\s+([A-Za-z0-9_.]+)\s+import\b/gm)) rawImports.add(m[1]);
-		for (const m of text.matchAll(/^\s*import\s+([A-Za-z0-9_.]+)/gm)) rawImports.add(m[1]);
+		for (const m of cleaned.matchAll(/^\s*(?:def|class)\s+([A-Za-z_][A-Za-z0-9_]*)/gm)) symbols.add(m[1]);
+		for (const m of cleaned.matchAll(/^\s*from\s+([A-Za-z0-9_.]+)\s+import\b/gm)) rawImports.add(m[1]);
+		for (const m of cleaned.matchAll(/^\s*import\s+([A-Za-z0-9_.]+)/gm)) rawImports.add(m[1]);
 	} else {
-		for (const m of text.matchAll(/\bexport\s+(?:async\s+)?(?:function|class|const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)/g)) {
+		for (const m of cleaned.matchAll(/\bexport\s+(?:async\s+)?(?:function|class|const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)/g)) {
 			symbols.add(m[1]);
 		}
-		for (const m of text.matchAll(/\bimport\s+(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g)) rawImports.add(m[1]);
-		for (const m of text.matchAll(/\bexport\s+[\s\S]*?\s+from\s+["']([^"']+)["']/g)) rawImports.add(m[1]);
-		for (const m of text.matchAll(/\brequire\(\s*["']([^"']+)["']\s*\)/g)) rawImports.add(m[1]);
+		for (const m of cleaned.matchAll(/\bimport\s+(?:[\s\S]*?\s+from\s+)?["']([^"']+)["']/g)) rawImports.add(m[1]);
+		for (const m of cleaned.matchAll(/\bexport\s+[\s\S]*?\s+from\s+["']([^"']+)["']/g)) rawImports.add(m[1]);
+		for (const m of cleaned.matchAll(/\brequire\(\s*["']([^"']+)["']\s*\)/g)) rawImports.add(m[1]);
 	}
 	return { symbols: [...symbols], rawImports: [...rawImports] };
 }
@@ -93,8 +102,8 @@ export function buildCodeGraph(rootDir = process.cwd()) {
 export function computePersonalizedPageRank(graph, seedFiles, topK = 10, damping = 0.85, iterations = 20) {
 	const allFiles = Object.keys(graph.nodes || {});
 	if (allFiles.length === 0) return [];
-	const validSeeds = seedFiles
-		.map((s) => s.replace(/\\/g, "/").replace(/^\.\//, ""))
+	const validSeeds = (seedFiles || [])
+		.map((s) => normalizeRel(graph.root, s))
 		.filter((s) => graph.nodes[s]);
 	const seeds = validSeeds.length > 0 ? validSeeds : [allFiles[0]];
 	const seedWeight = 1 / seeds.length;
@@ -144,6 +153,8 @@ export function computePersonalizedPageRank(graph, seedFiles, topK = 10, damping
 		.slice(0, topK);
 }
 
+export const computeHandoff = computePersonalizedPageRank;
+
 export function findImpactedTests(graph, changedFiles) {
 	const reverseAdj = new Map();
 	for (const f of Object.keys(graph.nodes || {})) reverseAdj.set(f, []);
@@ -156,8 +167,8 @@ export function findImpactedTests(graph, changedFiles) {
 	const isTestFile = (f) => /(?:^|\/)(?:test_[^/]+\.py|[^/]+\.(?:test|spec)\.[A-Za-z0-9]+)$/i.test(f);
 	const visited = new Set();
 	const queue = [];
-	for (const raw of changedFiles) {
-		const norm = raw.replace(/\\/g, "/").replace(/^\.\//, "");
+	for (const raw of changedFiles || []) {
+		const norm = normalizeRel(graph.root, raw);
 		if (graph.nodes[norm] && !visited.has(norm)) {
 			visited.add(norm);
 			queue.push(norm);
@@ -177,6 +188,15 @@ export function findImpactedTests(graph, changedFiles) {
 	return [...tests].sort();
 }
 
+function collectGitChanged(root) {
+	const parse = (out) => (out || "").split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+	const head = spawnSync("git", ["diff", "--name-only", "HEAD"], { cwd: root, encoding: "utf8" });
+	const list = !head.error && head.status === 0 ? parse(head.stdout) : [];
+	if (list.length > 0) return list;
+	const wt = spawnSync("git", ["diff", "--name-only"], { cwd: root, encoding: "utf8" });
+	return !wt.error && wt.status === 0 ? parse(wt.stdout) : [];
+}
+
 function main() {
 	const args = process.argv.slice(2);
 	const cmd = args[0] || "build";
@@ -184,7 +204,7 @@ function main() {
 		const i = args.indexOf(f);
 		return i >= 0 && args[i + 1] && !args[i + 1].startsWith("--") ? args[i + 1] : d;
 	};
-	const root = getOpt("--root", process.cwd());
+	const root = resolve(getOpt("--root", process.cwd()));
 	const graph = buildCodeGraph(root);
 	if (cmd === "build") {
 		const out = getOpt("--out", "");
@@ -199,7 +219,10 @@ function main() {
 		const ranked = computePersonalizedPageRank(graph, seeds, top);
 		console.log(JSON.stringify({ schema: "lazyargon_codegraph_handoff/v1", seeds, top, ranked }, null, 2));
 	} else if (cmd === "tests") {
-		const changed = getOpt("--changed", "").split(",").map((s) => s.trim()).filter(Boolean);
+		const rawChanged = getOpt("--changed", "");
+		const changed = rawChanged
+			? rawChanged.split(",").map((s) => s.trim()).filter(Boolean)
+			: collectGitChanged(root);
 		const tests = findImpactedTests(graph, changed);
 		console.log(JSON.stringify({ schema: "lazyargon_codegraph_tests/v1", changed, tests }, null, 2));
 	}

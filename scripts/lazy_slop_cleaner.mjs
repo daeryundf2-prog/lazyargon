@@ -100,27 +100,28 @@ export function scanCodeText(text, file = "<memory>") {
 	return findings;
 }
 
-export function auditRulesDistill(targetDir = PLUGIN_ROOT) {
+function scanFileText(mode, f, raw) {
+	const out = [];
+	const isCode = [".mjs", ".js", ".ts", ".tsx", ".py", ".rs", ".go"].includes(extname(f).toLowerCase());
+	if (mode === "code" || (mode === "ac-slop" && isCode)) out.push(...scanCodeText(raw, f));
+	if (mode === "prose" || mode === "ac-slop") out.push(...scanProseText(raw, f));
+	return out;
+}
+
+export function auditRulesDistill(targetDir = PLUGIN_ROOT, includeSibling = true) {
 	const root = resolve(targetDir);
 	const rulesDir = join(root, "rules");
+	const siblingDir = includeSibling ? resolve(root, "..", "lazyargon-workspace", "rules") : "";
 	const skillsDir = join(root, "skills");
-	const ruleFiles = existsSync(rulesDir)
-		? readdirSync(rulesDir).filter((f) => f.endsWith(".md")).map((f) => join(rulesDir, f))
-		: [];
-	const skillFiles = existsSync(skillsDir)
-		? readdirSync(skillsDir)
-				.map((s) => join(skillsDir, s, "SKILL.md"))
-				.filter((p) => existsSync(p))
-		: [];
+	const collectMd = (dir) => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md")).map((f) => join(dir, f)) : []);
+	const ruleFiles = [...collectMd(rulesDir), ...(siblingDir && siblingDir !== rulesDir ? collectMd(siblingDir) : [])];
+	const skillFiles = existsSync(skillsDir) ? readdirSync(skillsDir).map((s) => join(skillsDir, s, "SKILL.md")).filter(existsSync) : [];
 	let rules_total_bytes = 0;
 	const findings = [];
 	for (const rf of ruleFiles) {
-		const raw = readFileSync(rf, "utf8");
-		const bytes = Buffer.byteLength(raw, "utf8");
+		const bytes = Buffer.byteLength(readFileSync(rf, "utf8"), "utf8");
 		rules_total_bytes += bytes;
-		if (bytes > RULES_FILE_WARN_BYTES) {
-			findings.push({ category: "BUDGET", id: "RULE_FILE_OVERSIZE", file: rf, bytes });
-		}
+		if (bytes > RULES_FILE_WARN_BYTES) findings.push({ category: "BUDGET", id: "RULE_FILE_OVERSIZE", file: rf, bytes });
 	}
 	if (rules_total_bytes > RULES_BUDGET_BYTES) {
 		findings.push({ category: "BUDGET", id: "RULES_TOTAL_BUDGET_EXCEEDED", bytes: rules_total_bytes, limit: RULES_BUDGET_BYTES });
@@ -132,63 +133,83 @@ export function auditRulesDistill(targetDir = PLUGIN_ROOT) {
 		}
 		findings.push(...scanProseText(raw, f));
 	}
-	return {
-		schema: "lazy_slop_audit/v1",
-		mode: "rules-distill",
-		rules_total_bytes,
-		within_budget: rules_total_bytes <= RULES_BUDGET_BYTES,
-		findings,
-		clean: findings.length === 0 && rules_total_bytes <= RULES_BUDGET_BYTES,
-	};
+	const within_budget = rules_total_bytes <= RULES_BUDGET_BYTES;
+	return { schema: "lazy_slop_audit/v1", mode: "rules-distill", rules_total_bytes, within_budget, findings, clean: findings.length === 0 && within_budget };
 }
 
-export function auditTarget(mode, targetPath) {
-	if (mode === "rules-distill") return auditRulesDistill(targetPath || PLUGIN_ROOT);
-	let files = [];
-	if (targetPath) {
-		files = walkFiles(targetPath);
-	} else {
-		const git = spawnSync("git", ["diff", "--name-only"], { encoding: "utf8" });
-		if (!git.error && git.status === 0) {
-			files = (git.stdout || "")
-				.split(/\r?\n/)
-				.map((s) => s.trim())
-				.filter((s) => s && existsSync(s))
-				.map((s) => resolve(s));
+export function distillTrajectory(trajectoryPath) {
+	const lessons = [];
+	if (!trajectoryPath || !existsSync(trajectoryPath)) return { schema: "lazy_trajectory_distill/v1", lessons, clean: true };
+	const lines = readFileSync(resolve(trajectoryPath), "utf8").split(/\r?\n/).filter(Boolean);
+	let prevTool = "";
+	lines.forEach((line, idx) => {
+		const ev = `${trajectoryPath}:${idx + 1}: ${line.slice(0, 140)}`;
+		const curTool = (line.match(/"(?:tool|name|tool_name)"\s*:\s*"([^"]+)"/) || [])[1] || "";
+		if (/(?:retry|retried|attempt\s*[2-9]|repeated)/i.test(line) || (curTool && curTool === prevTool)) {
+			lessons.push({ cue: `Repeated or retried action (${curTool || "step"})`, lesson: "Stop blind retries after failure; inspect inputs and verify preconditions first.", evidence: ev });
+		}
+		if (/(?:"status"\s*:\s*"ERROR"|"error"\b|FAIL\b|Exception|exit\s+[12]|denied|blocked|invalid|timeout)/i.test(line)) {
+			lessons.push({ cue: "Execution error or verification failure in trajectory", lesson: "Capture empirical error output and resolve root cause before claiming completion.", evidence: ev });
+		}
+		if (curTool) prevTool = curTool;
+	});
+	return { schema: "lazy_trajectory_distill/v1", lessons, clean: true };
+}
+
+function collectDiffAddedByFile(targetPath) {
+	const cwd = targetPath && existsSync(targetPath) ? (statSync(targetPath).isDirectory() ? resolve(targetPath) : dirname(resolve(targetPath))) : process.cwd();
+	let git = spawnSync("git", ["diff", "-U0", "HEAD"], { cwd, encoding: "utf8" });
+	if (git.error || !(git.stdout || "").trim()) git = spawnSync("git", ["diff", "-U0"], { cwd, encoding: "utf8" });
+	const byFile = new Map();
+	let curFile = null;
+	for (const line of (git.stdout || "").split(/\r?\n/)) {
+		if (line.startsWith("+++ b/")) curFile = resolve(cwd, line.slice(6).trim());
+		else if (curFile && line.startsWith("+") && !line.startsWith("+++")) {
+			if (!byFile.has(curFile)) byFile.set(curFile, []);
+			byFile.get(curFile).push(line.slice(1));
 		}
 	}
+	return byFile;
+}
+
+export function auditTarget(mode, targetPath, opts = {}) {
+	if (opts.trajectoryPath) return distillTrajectory(opts.trajectoryPath);
+	if (mode === "rules-distill") return auditRulesDistill(targetPath || PLUGIN_ROOT, opts.includeSibling !== false);
 	const findings = [];
-	for (const f of files) {
-		let raw = "";
-		try {
-			raw = readFileSync(f, "utf8");
-		} catch {
-			continue;
+	if (opts.diffOnly) {
+		const filterFile = targetPath && existsSync(targetPath) && statSync(targetPath).isFile() ? resolve(targetPath) : null;
+		for (const [f, addedLines] of collectDiffAddedByFile(targetPath).entries()) {
+			if (!filterFile || f === filterFile) findings.push(...scanFileText(mode, f, addedLines.join("\n")));
 		}
-		const ext = extname(f).toLowerCase();
-		const isCode = [".mjs", ".js", ".ts", ".tsx", ".py", ".rs", ".go"].includes(ext);
-		if (mode === "code" || (mode === "ac-slop" && isCode)) findings.push(...scanCodeText(raw, f));
-		if (mode === "prose" || mode === "ac-slop") findings.push(...scanProseText(raw, f));
+		return { schema: "lazy_slop_audit/v1", mode, diff_only: true, findings, clean: findings.length === 0 };
 	}
-	return {
-		schema: "lazy_slop_audit/v1",
-		mode,
-		findings,
-		clean: findings.length === 0,
-	};
+	const git = !targetPath ? spawnSync("git", ["diff", "--name-only"], { encoding: "utf8" }) : null;
+	const files = targetPath
+		? walkFiles(targetPath)
+		: !git?.error && git?.status === 0
+			? (git.stdout || "").split(/\r?\n/).map((s) => s.trim()).filter((s) => s && existsSync(s)).map((s) => resolve(s))
+			: [];
+	for (const f of files) {
+		if (existsSync(f)) findings.push(...scanFileText(mode, f, readFileSync(f, "utf8")));
+	}
+	return { schema: "lazy_slop_audit/v1", mode, findings, clean: findings.length === 0 };
 }
 
 function main() {
 	const args = process.argv.slice(2);
 	const getOpt = (flag, def = "") => {
 		const idx = args.indexOf(flag);
-		return idx >= 0 && args[idx + 1] ? args[idx + 1] : def;
+		return idx >= 0 && args[idx + 1] && !args[idx + 1].startsWith("--") ? args[idx + 1] : def;
 	};
 	const mode = getOpt("--mode", "ac-slop");
 	const target = getOpt("--target", "");
-	const res = auditTarget(mode, target);
+	const trajectoryPath = getOpt("--trajectory", "");
+	const diffOnly = args.includes("--diff-only");
+	const strict = args.includes("--strict");
+	const includeSibling = !args.includes("--no-sibling");
+	const res = auditTarget(mode, target, { trajectoryPath, diffOnly, includeSibling });
 	console.log(JSON.stringify(res, null, 2));
-	process.exit(0);
+	process.exit(strict && res.clean === false ? 1 : 0);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

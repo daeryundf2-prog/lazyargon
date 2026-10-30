@@ -9,7 +9,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "^(write_to_file|WriteToFile|write_file|WriteFile|apply_patch|write|Write|edit|Edit|multi_edit|multiedit|MultiEdit|multi_replace_file_content|MultiReplaceFileContent|search_replace|SearchReplace|str_replace|StrReplace|replace_file_content|ReplaceFileContent)$",
+        "matcher": "^(write_to_file|WriteToFile|write_file|WriteFile|edit_file|EditFile|apply_patch|write|Write|edit|Edit|multi_edit|multiedit|MultiEdit|multi_replace_file_content|MultiReplaceFileContent|search_replace|SearchReplace|str_replace|StrReplace|replace_file_content|ReplaceFileContent)$",
         "hooks": [
           {
             "type": "command",
@@ -21,7 +21,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "^(write_to_file|WriteToFile|write_file|WriteFile|apply_patch|write|Write|edit|Edit|multi_edit|multiedit|MultiEdit|multi_replace_file_content|MultiReplaceFileContent|search_replace|SearchReplace|str_replace|StrReplace|replace_file_content|ReplaceFileContent)$",
+        "matcher": "^(write_to_file|WriteToFile|write_file|WriteFile|edit_file|EditFile|apply_patch|write|Write|edit|Edit|multi_edit|multiedit|MultiEdit|multi_replace_file_content|MultiReplaceFileContent|search_replace|SearchReplace|str_replace|StrReplace|replace_file_content|ReplaceFileContent)$",
         "hooks": [
           {
             "type": "command",

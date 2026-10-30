@@ -20,24 +20,34 @@ try {
 	// ignore read-only fs
 }
 
+const ROUTES = {
+	tui: { runtime: process.execPath, script: "lazy_tui.mjs" },
+	doctor: { runtime: process.execPath, script: "doctor.mjs" },
+	radar: { runtime: process.execPath, script: "upstream_radar.mjs" },
+	upstream: { runtime: process.execPath, script: "upstream_radar.mjs" },
+	dag: { runtime: process.execPath, script: "dag_ulw.mjs" },
+	codegraph: { runtime: process.execPath, script: "codegraph.mjs" },
+	memory: { runtime: "python3", script: "lazy_memory.py" },
+	rag: { runtime: "python3", script: "lazy_rag.py" },
+	slop: { runtime: process.execPath, script: "lazy_slop_cleaner.mjs" },
+	lsp: { runtime: process.execPath, script: "lsp_diagnostics.mjs" },
+	calibrate: { runtime: process.execPath, script: "model_calibrate.mjs" },
+	autoresearch: { runtime: process.execPath, script: "autoresearch_loop.mjs" },
+};
+
 const args = process.argv.slice(2);
-const sub = args[0] || "tui";
+const first = args[0] || "";
+const isDefaultTui = !first || first.startsWith("-");
+const sub = isDefaultTui ? "tui" : first;
+const route = ROUTES[sub];
 
-let script = "lazy_tui.mjs";
-let forwarded = args;
-
-if (sub === "tui") {
-	script = "lazy_tui.mjs";
-	forwarded = args.slice(1);
-} else if (sub === "radar" || sub === "upstream") {
-	script = "upstream_radar.mjs";
-	forwarded = args.slice(1);
-} else if (sub === "doctor") {
-	script = "doctor.mjs";
-	forwarded = args.slice(1);
+if (!route) {
+	console.error(`Unknown lazyargon subcommand: ${sub}. Valid subcommands: ${Object.keys(ROUTES).join(", ")}`);
+	process.exit(2);
 }
 
-const res = spawnSync(process.execPath, [join(root, "scripts", script), ...forwarded], {
+const forwarded = isDefaultTui ? args : args.slice(1);
+const res = spawnSync(route.runtime, [join(root, "scripts", route.script), ...forwarded], {
 	stdio: "inherit",
 	cwd: process.cwd(),
 });

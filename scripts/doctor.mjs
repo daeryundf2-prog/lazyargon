@@ -30,18 +30,12 @@ function pythonVersion() {
 	add("python", "warn", "python3 없음 — tools/smoke_test.py 와 diagram/logo 스크립트 비활성");
 }
 
-function hooksWiring() {
-	const p = join(root, "hooks.json");
-	if (!existsSync(p)) {
-		add("hooks.json", "fail", "파일 없음");
-		return;
-	}
+function collectHookScripts(hooksJsonPath, pluginRoot, label) {
 	let data;
 	try {
-		data = JSON.parse(readFileSync(p, "utf8"));
+		data = JSON.parse(readFileSync(hooksJsonPath, "utf8"));
 	} catch (e) {
-		add("hooks.json", "fail", `JSON 파싱 실패: ${e.message}`);
-		return;
+		return { ok: false, error: `${label}/hooks.json JSON 파싱 실패: ${e.message}`, scripts: [], missing: [], data: null };
 	}
 	const scripts = new Set();
 	for (const entries of Object.values(data.hooks || {})) {
@@ -52,9 +46,48 @@ function hooksWiring() {
 			}
 		}
 	}
-	const missing = [...scripts].filter((s) => !existsSync(join(root, "scripts", s)));
-	add("hooks.scripts", missing.length ? "fail" : "ok", missing.length ? `없는 스크립트: ${missing.join(", ")}` : `${scripts.size}개 스크립트 존재`);
-	add("hooks.session_start", data.hooks?.SessionStart ? "ok" : "warn", data.hooks?.SessionStart ? "SessionStart 배선됨" : "SessionStart 훅 없음 — 런타임 상태 주입 불가");
+	const missing = [...scripts]
+		.filter((s) => !existsSync(join(pluginRoot, "scripts", s)))
+		.map((s) => `${label}/scripts/${s}`);
+	return { ok: true, scripts: [...scripts], missing, data };
+}
+
+function hooksWiring() {
+	const p = join(root, "hooks.json");
+	if (!existsSync(p)) {
+		add("hooks.json", "fail", "파일 없음");
+		return;
+	}
+	const mainRes = collectHookScripts(p, root, "lazyargon");
+	if (!mainRes.ok) {
+		add("hooks.json", "fail", mainRes.error);
+		return;
+	}
+	let totalScripts = mainRes.scripts.length;
+	const missing = [...mainRes.missing];
+
+	const wsRoot = process.env.LAZYARGON_TEST_WS_ROOT || join(root, "..", "lazyargon-workspace");
+	const wsHooksPath = join(wsRoot, "hooks.json");
+	if (existsSync(wsHooksPath)) {
+		const wsRes = collectHookScripts(wsHooksPath, wsRoot, "lazyargon-workspace");
+		if (!wsRes.ok) {
+			add("hooks.json", "fail", wsRes.error);
+			return;
+		}
+		totalScripts += wsRes.scripts.length;
+		missing.push(...wsRes.missing);
+	}
+
+	add(
+		"hooks.scripts",
+		missing.length ? "fail" : "ok",
+		missing.length ? `없는 스크립트: ${missing.join(", ")}` : `${totalScripts}개 스크립트 존재 (lazyargon + workspace)`,
+	);
+	add(
+		"hooks.session_start",
+		mainRes.data.hooks?.SessionStart ? "ok" : "warn",
+		mainRes.data.hooks?.SessionStart ? "SessionStart 배선됨" : "SessionStart 훅 없음 — 런타임 상태 주입 불가",
+	);
 }
 
 function skillsFrontmatter() {

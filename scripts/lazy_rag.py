@@ -16,7 +16,16 @@ from typing import Any
 BUDGETS: dict[str, dict[str, int]] = {"direct": {"local": 2, "web": 4}, "explore": {"local": 3, "web": 10}, "compare": {"local": 5, "web": 18}}
 PARTICLES_RE = re.compile(r"(?:은|는|이|가|을|를|의|에|에서|으로|로|와|과|도|만|에게|한테|이나|나|으로서|으로써)$")
 PREDICATES_RE = re.compile(r"(?:되었습니|되었습니다|되었다|됩니다|된다|되다|하였습니|하였습니다|하였다|합니다|한다|하다|했습니|했습니다|했다|입니다|이다)$")
+TOKEN_RE = re.compile(r"[가-힣a-zA-Z0-9一-龥]+(?:-[가-힣a-zA-Z0-9一-龥]+)*")
 _MORPH_FN, _MORPH_LOADED = None, False
+
+
+def _stem_word(wl: str) -> list[str]:
+    p = PREDICATES_RE.sub("", wl)
+    if p != wl:
+        return [p] if len(p) >= 2 else []
+    s = PARTICLES_RE.sub("", wl)
+    return [wl, s] if (s != wl and len(s) >= 2) else [wl]
 
 
 def extract_morphemes(text: str) -> list[str]:
@@ -34,18 +43,20 @@ def extract_morphemes(text: str) -> list[str]:
             except Exception:
                 _MORPH_FN = None
     tokens: list[str] = []
-    if _MORPH_FN is not None:
+    if _MORPH_FN is not None and text:
         try:
-            tokens.extend(t.lower() for t in _MORPH_FN(text) if t)
+            tokens.extend(t.lower() for t in _MORPH_FN(text) if t and len(t) >= 2 and not PREDICATES_RE.search(t))
         except Exception:
             pass
-    for w in re.findall(r"[가-힣a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*", text or ""):
+    for w in TOKEN_RE.findall(text or ""):
         wl = w.lower()
-        s = PARTICLES_RE.sub("", PREDICATES_RE.sub("", wl))
-        if len(s) >= 2:
-            tokens.append(s)
+        tokens.extend(_stem_word(wl))
+        if "-" in wl:
+            for part in wl.split("-"):
+                if part:
+                    tokens.extend(_stem_word(part))
     seen: set[str] = set()
-    return [x for x in tokens if not (x in seen or seen.add(x))]
+    return [x for x in tokens if x and not (x in seen or seen.add(x))]
 
 
 def extractive_compress(text: str, q_tokens: list[str]) -> str:
@@ -82,9 +93,10 @@ def cmd_index(db_path: Path, args: argparse.Namespace) -> dict[str, Any]:
     return {"ok": True, "indexed": len(rows)}
 
 
-def cmd_query(db_path: Path, query: str, max_bytes: int) -> dict[str, Any]:
+def cmd_query(db_path: Path, query: str, max_bytes: int, mode: str = "direct", top_k: int | None = None) -> dict[str, Any]:
+    limit = top_k if top_k and top_k > 0 else BUDGETS.get(mode, BUDGETS["direct"])["local"]
     if not db_path.is_file():
-        return {"ok": True, "query": query, "results": []}
+        return {"ok": True, "query": query, "mode": mode, "results": []}
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     conn = open_db(db_path)
     q_tokens = extract_morphemes(query)
@@ -101,31 +113,37 @@ def cmd_query(db_path: Path, query: str, max_bytes: int) -> dict[str, Any]:
             pass
     morph_scores: list[tuple[float, str]] = []
     for mid, r in active.items():
-        d_set = set((r.get("morph_tokens") or "").split()) | set(extract_morphemes(r.get("content") or ""))
+        d_set = set((r.get("morph_tokens") or "").split()) | set(extract_morphemes(f"{r.get('subject') or ''} {r.get('predicate') or ''} {r.get('object') or ''} {r.get('content') or ''}"))
         jacc = (len(q_set & d_set) / len(q_set | d_set)) if (q_set and d_set) else 0.0
         if jacc > 0:
             morph_scores.append((jacc, mid))
     morph_scores.sort(key=lambda x: (-x[0], x[1]))
     morph_ranks = {mid: rank for rank, (_, mid) in enumerate(morph_scores, 1)}
-    candidates = set(fts_ranks.keys()) | set(morph_ranks.keys())
     scored: list[dict[str, Any]] = []
-    for mid in candidates:
-        r_fts = fts_ranks.get(mid)
-        r_morph = morph_ranks.get(mid)
+    for mid in set(fts_ranks.keys()) | set(morph_ranks.keys()):
+        r_fts, r_morph = fts_ranks.get(mid), morph_ranks.get(mid)
         rrf = (1.0 / (60 + r_fts) if r_fts else 0.0) + (1.0 / (60 + r_morph) if r_morph else 0.0)
         rec = dict(active[mid])
-        rec["rrf_score"] = round(rrf, 6)
-        rec["r_fts"] = r_fts
-        rec["r_morph"] = r_morph
-        rec["snippet"] = extractive_compress(rec.get("content") or "", q_tokens)
+        rec.update({"rrf_score": round(rrf, 6), "r_fts": r_fts, "r_morph": r_morph, "snippet": extractive_compress(rec.get("content") or "", q_tokens)})
         scored.append(rec)
     scored.sort(key=lambda x: (-x["rrf_score"], -(x.get("hit_count") or 0)))
-    for rec in scored[:5]:
+    results, used_bytes = [], 0
+    for rec in scored[:limit]:
+        sb = len((rec.get("snippet") or "").encode("utf-8"))
+        if max_bytes and max_bytes > 0 and used_bytes + sb > max_bytes:
+            rem = max_bytes - used_bytes
+            if rem <= 0 and results:
+                break
+            if rem > 0:
+                rec["snippet"] = (rec.get("snippet") or "").encode("utf-8")[:rem].decode("utf-8", errors="ignore")
+                sb = len(rec["snippet"].encode("utf-8"))
+        used_bytes += sb
         conn.execute("UPDATE memories SET hit_count = COALESCE(hit_count, 0) + 1 WHERE id=?", (rec["id"],))
         rec["hit_count"] = (rec.get("hit_count") or 0) + 1
+        results.append(rec)
     conn.commit()
     conn.close()
-    return {"ok": True, "query": query, "q_tokens": q_tokens, "results": scored[:5]}
+    return {"ok": True, "query": query, "mode": mode, "q_tokens": q_tokens, "results": results}
 
 
 def build_recall_pack(db_path: Path, max_bytes: int) -> str:
@@ -143,12 +161,10 @@ def build_recall_pack(db_path: Path, max_bytes: int) -> str:
         return ""
     lines = ["### 로컬 메모리 리콜 팩 (.lazyargon/memory.db)"]
     for r in mems:
-        s = f"- [{r['kind']}] {r['subject']} {r['predicate']} {r['object']}".strip() if r["subject"] else f"- [{r['kind']}] {r['content']}"
-        lines.append(s)
+        lines.append(f"- [{r['kind']}] {r['subject']} {r['predicate']} {r['object']}".strip() if r["subject"] else f"- [{r['kind']}] {r['content']}")
     if edges:
         lines.append("- 엔티티: " + ", ".join(f"{e['src']}->{e['rel']}->{e['dst']}" for e in edges))
-    out: list[str] = []
-    used = 0
+    out, used = [], 0
     for ln in lines:
         b = len((ln + "\n").encode("utf-8"))
         if used + b > max_bytes:
@@ -164,6 +180,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--db", default=".lazyargon/memory.db")
     p.add_argument("--query", default="")
     p.add_argument("--mode", choices=["direct", "explore", "compare"], default="direct")
+    p.add_argument("--top", type=int, default=None)
     p.add_argument("--max-bytes", type=int, default=1200)
     for flag, dflt in (("--kind", "fact"), ("--subject", ""), ("--predicate", ""), ("--object", ""), ("--content", ""), ("--op", ""), ("--source-ref", "")):
         p.add_argument(flag, default=dflt)
@@ -182,7 +199,7 @@ def main(argv: list[str] | None = None) -> int:
         elif md:
             print(md)
         return 0
-    out = cmd_index(db_path, args) if args.cmd == "index" else cmd_query(db_path, args.query, args.max_bytes)
+    out = cmd_index(db_path, args) if args.cmd == "index" else cmd_query(db_path, args.query, args.max_bytes, args.mode, args.top)
     print(json.dumps(out, ensure_ascii=False))
     return 0
 

@@ -4,34 +4,23 @@
  * CLI:
  *   node scripts/lazy_tui.mjs [--once] [--json] [--cwd <dir>]
  */
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const PLUGIN_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const root = PLUGIN_ROOT;
 const wsPluginRoot = join(root, "..", "lazyargon-workspace");
 const RULES_BUDGET_LIMIT = 24000;
 const SPARK_CHARS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
 
-const C = {
-	reset: "\x1b[0m",
-	bold: "\x1b[1m",
-	dim: "\x1b[2m",
-	cyan: "\x1b[36m",
-	green: "\x1b[32m",
-	yellow: "\x1b[33m",
-	magenta: "\x1b[35m",
-	blue: "\x1b[34m",
-};
+const C = { reset: "\x1b[0m", bold: "\x1b[1m", dim: "\x1b[2m", cyan: "\x1b[36m", green: "\x1b[32m", yellow: "\x1b[33m", magenta: "\x1b[35m", blue: "\x1b[34m" };
 
 function countSkills(pluginDir) {
 	const dir = join(pluginDir, "skills");
 	if (!existsSync(dir)) return 0;
-	let n = 0;
-	for (const entry of readdirSync(dir)) {
-		if (existsSync(join(dir, entry, "SKILL.md"))) n += 1;
-	}
-	return n;
+	return readdirSync(dir).filter((entry) => existsSync(join(dir, entry, "SKILL.md"))).length;
 }
 
 function collectHostRulesBudget() {
@@ -42,14 +31,7 @@ function collectHostRulesBudget() {
 	const totalBytes = agentsBytes + geminiBytes;
 	const skillsCount = countSkills(root) + countSkills(wsPluginRoot);
 	const ratio = Math.min(1, totalBytes / RULES_BUDGET_LIMIT);
-	return {
-		agents_bytes: agentsBytes,
-		gemini_bytes: geminiBytes,
-		total_bytes: totalBytes,
-		budget_bytes: RULES_BUDGET_LIMIT,
-		usage_pct: Number((ratio * 100).toFixed(1)),
-		skills_count: skillsCount,
-	};
+	return { agents_bytes: agentsBytes, gemini_bytes: geminiBytes, total_bytes: totalBytes, budget_bytes: RULES_BUDGET_LIMIT, usage_pct: Number((ratio * 100).toFixed(1)), skills_count: skillsCount };
 }
 
 function collectDagState(cwd) {
@@ -89,21 +71,38 @@ function collectDagState(cwd) {
 function collectMemoryState(cwd) {
 	const dbPath = join(cwd, ".lazyargon", "memory.db");
 	const pinsPath = join(cwd, ".lazyargon", "pins.md");
-	const dbBytes = existsSync(dbPath) ? statSync(dbPath).size : 0;
+	const dbExists = existsSync(dbPath);
+	const dbBytes = dbExists ? statSync(dbPath).size : 0;
+	let active = 0, superseded = 0, deleted = 0, edges = 0, dreams = 0;
+	if (dbExists) {
+		const res = spawnSync("python3", [join(PLUGIN_ROOT, "scripts", "lazy_memory.py"), "stats", "--db", dbPath, "--json"], {
+			encoding: "utf8",
+			timeout: 5000,
+		});
+		if (res.status === 0 && res.stdout) {
+			try {
+				const parsed = JSON.parse(res.stdout.trim());
+				const c = parsed.counts || parsed;
+				active = Number(c.active ?? parsed.active ?? 0);
+				superseded = Number(c.superseded ?? parsed.superseded ?? 0);
+				deleted = Number(c.deleted ?? parsed.deleted ?? 0);
+				edges = Number(parsed.edges ?? c.edges ?? 0);
+				dreams = Number(parsed.dreams ?? c.dreams ?? c.merged ?? 0);
+			} catch {
+				// ignore malformed output
+			}
+		}
+	}
 	let pinsCount = 0;
 	if (existsSync(pinsPath)) {
 		const lines = readFileSync(pinsPath, "utf8").split(/\r?\n/);
 		pinsCount = lines.filter((l) => /^\s*-\s*\[(?:fact|pin|proc)?/i.test(l) || /^\s*-\s+\S/.test(l)).length;
 	}
-	return {
-		memory_db_exists: existsSync(dbPath),
-		memory_db_bytes: dbBytes,
-		pins_count: pinsCount,
-	};
+	return { memory_db_exists: dbExists, memory_db_bytes: dbBytes, active, superseded, deleted, edges, dreams, pins_count: pinsCount };
 }
 
 function makeSparkline(values) {
-	if (!values.length) return "▁▃▅▇█";
+	if (!values.length) return "─ (0 runs)";
 	const min = Math.min(...values);
 	const max = Math.max(...values);
 	const span = max - min || 1;
@@ -117,12 +116,20 @@ function collectAutoresearchRadar(cwd) {
 	const ledgerPath = join(cwd, ".lazyargon", "experiment-ledger.tsv");
 	const receiptsPath = join(root, "docs", "skill-source-receipts.json");
 	const scores = [];
+	let keepCount = 0, discardCount = 0, bestMetric = null;
 	if (existsSync(ledgerPath)) {
 		const lines = readFileSync(ledgerPath, "utf8").trim().split(/\r?\n/).slice(1);
 		for (const l of lines) {
+			if (!l.trim()) continue;
 			const cols = l.split("\t");
 			const val = Number.parseFloat(cols[2] ?? cols[1] ?? "");
-			if (!Number.isNaN(val)) scores.push(val);
+			const verdict = (cols[4] || "").trim().toUpperCase();
+			if (verdict === "KEEP") keepCount += 1;
+			else if (verdict === "DISCARD") discardCount += 1;
+			if (!Number.isNaN(val)) {
+				scores.push(val);
+				if (verdict === "KEEP" || bestMetric === null) bestMetric = val;
+			}
 		}
 	}
 	let trackedSources = 0;
@@ -136,6 +143,9 @@ function collectAutoresearchRadar(cwd) {
 	}
 	return {
 		experiments_count: scores.length,
+		keep_count: keepCount,
+		discard_count: discardCount,
+		best_metric: bestMetric,
 		sparkline: makeSparkline(scores),
 		tracked_sources: trackedSources,
 		status_label: `${trackedSources} sources tracked`,
@@ -179,10 +189,12 @@ export function renderTuiDashboard(state) {
 		`Badges: [not_run:${p2.counts.not_run}] -> [running:${p2.counts.running}] -> [reported_done:${p2.counts.reported_done}] -> [${C.green}verified:${p2.counts.verified}${C.reset}]`,
 	]);
 	const b3 = renderBox("[3] MEM0 + LETTA + AUTORAG", [
-		`memory.db: ${p3.memory_db_exists ? `online (${p3.memory_db_bytes}B)` : "standby (0B)"} | Pinned Facts (pins.md): ${p3.pins_count}개`,
+		`memory.db: ${p3.memory_db_exists ? `online (${p3.memory_db_bytes}B)` : "standby (0B)"} | Deleted: ${p3.deleted}`,
+		`Active: ${p3.active} | Superseded: ${p3.superseded} | Edges: ${p3.edges} | Dreams: ${p3.dreams} | Pins: ${p3.pins_count}개`,
 	]);
 	const b4 = renderBox("[4] AUTORESEARCH & UPSTREAM RADAR", [
-		`Autoresearch Sparkline: ${C.yellow}${p4.sparkline}${C.reset} (${p4.experiments_count} runs) | Upstream: ${C.magenta}${p4.status_label}${C.reset}`,
+		`Autoresearch Sparkline: ${C.yellow}${p4.sparkline}${C.reset} | Runs: ${p4.experiments_count} (KEEP: ${p4.keep_count} / DISCARD: ${p4.discard_count}) | Best: ${p4.best_metric ?? "N/A"}`,
+		`Upstream: ${C.magenta}${p4.status_label}${C.reset}`,
 	]);
 	return [b1, b2, b3, b4].join("\n");
 }

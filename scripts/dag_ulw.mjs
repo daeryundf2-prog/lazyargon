@@ -3,24 +3,46 @@
  * dag_ulw.mjs — Explicit DAG Orchestration & Disjoint Write-Scope Enforcer (v2.0 Wave 1-4)
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MAX_NODES = 48;
 const VALID_STATES = new Set(["not_run", "running", "reported_done", "verified", "failed", "ESCALATE_ARCHITECTURE"]);
 
-function normalizeScope(p) {
-	return String(p || "").replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
+export function normalizeScope(p) {
+	const raw = String(p || "").trim().replace(/\\/g, "/");
+	if (!raw) return "";
+	const norm = posix.normalize(raw).replace(/^\.\//, "").replace(/\/+$/, "");
+	return norm === "." ? "" : norm;
+}
+
+function scopeToRegex(norm) {
+	const body = norm.replace(/(\*\*\/|\*\*|\*|\?|[.+^${}()|[\]\\])/g, (m) => {
+		if (m === "**/") return "(?:.+/)?";
+		if (m === "**") return ".*";
+		if (m === "*") return "[^/]*";
+		if (m === "?") return "[^/]";
+		return `\\${m}`;
+	});
+	return new RegExp(`^${body}(?:/.*)?$`);
+}
+
+function sampleFromGlob(norm) {
+	return norm.replace(/\*\*/g, "_d_/_s_").replace(/\*/g, "_f_").replace(/\?/g, "x");
 }
 
 export function scopesOverlap(scopeA = [], scopeB = []) {
 	for (const rawA of scopeA) {
 		const a = normalizeScope(rawA);
 		if (!a) continue;
+		const rxA = scopeToRegex(a);
+		const sampA = sampleFromGlob(a);
 		for (const rawB of scopeB) {
 			const b = normalizeScope(rawB);
 			if (!b) continue;
-			if (a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`)) return true;
+			const rxB = scopeToRegex(b);
+			const sampB = sampleFromGlob(b);
+			if (a === b || rxA.test(b) || rxB.test(a) || rxA.test(sampB) || rxB.test(sampA)) return true;
 		}
 	}
 	return false;
@@ -40,10 +62,7 @@ export function detectCycleKahn(nodes) {
 			inDeg.set(n.id, (inDeg.get(n.id) || 0) + 1);
 		}
 	}
-	const queue = [];
-	for (const [id, deg] of inDeg.entries()) {
-		if (deg === 0) queue.push(id);
-	}
+	const queue = [...inDeg.entries()].filter(([, deg]) => deg === 0).map(([id]) => id);
 	let visited = 0;
 	while (queue.length > 0) {
 		const cur = queue.shift();
@@ -74,7 +93,7 @@ export function validateAndNormalizeDag(spec) {
 			role: String(n.role || n.id),
 			model: String(n.model || "inherit"),
 			deps: Array.isArray(n.deps) ? n.deps.map(String) : [],
-			write_scope: Array.isArray(n.write_scope) ? n.write_scope.map(String) : [],
+			write_scope: Array.isArray(n.write_scope) ? n.write_scope.map((s) => normalizeScope(s)).filter(Boolean) : [],
 			verify_cmd: String(n.verify_cmd || ""),
 			state: st,
 			repairs: Number.isInteger(n.repairs) ? n.repairs : 0,
@@ -83,9 +102,7 @@ export function validateAndNormalizeDag(spec) {
 		});
 	}
 	try {
-		if (detectCycleKahn(normalizedNodes)) {
-			return { ok: false, code: 2, error: "Cycle detected in DAG (Kahn topological check failed)" };
-		}
+		if (detectCycleKahn(normalizedNodes)) return { ok: false, code: 2, error: "Cycle detected in DAG (Kahn topological check failed)" };
 	} catch (err) {
 		return { ok: false, code: 2, error: err.message };
 	}
@@ -94,10 +111,7 @@ export function validateAndNormalizeDag(spec) {
 		dag: {
 			schema: "lazyargon_dag/v1",
 			goal: String(spec.goal || "ULW Task"),
-			budget: {
-				lanes: Number(spec.budget?.lanes) || 4,
-				waves: Number(spec.budget?.waves) || 2,
-			},
+			budget: { lanes: Number(spec.budget?.lanes) || 4, waves: Number(spec.budget?.waves) || 2 },
 			nodes: normalizedNodes,
 		},
 	};
@@ -105,32 +119,43 @@ export function validateAndNormalizeDag(spec) {
 
 export function computeReadyBatch(dag, strictDisjoint = false) {
 	const stateMap = new Map(dag.nodes.map((n) => [n.id, n.state]));
+	const runningNodes = dag.nodes.filter((n) => n.state === "running");
+	const availableLanes = Math.max(0, (dag.budget?.lanes || 4) - runningNodes.length);
 	const candidates = dag.nodes.filter(
 		(n) => n.state === "not_run" && (n.deps || []).every((d) => stateMap.get(d) === "verified"),
 	);
 	const selected = [];
 	const deferred = [];
+	const deferred_conflicts = [];
 	const conflicts = [];
 	for (const cand of candidates) {
-		const hit = selected.find((sel) => scopesOverlap(cand.write_scope, sel.write_scope));
+		const hit = [...runningNodes, ...selected].find((sel) => scopesOverlap(cand.write_scope, sel.write_scope));
 		if (hit) {
 			conflicts.push({ node: cand.id, conflicts_with: hit.id, write_scope: cand.write_scope });
+			deferred_conflicts.push(cand.id);
 			deferred.push(cand.id);
-		} else if (selected.length < (dag.budget?.lanes || 4)) {
+		} else if (selected.length < availableLanes) {
 			selected.push(cand);
 		} else {
 			deferred.push(cand.id);
 		}
 	}
 	if (strictDisjoint && conflicts.length > 0) {
-		return { ok: false, code: 2, error: "Disjoint write_scope violation among ready nodes", conflicts };
+		return { ok: false, code: 2, error: "Disjoint write_scope violation among ready nodes", conflicts, deferred_conflicts };
 	}
-	return { ok: true, ready: selected.map((n) => n.id), deferred, conflicts };
+	return { ok: true, ready: selected.map((n) => n.id), deferred, deferred_conflicts, conflicts, available_lanes: availableLanes };
 }
 
 export function applySettle(dag, nodeId, targetState, evidence) {
 	const node = dag.nodes.find((n) => n.id === nodeId);
 	if (!node) return { ok: false, code: 2, error: `Node '${nodeId}' not found` };
+	if (targetState === "verified" || targetState === "reported_done") {
+		const stateMap = new Map(dag.nodes.map((n) => [n.id, n.state]));
+		const unverified = (node.deps || []).filter((d) => stateMap.get(d) !== "verified");
+		if (unverified.length > 0) {
+			return { ok: false, code: 2, error: "UNVERIFIED_DEPENDENCY", unverified_deps: unverified };
+		}
+	}
 	const cleanEv = typeof evidence === "string" ? evidence.trim() : "";
 	if (targetState === "verified" && !cleanEv) {
 		node.state = "reported_done";
@@ -206,7 +231,7 @@ function main() {
 	};
 	if (handlers[cmd]) {
 		const res = handlers[cmd]();
-		if (cmd === "settle" || cmd === "repair") saveDag(file, dag);
+		if (res.ok && (cmd === "settle" || cmd === "repair")) saveDag(file, dag);
 		console.log(JSON.stringify(res, null, 2));
 		if (!res.ok) process.exit(res.code || 2);
 	} else {

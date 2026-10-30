@@ -14,7 +14,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCOPE_MAX_LINES = 12;
 const PINS_MAX_LINES = 20;
 
-function readStdin(limitMs) {
+function readStdin(limitMs = 200) {
 	return new Promise((resolve) => {
 		if (stdin.isTTY) {
 			resolve("");
@@ -43,6 +43,14 @@ function parsePayload(raw) {
 	} catch {
 		return {};
 	}
+}
+
+export function resolveWorkspaceCwd(payload = {}) {
+	return (
+		(Array.isArray(payload?.workspacePaths) && typeof payload.workspacePaths[0] === "string" && payload.workspacePaths[0].trim()) ||
+		(typeof payload?.cwd === "string" && payload.cwd.trim()) ||
+		process.cwd()
+	);
 }
 
 export function sessionModel(payload, env = process.env) {
@@ -121,12 +129,13 @@ function pluginVersion() {
 }
 
 export function runtimeContext(payload = {}) {
-	const cwd = typeof payload?.cwd === "string" && payload.cwd ? payload.cwd : process.cwd();
+	const cwd = resolveWorkspaceCwd(payload);
 	const model = sessionModel(payload);
 	const lines = [
 		"## LazyArgon 런타임",
 		"",
 		`플러그인: lazyargon ${pluginVersion()} / 가드 팩 ${guardPackVersion()}`,
+		`워크스페이스: ${cwd}`,
 		`세션 모델: ${model}${model === "unknown" ? " (호스트 미보고 — Argon이라고 가정하지 말 것; 사고 수준은 세션 설정에서만 바뀜)" : ""}`,
 		"기본 예산: 4 레인 / 2 웨이브 (사용자 지정 전까지)",
 		"",
@@ -151,7 +160,7 @@ export function runtimeContext(payload = {}) {
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
-	const payload = parsePayload(await readStdin(40));
+	const payload = parsePayload(await readStdin(200));
 	const context = runtimeContext(payload);
 	const hookEventName = typeof payload.hook_event_name === "string" && payload.hook_event_name ? payload.hook_event_name : "SessionStart";
 	process.stdout.write(

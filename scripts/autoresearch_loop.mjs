@@ -4,9 +4,9 @@
  * Inspired by karpathy/autoresearch + OMH Measured Loop Discipline
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const TSV_HEADER = "iter\tcommit\tmetric\tdelta\tverdict\thypothesis";
@@ -32,14 +32,33 @@ function resolveLockPath(ledgerPath) {
 	return join(dirname(resolve(ledgerPath)), "experiment-lock.json");
 }
 
-export function initExperiment({ ledgerPath = ".lazyargon/experiment-ledger.tsv", evalScript, direction = "min" }) {
+function snapshotDirFiles(dir, extraFiles = [], prev = {}) {
+	const snaps = { ...prev };
+	if (existsSync(dir)) {
+		for (const f of readdirSync(dir)) {
+			if (f.startsWith("experiment-") || f === ".lazyargon" || f === ".git") continue;
+			const full = join(dir, f);
+			if (existsSync(full) && statSync(full).isFile() && statSync(full).size < 65536) {
+				snaps[full] = readFileSync(full, "utf8");
+			}
+		}
+	}
+	for (const ef of extraFiles) {
+		const full = existsSync(ef) ? resolve(ef) : resolve(dir, ef);
+		if (existsSync(full) && statSync(full).isFile()) snaps[full] = readFileSync(full, "utf8");
+	}
+	return snaps;
+}
+
+export function initExperiment({ ledgerPath = ".lazyargon/experiment-ledger.tsv", evalScript, direction = "min", rollbackFiles = [] }) {
 	if (!evalScript || !existsSync(evalScript)) {
 		return { ok: false, code: 2, error: `Evaluation script not found: ${evalScript}` };
 	}
 	const absEval = resolve(evalScript);
 	const evalSha256 = sha256File(absEval);
+	const baseDir = dirname(resolve(ledgerPath));
 	const lockPath = resolveLockPath(ledgerPath);
-	mkdirSync(dirname(resolve(ledgerPath)), { recursive: true });
+	mkdirSync(baseDir, { recursive: true });
 	const lockData = {
 		schema: "lazyargon_experiment_lock/v1",
 		eval_script: absEval,
@@ -48,6 +67,7 @@ export function initExperiment({ ledgerPath = ".lazyargon/experiment-ledger.tsv"
 		harness_mutable: false,
 		best_metric: null,
 		stall_count: 0,
+		snapshots: snapshotDirFiles(baseDir, rollbackFiles),
 	};
 	writeFileSync(lockPath, `${JSON.stringify(lockData, null, 2)}\n`, "utf8");
 	writeFileSync(resolve(ledgerPath), `${TSV_HEADER}\n`, "utf8");
@@ -58,9 +78,13 @@ export function stepExperiment({
 	ledgerPath = ".lazyargon/experiment-ledger.tsv",
 	evalScript,
 	metric,
+	metricCmd = "",
 	direction,
 	hypothesis = "experiment step",
+	rollbackFiles = [],
+	rollbackCmd = "",
 }) {
+	const baseDir = dirname(resolve(ledgerPath));
 	const lockPath = resolveLockPath(ledgerPath);
 	if (!existsSync(lockPath)) {
 		return { ok: false, code: 2, status: "LOCK_MISSING", error: `Experiment lock not found at ${lockPath}` };
@@ -80,21 +104,54 @@ export function stepExperiment({
 		};
 	}
 
-	const numMetric = Number(metric);
+	let rawMetric = metric;
+	let log_path = null;
+	if ((rawMetric === undefined || rawMetric === "" || rawMetric === null) && metricCmd) {
+		const run = spawnSync(metricCmd, { shell: true, cwd: baseDir, encoding: "utf8" });
+		const out = `${run.stdout || ""}${run.stderr || ""}`;
+		log_path = join(baseDir, "experiment-last.log");
+		writeFileSync(log_path, out, "utf8");
+		if (basename(baseDir) !== ".lazyargon") {
+			const dotLog = join(baseDir, ".lazyargon", "experiment-last.log");
+			mkdirSync(dirname(dotLog), { recursive: true });
+			writeFileSync(dotLog, out, "utf8");
+		}
+		const nums = [...String(run.stdout || out).matchAll(/-?\d+(?:\.\d+)?/g)];
+		if (nums.length > 0) rawMetric = nums[nums.length - 1][0];
+	}
+
+	const numMetric = Number(rawMetric);
 	if (!Number.isFinite(numMetric)) {
-		return { ok: false, code: 2, error: `Invalid numeric metric: ${metric}` };
+		return { ok: false, code: 2, error: `Invalid numeric metric: ${rawMetric}` };
 	}
 	const dir = direction || lock.direction || "min";
 	const prevBest = lock.best_metric;
 	const improved = prevBest === null || (dir === "min" ? numMetric < prevBest : numMetric > prevBest);
 	const delta = prevBest === null ? 0 : Number((numMetric - prevBest).toFixed(6));
 	const verdict = improved ? "KEEP" : "DISCARD";
+	let rolled_back = false;
 
 	if (improved) {
 		lock.best_metric = numMetric;
 		lock.stall_count = 0;
+		lock.snapshots = snapshotDirFiles(baseDir, rollbackFiles, lock.snapshots);
 	} else {
 		lock.stall_count = (lock.stall_count || 0) + 1;
+		if (rollbackCmd) {
+			spawnSync(rollbackCmd, { shell: true, cwd: baseDir, encoding: "utf8" });
+			rolled_back = true;
+		}
+		if (rollbackFiles.length > 0) {
+			for (const rf of rollbackFiles) {
+				const absRf = existsSync(rf) ? resolve(rf) : resolve(baseDir, rf);
+				if (lock.snapshots && Object.hasOwn(lock.snapshots, absRf)) {
+					writeFileSync(absRf, lock.snapshots[absRf], "utf8");
+				} else {
+					spawnSync("git", ["checkout", "--", absRf], { cwd: dirname(absRf), encoding: "utf8" });
+				}
+			}
+			rolled_back = true;
+		}
 	}
 	writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, "utf8");
 
@@ -119,6 +176,8 @@ export function stepExperiment({
 		best_metric: lock.best_metric,
 		delta,
 		verdict,
+		rolled_back,
+		log_path,
 		stall_count: lock.stall_count,
 		idea_ladder: ladderEntry,
 		summary_line,
@@ -149,12 +208,16 @@ function main() {
 		console.log(JSON.stringify(res, null, 2));
 		if (!res.ok) process.exit(res.code || 2);
 	} else if (cmd === "step") {
+		const rollbackFiles = getOpt("--rollback-files", "").split(",").map((s) => s.trim()).filter(Boolean);
 		const res = stepExperiment({
 			ledgerPath,
 			evalScript: getOpt("--eval-script"),
 			metric: getOpt("--metric"),
+			metricCmd: getOpt("--metric-cmd"),
 			direction: getOpt("--direction"),
 			hypothesis: getOpt("--hypothesis", "experiment step"),
+			rollbackFiles,
+			rollbackCmd: getOpt("--rollback-cmd"),
 		});
 		console.log(JSON.stringify(res, null, 2));
 		if (!res.ok) process.exit(res.code || 2);
