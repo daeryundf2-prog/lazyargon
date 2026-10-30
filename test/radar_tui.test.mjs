@@ -39,7 +39,7 @@ test("upstream_radar.mjs audit negative path detects missing target and fabricat
 						pinned_sha: null,
 						status: "unverified",
 						keyword: "missing",
-						mapped_targets: ["scripts/does_not_exist_anywhere_999.mjs"],
+						mapped_targets: ["scripts/does_not_exist_anywhere_999.mjs", "/etc/hosts"],
 					},
 					{
 						repo: "example/fabricated-pin",
@@ -58,6 +58,7 @@ test("upstream_radar.mjs audit negative path detects missing target and fabricat
 		assert.equal(data.ok, false);
 		assert.ok(data.missing_targets.includes("scripts/does_not_exist_anywhere_999.mjs"));
 		assert.deepEqual(data.invalid_sources, ["example/fabricated-pin"]);
+		assert.ok(data.missing_targets.includes("example/missing-repo:<outside_plugins_dir:/etc/hosts>"));
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}

@@ -7,7 +7,7 @@
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -52,7 +52,13 @@ export function pinIsHonest(s) {
 	return false;
 }
 
-export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS) {
+// Offline audit checks pin shape only; remote audit also asks GitHub whether each verified pin exists.
+function pinExistsOnGitHub(s) {
+	const res = spawnSync("gh", ["api", `repos/${s.repo}/commits/${s.pinned_sha}`, "--jq", ".sha"], { encoding: "utf8", timeout: 15000 });
+	return !res.error && res.status === 0 && (res.stdout || "").trim() === s.pinned_sha;
+}
+
+export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS, options = {}) {
 	const isDefault = resolve(receiptsPath) === resolve(DEFAULT_RECEIPTS);
 	let data;
 	try {
@@ -96,6 +102,10 @@ export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS) {
 			invalidSources.push(s?.repo || "unknown");
 			continue;
 		}
+		if (options.remote && s.status === "verified" && !pinExistsOnGitHub(s)) {
+			invalidSources.push(`${s.repo}:pin_not_on_github`);
+			continue;
+		}
 		for (const target of s.mapped_targets) {
 			if (typeof target !== "string" || !target.trim()) {
 				missingSet.add(`${s.repo}:<empty_target>`);
@@ -103,6 +113,11 @@ export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS) {
 			}
 			const candidateA = resolve(baseDir, target);
 			const candidateB = resolve(root, target);
+			const pluginsDir = dirname(root);
+			if (isAbsolute(target) || !candidateB.startsWith(pluginsDir + sep)) {
+				missingSet.add(`${s.repo}:<outside_plugins_dir:${target}>`);
+				continue;
+			}
 			const onDisk = existsSync(candidateA) || existsSync(candidateB);
 			if (onDisk) verifiedSet.add(target);
 			else missingSet.add(target);
@@ -189,7 +204,7 @@ function main() {
 		else for (const r of res.sources) console.log(`[${r.status.padEnd(16)}] ${r.repo.padEnd(28)} pinned=${r.pinned_sha ?? "unverified"}${r.remote_sha ? ` remote=${r.remote_sha}` : ""}`);
 		process.exit(res.unreachable_count ? 1 : 0);
 	}
-	const res = auditReceipts(receipts);
+	const res = auditReceipts(receipts, { remote });
 	if (json) console.log(JSON.stringify(res, null, 2));
 	else console.log(`[UPSTREAM RADAR] ok=${res.ok} sources=${res.source_count} verified=${res.verified_targets} missing=${res.missing_targets.length}`);
 	process.exit(res.ok ? 0 : 1);

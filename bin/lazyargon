@@ -22,7 +22,7 @@ const ROUTES = {
 };
 
 const [sub = "doctor", ...forwarded] = process.argv.slice(2);
-const script = ROUTES[sub];
+const script = Object.hasOwn(ROUTES, sub) ? ROUTES[sub] : undefined;
 
 if (!script) {
 	console.error(`Unknown lazyargon subcommand: ${sub}. Valid subcommands: ${Object.keys(ROUTES).join(", ")}`);

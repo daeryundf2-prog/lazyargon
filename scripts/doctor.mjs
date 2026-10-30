@@ -434,7 +434,13 @@ function skillsSourceReceipts() {
 		add("skills.source_receipts", "warn", "upstream_radar.mjs 또는 docs/skill-source-receipts.json 없음");
 		return;
 	}
-	const res = spawnSync("node", [radarScript, "audit", "--json"], { cwd: root, encoding: "utf8", timeout: 3000 });
+	// --online also confirms every verified pin exists on GitHub (network; slower).
+	const online = process.argv.includes("--online");
+	const res = spawnSync("node", [radarScript, "audit", "--json", ...(online ? ["--remote"] : [])], {
+		cwd: root,
+		encoding: "utf8",
+		timeout: online ? 180000 : 3000,
+	});
 	if (res.error || !res.stdout) {
 		add("skills.source_receipts", "fail", `업스트림 영수증 감사 실패: ${(res.error?.message || res.stderr || "").trim()}`);
 		return;
