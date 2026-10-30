@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync,
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const IGNORE_DIRS = new Set(["node_modules", ".git", ".lazyargon", "__pycache__", "dist", "build"]);
+const IGNORE_DIRS = new Set(["node_modules", ".git", ".lazyargon", "__pycache__", "dist", "build", ".venv", "venv", "env"]);
 const CODE_EXTS = new Set([".mjs", ".js", ".cjs", ".ts", ".tsx", ".py", ".json"]);
 const VALID_CMDS = new Set(["check", "snapshot", "verify", "rename-preview"]);
 
@@ -17,9 +17,9 @@ function checkTsSyntax(src) {
 	if (/(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*:\s*=|=\s*;|^\s*(?:import|export)\s*;|^\s*import\s+from\b|^\s*export\s+(?:const|let|var|function|class|type|interface)\s*;/m.test(src)) {
 		return "Malformed TypeScript declaration or import/export";
 	}
-	const stripped = src
-		.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")
-		.replace(/'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/g, '""');
+	const stripped = src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/gm, (m) =>
+		m.startsWith("//") || m.startsWith("/*") ? " " : '""',
+	);
 	const stack = [];
 	const pairs = { "}": "{", ")": "(", "]": "[" };
 	for (const ch of stripped) {
