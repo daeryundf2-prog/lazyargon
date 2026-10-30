@@ -29,7 +29,7 @@ def _stem_word(wl: str) -> list[str]:
 def extract_morphemes(text: str) -> list[str]:
     global _MORPH_FN, _MORPH_LOADED
     if not _MORPH_LOADED:
-        _MORPH_LOADED, cand = True, Path(__file__).resolve().parents[2] / "lazyargon-workspace" / "scripts" / "korean_morph_grounding.py"
+        _MORPH_LOADED, cand = True, Path(__file__).resolve().parents[3] / "lazyargon-workspace" / "scripts" / "korean_morph_grounding.py"
         if cand.is_file():
             with contextlib.suppress(Exception):
                 spec = importlib.util.spec_from_file_location("korean_morph_grounding", cand)

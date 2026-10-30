@@ -8,8 +8,8 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
-const memPy = join(root, "scripts", "lazy_memory.py");
-const ragPy = join(root, "scripts", "lazy_rag.py");
+const memPy = join(root, "experimental", "scripts", "lazy_memory.py");
+const ragPy = join(root, "experimental", "scripts", "lazy_rag.py");
 const sessionStartMjs = join(root, "scripts", "session_start.mjs");
 
 function runPy(script, args) {
@@ -136,8 +136,9 @@ test("AutoRAG Korean morpheme RRF search, extractive compression, budgets, and s
 		assert.ok(elapsed < 350, `session_start took ${elapsed.toFixed(1)}ms (>= 350ms)`);
 		const parsed = JSON.parse(sRes.stdout.trim());
 		assert.ok(Array.isArray(parsed.injectSteps));
-		assert.match(parsed.additionalContext, /로컬 메모리 리콜 팩/);
-		assert.match(parsed.additionalContext, /갑호증 제출처 서울중앙지방법원/);
+		// recall pack is quarantined (experimental/): session_start must not inject it even when memory.db exists
+		assert.doesNotMatch(parsed.additionalContext, /로컬 메모리 리콜 팩/);
+		assert.doesNotMatch(parsed.additionalContext, /갑호증 제출처 서울중앙지방법원/);
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}

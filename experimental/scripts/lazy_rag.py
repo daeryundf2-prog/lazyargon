@@ -32,7 +32,7 @@ def extract_morphemes(text: str) -> list[str]:
     global _MORPH_FN, _MORPH_LOADED
     if not _MORPH_LOADED:
         _MORPH_LOADED = True
-        cand = Path(__file__).resolve().parents[2] / "lazyargon-workspace" / "scripts" / "korean_morph_grounding.py"
+        cand = Path(__file__).resolve().parents[3] / "lazyargon-workspace" / "scripts" / "korean_morph_grounding.py"
         if cand.is_file():
             try:
                 spec = importlib.util.spec_from_file_location("korean_morph_grounding", cand)

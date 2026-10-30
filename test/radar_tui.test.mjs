@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const radarScript = join(root, "scripts", "upstream_radar.mjs");
-const tuiScript = join(root, "scripts", "lazy_tui.mjs");
+const tuiScript = join(root, "experimental", "scripts", "lazy_tui.mjs");
 const binEntry = join(root, "bin", "lazyargon");
 
 test("upstream_radar.mjs audit --json verifies all 32 sources and closure targets", () => {
@@ -82,7 +82,7 @@ test("lazy_tui.mjs --once and --json render 4 panels with real memory.db stats, 
 		const stateDir = join(tmp, ".lazyargon");
 		mkdirSync(stateDir, { recursive: true });
 		const dbPath = join(stateDir, "memory.db");
-		const memScript = join(root, "scripts", "lazy_memory.py");
+		const memScript = join(root, "experimental", "scripts", "lazy_memory.py");
 		spawnSync("python3", [memScript, "resolve", "--db", dbPath, "--op", "ADD", "--subject", "lazyargon", "--predicate", "uses", "--object", "argon4"], { encoding: "utf8" });
 		spawnSync("python3", [memScript, "resolve", "--db", dbPath, "--op", "UPDATE", "--subject", "lazyargon", "--predicate", "uses", "--object", "argon4-high"], { encoding: "utf8" });
 
@@ -107,7 +107,7 @@ test("lazy_tui.mjs --once and --json render 4 panels with real memory.db stats, 
 		assert.match(onceRes.stdout, /Runs: 2 \(KEEP: 1 \/ DISCARD: 1\)/);
 		assert.match(onceRes.stdout, /32 sources tracked/);
 
-		const jsonRes = spawnSync(process.execPath, [binEntry, "tui", "--json", "--cwd", tmp], { encoding: "utf8" });
+		const jsonRes = spawnSync(process.execPath, [tuiScript, "--json", "--cwd", tmp], { encoding: "utf8" });
 		assert.equal(jsonRes.status, 0);
 		const state = JSON.parse(jsonRes.stdout);
 		assert.equal(state.llm_calls, 0);
@@ -127,28 +127,18 @@ test("lazy_tui.mjs --once and --json render 4 panels with real memory.db stats, 
 	}
 });
 
-test("bin/lazyargon routes all 11 subcommands and exits with code 2 on unknown subcommand", () => {
+test("bin/lazyargon routes active subcommands only and exits with code 2 on unknown or quarantined subcommand", () => {
 	const tmp = mkdtempSync(join(tmpdir(), "bin-route-"));
 	try {
 		const validFile = join(tmp, "ok.mjs");
 		writeFileSync(validFile, "export const ok = 1;\n", "utf8");
-		const dbPath = join(tmp, "mem.db");
-		const dagFile = join(tmp, "dag.json");
-		writeFileSync(dagFile, JSON.stringify({ schema: "lazyargon_dag_ulw/v1", goal: "test", budget: { lanes: 1, waves: 1 }, nodes: [] }), "utf8");
 
 		const checks = [
-			["tui", "--json", "--cwd", tmp],
 			["doctor", "--json"],
 			["radar", "audit", "--json"],
 			["upstream", "list", "--json"],
-			["dag", "status", "--file", dagFile],
 			["codegraph", "build", "--root", tmp],
-			["memory", "stats", "--db", dbPath, "--json"],
-			["rag", "budget", "--mode", "direct", "--json"],
-			["slop", "--mode", "prose", "--files", validFile, "--json"],
 			["lsp", "check", "--files", validFile, "--root", tmp, "--json"],
-			["calibrate", "--model", "gemini-4-argon", "--json"],
-			["autoresearch", "status", "--ledger", join(tmp, "ledger.tsv")],
 		];
 
 		for (const args of checks) {
@@ -161,8 +151,10 @@ test("bin/lazyargon routes all 11 subcommands and exits with code 2 on unknown s
 			}
 		}
 
-		const bad = spawnSync(process.execPath, [binEntry, "unknown-subcmd-xyz"], { encoding: "utf8" });
-		assert.equal(bad.status, 2);
+		for (const sub of ["unknown-subcmd-xyz", "tui", "dag", "memory", "rag", "slop", "calibrate", "autoresearch"]) {
+			const bad = spawnSync(process.execPath, [binEntry, sub], { encoding: "utf8" });
+			assert.equal(bad.status, 2, `${sub} should be rejected`);
+		}
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}

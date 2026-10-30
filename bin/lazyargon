@@ -1,55 +1,37 @@
 #!/usr/bin/env node
 /**
- * bin/lazyargon — Unified LazyArgon v2.0 CLI Entrypoint
- * Supports:
- *   lazyargon [tui] [--once] [--json] [--cwd <dir>]
- *   lazyargon radar <audit|list|poll> [--json]
+ * bin/lazyargon — LazyArgon CLI entrypoint (active tools only).
  *   lazyargon doctor [--json] [--strict]
+ *   lazyargon radar <audit|list|poll> [--json] [--remote] [--write]
+ *   lazyargon codegraph <build|handoff|tests> ...
+ *   lazyargon lsp <check|snapshot|verify|rename-preview> ...
+ * Quarantined engines live in experimental/scripts/ and are run by path.
  */
 import { spawnSync } from "node:child_process";
-import { chmodSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const binPath = fileURLToPath(import.meta.url);
-const root = join(dirname(binPath), "..");
-
-try {
-	chmodSync(binPath, 0o755);
-} catch {
-	// ignore read-only fs
-}
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const ROUTES = {
-	tui: { runtime: process.execPath, script: "lazy_tui.mjs" },
-	doctor: { runtime: process.execPath, script: "doctor.mjs" },
-	radar: { runtime: process.execPath, script: "upstream_radar.mjs" },
-	upstream: { runtime: process.execPath, script: "upstream_radar.mjs" },
-	dag: { runtime: process.execPath, script: "dag_ulw.mjs" },
-	codegraph: { runtime: process.execPath, script: "codegraph.mjs" },
-	memory: { runtime: "python3", script: "lazy_memory.py" },
-	rag: { runtime: "python3", script: "lazy_rag.py" },
-	slop: { runtime: process.execPath, script: "lazy_slop_cleaner.mjs" },
-	lsp: { runtime: process.execPath, script: "lsp_diagnostics.mjs" },
-	calibrate: { runtime: process.execPath, script: "model_calibrate.mjs" },
-	autoresearch: { runtime: process.execPath, script: "autoresearch_loop.mjs" },
+	doctor: "doctor.mjs",
+	radar: "upstream_radar.mjs",
+	upstream: "upstream_radar.mjs",
+	codegraph: "codegraph.mjs",
+	lsp: "lsp_diagnostics.mjs",
 };
 
-const args = process.argv.slice(2);
-const first = args[0] || "";
-const isDefaultTui = !first || first.startsWith("-");
-const sub = isDefaultTui ? "tui" : first;
-const route = ROUTES[sub];
+const [sub = "doctor", ...forwarded] = process.argv.slice(2);
+const script = ROUTES[sub];
 
-if (!route) {
+if (!script) {
 	console.error(`Unknown lazyargon subcommand: ${sub}. Valid subcommands: ${Object.keys(ROUTES).join(", ")}`);
 	process.exit(2);
 }
 
-const forwarded = isDefaultTui ? args : args.slice(1);
-const res = spawnSync(route.runtime, [join(root, "scripts", route.script), ...forwarded], {
+const res = spawnSync(process.execPath, [join(root, "scripts", script), ...forwarded], {
 	stdio: "inherit",
 	cwd: process.cwd(),
 });
 
-process.exit(res.status ?? 0);
+process.exit(res.status ?? 1);

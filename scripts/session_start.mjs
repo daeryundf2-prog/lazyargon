@@ -3,12 +3,10 @@
 // rules/AGENTS.md 는 호스트가 rules 로더로 이미 주입하므로 여기서는 **런타임 상태만** 짧게 붙인다:
 // 호스트가 보고한 세션 모델(없으면 unknown — 추정 금지), 진행 중인 /ulw 범위 잠금, 가드 팩 버전.
 // 정적 규칙 뒤에 동적 상태가 오도록 하는 것이 목적이다(Argon 암시적 캐시의 접두 안정성).
-import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { stdin } from "node:process";
 import { fileURLToPath } from "node:url";
-import { calibrateModel } from "./model_calibrate.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCOPE_MAX_LINES = 12;
@@ -85,31 +83,6 @@ function headOf(file, maxLines) {
 const scopeLock = (cwd = process.cwd()) => headOf(join(cwd, ".lazyargon", "ulw-scope.md"), SCOPE_MAX_LINES);
 const pins = (cwd = process.cwd()) => headOf(join(cwd, ".lazyargon", "pins.md"), PINS_MAX_LINES);
 
-function recallPack(cwd = process.cwd()) {
-	try {
-		const dbPath = join(cwd, ".lazyargon", "memory.db");
-		if (!existsSync(dbPath)) return "";
-		const ragScript = join(root, "scripts", "lazy_rag.py");
-		if (!existsSync(ragScript)) return "";
-		const res = spawnSync("python3", [ragScript, "recall-pack", "--db", dbPath, "--max-bytes", "900"], {
-			encoding: "utf8",
-			timeout: 110,
-		});
-		return res.status === 0 && typeof res.stdout === "string" ? res.stdout.trim() : "";
-	} catch {
-		return "";
-	}
-}
-
-function modelCalibrationLine(model) {
-	try {
-		const res = calibrateModel({ model, compact: true });
-		return res?.guidance ? res.guidance.trim() : "";
-	} catch {
-		return "";
-	}
-}
-
 function guardPackVersion() {
 	try {
 		const src = readFileSync(join(root, "scripts", "markdown_structure_guard.mjs"), "utf8");
@@ -147,14 +120,6 @@ export function runtimeContext(payload = {}) {
 		"",
 		pins(cwd),
 	];
-	const pack = recallPack(cwd);
-	if (pack) {
-		lines.push("", pack);
-	}
-	const cal = modelCalibrationLine(model);
-	if (cal) {
-		lines.push("", `모델 역보정: ${cal}`);
-	}
 	return lines.join("\n");
 }
 

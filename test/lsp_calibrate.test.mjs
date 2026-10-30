@@ -7,13 +7,13 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { runDiagnosticsCheck, runRenamePreview, runSnapshot, runVerify } from "../scripts/lsp_diagnostics.mjs";
-import { MODEL_PRESETS, SHARED_PREAMBLE_MAX_BYTES, calibrateModel } from "../scripts/model_calibrate.mjs";
+import { MODEL_PRESETS, SHARED_PREAMBLE_MAX_BYTES, calibrateModel } from "../experimental/scripts/model_calibrate.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pluginRoot = join(__dirname, "..");
 const wsRoot = join(pluginRoot, "..", "lazyargon-workspace");
 const lspScript = join(pluginRoot, "scripts", "lsp_diagnostics.mjs");
-const calibrateScript = join(pluginRoot, "scripts", "model_calibrate.mjs");
+const calibrateScript = join(pluginRoot, "experimental", "scripts", "model_calibrate.mjs");
 const mdGuardScript = join(pluginRoot, "scripts", "markdown_structure_guard.mjs");
 
 test("lsp_diagnostics.mjs: check passes on valid .mjs, .py, .json files", () => {

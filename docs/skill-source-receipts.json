@@ -9,8 +9,8 @@
       "pinned_sha": null,
       "keyword": "OMH / oh-my-hermes",
       "mapped_targets": [
-        "scripts/dag_ulw.mjs",
-        "scripts/lazy_tui.mjs",
+        "experimental/scripts/dag_ulw.mjs",
+        "experimental/scripts/lazy_tui.mjs",
         "scripts/upstream_radar.mjs"
       ],
       "status": "unverified",
@@ -77,7 +77,7 @@
       "pinned_sha": "8c307f367c91bd974002f10f2be2965d642c13df",
       "keyword": "humanizer(말투)",
       "mapped_targets": [
-        "scripts/lazy_slop_cleaner.mjs",
+        "experimental/scripts/lazy_slop_cleaner.mjs",
         "../lazyargon-workspace/skills/humanize-korean/SKILL.md"
       ],
       "status": "verified"
@@ -99,7 +99,7 @@
       "pinned_sha": "8262f9f790eed35e6cbd66572b36c2acba18f679",
       "keyword": "OMC",
       "mapped_targets": [
-        "scripts/lazy_slop_cleaner.mjs"
+        "experimental/scripts/lazy_slop_cleaner.mjs"
       ],
       "status": "verified"
     },
@@ -109,7 +109,7 @@
       "pinned_sha": null,
       "keyword": "OMX",
       "mapped_targets": [
-        "scripts/dag_ulw.mjs"
+        "experimental/scripts/dag_ulw.mjs"
       ],
       "status": "unverified",
       "claimed_pin": "omx-runtime-v1"
@@ -142,8 +142,8 @@
       "pinned_sha": null,
       "keyword": "auto-research",
       "mapped_targets": [
-        "scripts/autoresearch_loop.mjs",
-        "skills/ulw/references/measured-loop-discipline.md"
+        "experimental/scripts/autoresearch_loop.mjs",
+        "experimental/docs/measured-loop-discipline.md"
       ],
       "status": "unverified",
       "claimed_pin": "autoresearch-v1"
@@ -155,7 +155,7 @@
       "keyword": "deepseek-harness",
       "mapped_targets": [
         "rules/AGENTS.md",
-        "scripts/lazy_slop_cleaner.mjs"
+        "experimental/scripts/lazy_slop_cleaner.mjs"
       ],
       "status": "unverified",
       "claimed_pin": "cordis-2608.25512"
@@ -166,7 +166,7 @@
       "pinned_sha": null,
       "keyword": "kimi-code",
       "mapped_targets": [
-        "scripts/model_calibrate.mjs"
+        "experimental/scripts/model_calibrate.mjs"
       ],
       "status": "unverified",
       "claimed_pin": "kimi-k3.1-pro"
@@ -177,7 +177,7 @@
       "pinned_sha": null,
       "keyword": "zcode",
       "mapped_targets": [
-        "scripts/model_calibrate.mjs"
+        "experimental/scripts/model_calibrate.mjs"
       ],
       "status": "unverified",
       "claimed_pin": "glm-5.3-zcode"
@@ -188,7 +188,7 @@
       "pinned_sha": null,
       "keyword": "mem0",
       "mapped_targets": [
-        "scripts/lazy_memory.py"
+        "experimental/scripts/lazy_memory.py"
       ],
       "status": "unverified",
       "claimed_pin": "mem0-graph-v1"
@@ -199,7 +199,7 @@
       "pinned_sha": null,
       "keyword": "letta",
       "mapped_targets": [
-        "scripts/lazy_memory.py"
+        "experimental/scripts/lazy_memory.py"
       ],
       "status": "unverified",
       "claimed_pin": "letta-dreaming-v1"
@@ -210,7 +210,7 @@
       "pinned_sha": null,
       "keyword": "autorag",
       "mapped_targets": [
-        "scripts/lazy_rag.py"
+        "experimental/scripts/lazy_rag.py"
       ],
       "status": "unverified",
       "claimed_pin": "autorag-rrf-v1"
@@ -222,7 +222,7 @@
       "keyword": "harness2",
       "mapped_targets": [
         "scripts/doctor.mjs",
-        "scripts/lazy_slop_cleaner.mjs"
+        "experimental/scripts/lazy_slop_cleaner.mjs"
       ],
       "status": "unverified",
       "claimed_pin": "harness2-keep-base"
@@ -268,7 +268,7 @@
       "pinned_sha": null,
       "keyword": "OpenCode TUI & LSP Harness",
       "mapped_targets": [
-        "scripts/lazy_tui.mjs",
+        "experimental/scripts/lazy_tui.mjs",
         "scripts/lsp_diagnostics.mjs"
       ],
       "status": "unverified",
@@ -313,7 +313,7 @@
       "pinned_sha": null,
       "keyword": "Continue Context Rerank",
       "mapped_targets": [
-        "scripts/lazy_rag.py"
+        "experimental/scripts/lazy_rag.py"
       ],
       "status": "unverified",
       "claimed_pin": "4d9c20b"

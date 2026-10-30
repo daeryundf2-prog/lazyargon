@@ -92,10 +92,7 @@ invoke_subagent({
   - 보안/동시성/경계 2중 검증 + 교차 가족 판정: `references/dual-verify.md`
   - 전체 레포지토리 토폴로지 조사: `references/repo-survey.md`
   - 문제 재정의(`/office-hours`)·프로덕션 결함/OWASP 감사(`/review`)·브라우저 루프(`/qa`): `references/gstack-gates.md`
-  - 선(先) 커밋·단일 스칼라·TSV 원장 기반 자율 최적화 루프(`karpathy/autoresearch`): `references/measured-loop-discipline.md` (`node scripts/autoresearch_loop.mjs`)
-  - DAG `write_scope` 충돌 차단 및 4단계 상태 게이트: `node scripts/dag_ulw.mjs`
-  - Personalized PageRank(0.85) 핸드오프 및 역방향 임포트 테스트 선별: `node scripts/codegraph.mjs`
-  - 2계층 프롬프트/코드 탈슬롭(`AC-SLOP`): `node scripts/lazy_slop_cleaner.mjs`
+  - 변경 파일 기준 역방향 임포트 테스트 선별: `node scripts/codegraph.mjs tests --changed`
 
 ---
 

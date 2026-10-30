@@ -19,14 +19,14 @@
 ```json
 {
   "schema": "debugger_session_plan/v1",
-  "target_binary_or_entry": "node --inspect-brk=127.0.0.1:9229 scripts/dag_ulw.mjs",
+  "target_binary_or_entry": "node --inspect-brk=127.0.0.1:9229 src/scheduler.mjs",
   "adapter": "node --inspect-brk",
   "hypotheses": [
     {
       "id": "H1",
       "claim": "웨이브 2 전환 시 write_scope 교집합 배열이 초기화되지 않고 누적됨",
       "breakpoint": {
-        "file": "scripts/dag_ulw.mjs",
+        "file": "src/scheduler.mjs",
         "line": 84,
         "condition": "waveIndex >= 1 && overlap.length > 0"
       },

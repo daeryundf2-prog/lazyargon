@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
@@ -8,10 +8,10 @@ import { fileURLToPath } from "node:url";
 
 const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPTS = {
-	slop: join(PLUGIN_ROOT, "scripts", "lazy_slop_cleaner.mjs"),
-	dag: join(PLUGIN_ROOT, "scripts", "dag_ulw.mjs"),
+	slop: join(PLUGIN_ROOT, "experimental", "scripts", "lazy_slop_cleaner.mjs"),
+	dag: join(PLUGIN_ROOT, "experimental", "scripts", "dag_ulw.mjs"),
 	codegraph: join(PLUGIN_ROOT, "scripts", "codegraph.mjs"),
-	autoresearch: join(PLUGIN_ROOT, "scripts", "autoresearch_loop.mjs"),
+	autoresearch: join(PLUGIN_ROOT, "experimental", "scripts", "autoresearch_loop.mjs"),
 };
 
 function runCli(script, args = []) {
@@ -33,7 +33,8 @@ test("Wave 1-4: lazy_slop_cleaner.mjs rules-distill & ac-slop modes", () => {
 		assert.equal(rulesResult.json.schema, "lazy_slop_audit/v1");
 		assert.equal(rulesResult.json.mode, "rules-distill");
 		assert.equal(rulesResult.json.within_budget, true);
-		assert.equal(rulesResult.json.rules_total_bytes, 20328);
+		const liveRulesBytes = statSync(join(PLUGIN_ROOT, "rules", "AGENTS.md")).size + statSync(join(PLUGIN_ROOT, "..", "lazyargon-workspace", "rules", "GEMINI.md")).size;
+		assert.equal(rulesResult.json.rules_total_bytes, liveRulesBytes);
 
 		const dirtyFile = join(tmp, "sample.mjs");
 		writeFileSync(

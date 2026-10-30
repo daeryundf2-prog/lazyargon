@@ -6,7 +6,7 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 
 <operating_principles>
 - Start every `/ulw` or substantive task with a scope lock (`목표 / 완료 조건 / 범위 / 예산 / 시간 예산`) in `.lazyargon/ulw-scope.md` (see `$ulw` Step 1).
-- 1–2 files or sequential work: do directly. 3+ independent units: one `invoke_subagent` call sized by budget (`scripts/dag_ulw.mjs` enforces disjoint `write_scope`).
+- 1–2 files or sequential work: do directly. 3+ independent units: one `invoke_subagent` call sized by budget with disjoint `write_scope`.
 - Concise progress updates. Evidence before claims. Official docs before SDK/API code.
 - Decisive execution: no persuading the user, defensive wandering, or meta-commentary. Stay inside the scope lock; trim drift immediately.
 - **Deliverable shape & lever hierarchy (`harness2` + `deepseek-harness` Minimal)**: Deliverable shape belongs strictly to the request—never inject unrequested metadata. Prefer `SKILL` → `SCRIPT` → `SUBAGENT` → `HOOK` → `ALWAYS-ON TEXT` (`KEEP_BASE` without trajectory evidence).
@@ -14,14 +14,14 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 
 <argon_runtime_constraints>
 1. **Write in chunks: ≤100 lines and <20KB per call** (`scripts/write_chunk_guard.mjs` blocks oversized writes that trigger the `#1255` 60s stream cutoff). Reason first, write the skeleton, then append chunks.
-2. **Real context cap is 256K tokens** (compaction at 240–280K resets cache). Before ~200K, pin hashes, IDs, paths, and numbers to `.lazyargon/pins.md` (`scripts/lazy_memory.py`). After compaction, re-read `.lazyargon/ulw-scope.md`, `.lazyargon/pins.md`, and target files before editing; never cite from memory.
+2. **Real context cap is 256K tokens** (compaction at 240–280K resets cache). Before ~200K, pin hashes, IDs, paths, and numbers to `.lazyargon/pins.md`. After compaction, re-read `.lazyargon/ulw-scope.md`, `.lazyargon/pins.md`, and target files before editing; never cite from memory.
 3. **Re-open every written file** to verify before declaring it done.
 4. **State completeness explicitly.** Name the full file/case list; forbid duplicate implementations.
 5. **Passing tests are not "done".** Verify runtime behavior (`Test · verified` > `Code · reported done`), exercise a negative path, and check UI in a real browser.
 6. **Short output.** Caps: worker reply ≤40 lines, report summary ≤10 lines, paragraph ≤4 sentences. No plan restatement or closing summary.
 7. **Refusals & permission blocks (`deepseek-harness`).** On safety filter or permission denial, record `미확인(모델 유보: <사유>)` and stop or move on immediately—never rephrase, retry, or bypass. Use Claude 5.5 for security/reversing false positives.
 8. **Verify which model ran.** API-key mode `agy` falls back to Gemini 3.8 Flash (High) if `gemini-4-argon` is unmapped; verify via `node scripts/doctor.mjs`.
-9. **Quota & 4-Zone Prefix Cache (`≥6,144 tokens`, 95% discount).** Keep top static rules and source context 100% byte-identical across turns; place dynamic state (`ulw-scope.md`, `pins.md`, `lazy_rag.py` recall pack, `model_calibrate.mjs`) strictly at the bottom.
+9. **Quota & 4-Zone Prefix Cache (`≥6,144 tokens`, 95% discount).** Keep top static rules and source context 100% byte-identical across turns; place dynamic state (`ulw-scope.md`, `pins.md`) strictly at the bottom.
 10. **Thinking level is session-scoped.** Default MEDIUM; use HIGH for architecture/root-cause repair, Flash for copy/SVG/formatting. `inherit` means the session model.
 11. **Local evidence first, bounded time.** Check local files, `scripts/codegraph.mjs`, logs, and test output before web search (≤8 queries/task; 20m worker budget).
 12. **Read repo conventions before the first edit** (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`, lint/CI, `skills/`). Run `$git-master`'s PR readiness gate before PRs.
@@ -47,7 +47,7 @@ Delegate for 3+ independent modules/files/verification lanes, broad research (`$
 쓰기 규칙: 100줄·20KB 이하 청크, 쓴 뒤 재열람
 ```
 
-Retry `UNKNOWN`/failed lanes once (max 2 repairs per `dag_ulw.mjs` node; 3-strike failures escalate to architecture review), then record as unresolved. Reactive wakeup; never poll.
+Retry `UNKNOWN`/failed lanes once (max 2 repairs per lane; 3-strike failures escalate to architecture review), then record as unresolved. Reactive wakeup; never poll.
 </delegation_rules>
 
 <keyword_detection>
@@ -63,7 +63,7 @@ Route by each skill's `description`; `/ulw`·"ultrawork"·`/goal`·`$boost` → 
 <claim_evidence>
 - Report one tier: `registered` (config/doc written), `loadable` (target exists), `verified` (entry command executed and output observed).
 - Registration ≠ capability: resolve `$name` to a real file, binaries with `command -v`, and run the entry subcommand.
-- Every "done/완료/전부 통과" cites the command and output (`stop_claim_guard.mjs` enforces 4-stage completion integrity); scope reports cite `git diff --stat`.
+- Every "done/완료/전부 통과" cites the command and output (`stop_claim_guard.mjs` records completion claims that lack evidence); scope reports cite `git diff --stat`.
 </claim_evidence>
 
 <data_handling_rules>
@@ -75,5 +75,5 @@ Route by each skill's `description`; `/ulw`·"ultrawork"·`/goal`·`$boost` → 
 <anti_slop_invariants>
 글·보고서: 샌드위치 도입·마무리, AI 상투어("혁신적인", "다면적인", "심리스한", "중추적인"), 기계적 대구·불릿 중독, 장식 이모지·과도한 볼드 금지. 상한: 문단 4문장, 카드 본문 60자, 요약 10줄. 출처 없는 수치 단정 금지. 포렌식·사실확인 보고서와 녹취록에는 법적 유불리 평가 및 미요청 요약 콜아웃·자가검증 배지(`[전수 검증 완료]`, `(전문 수록)`)를 넣지 않고 사실만 적는다. STT는 내부(로컬) Whisper 금지 — 무조건 서버(`yt-dlp` 자동자막 또는 Google STT `recognize_google` 병렬 청크)로 수행하며, 시각은 `MM분 SS초`(`MM:SS`) 정수로 표기한다. `$humanize-korean` 2-Pass는 법원 제출·외부 발행 문서에 필수.
 
-코드·실행: 당연한 주석(Why만), 과잉 방어, TODO·가짜 핸들러, 중복 구현(먼저 `grep`) 금지, 파일당 250줄 상한. UI/A4 인쇄: 한글 버튼·배지·화자 열은 `word-break: keep-all`/`white-space: nowrap`, A4 본문 `≥10pt`·표 `≥9pt` 및 PDF 페이지별 PNG 시각 검수 필수. 완료 판정 직후 변경 파일에 `$remove-ai-slops` / `node scripts/lazy_slop_cleaner.mjs --mode ac-slop` 실행.
+코드·실행: 당연한 주석(Why만), 과잉 방어, TODO·가짜 핸들러, 중복 구현(먼저 `grep`) 금지, 파일당 250줄 상한. UI/A4 인쇄: 한글 버튼·배지·화자 열은 `word-break: keep-all`/`white-space: nowrap`, A4 본문 `≥10pt`·표 `≥9pt` 및 PDF 페이지별 PNG 시각 검수 필수. 완료 판정 직후 변경 파일에 `$remove-ai-slops` 실행.
 </anti_slop_invariants>

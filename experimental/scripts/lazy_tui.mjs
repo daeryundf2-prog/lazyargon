@@ -9,7 +9,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PLUGIN_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const PLUGIN_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const root = PLUGIN_ROOT;
 const wsPluginRoot = join(root, "..", "lazyargon-workspace");
 const RULES_BUDGET_LIMIT = 24000;
@@ -76,7 +76,7 @@ function collectMemoryState(cwd) {
 	const dbBytes = dbExists ? statSync(dbPath).size : 0;
 	let active = 0, superseded = 0, deleted = 0, edges = 0, dreams = 0;
 	if (dbExists) {
-		const res = spawnSync("python3", [join(PLUGIN_ROOT, "scripts", "lazy_memory.py"), "stats", "--db", dbPath, "--json"], {
+		const res = spawnSync("python3", [join(PLUGIN_ROOT, "experimental", "scripts", "lazy_memory.py"), "stats", "--db", dbPath, "--json"], {
 			encoding: "utf8",
 			timeout: 5000,
 		});

@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const RULES_BUDGET_BYTES = 24000;
 const RULES_FILE_WARN_BYTES = 16000;
 
