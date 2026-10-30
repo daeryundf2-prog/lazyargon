@@ -10,6 +10,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = path.join(ROOT, "scripts", "session_start.mjs");
 const WS_SCRIPT = path.join(ROOT, "..", "lazyargon-workspace", "scripts", "session_start.mjs");
 
+const ctxOf = (out) => out.injectSteps[0].systemMessage.systemMessage;
+
 function run(payload, cwd, env = {}, scriptPath = SCRIPT) {
 	const e = { ...process.env, ...env };
 	delete e.ANTIGRAVITY_MODEL_NAME;
@@ -21,9 +23,9 @@ test("#given host modelName #when session starts #then runtime block quotes it a
 	const res = run(JSON.stringify({ hook_event_name: "SessionStart", modelName: "gemini-4-argon" }), ROOT);
 	assert.equal(res.status, 0, res.stderr);
 	const out = JSON.parse(res.stdout);
-	assert.match(out.additionalContext, /세션 모델: gemini-4-argon/);
-	assert.equal(out.hookSpecificOutput.hookEventName, "SessionStart");
-	assert.doesNotMatch(out.additionalContext, /Argon이라고 가정하지 말 것/);
+	assert.match(ctxOf(out), /세션 모델: gemini-4-argon/);
+	assert.deepEqual(Object.keys(out), ["injectSteps"], "Antigravity ignores SessionStart output with extra keys");
+	assert.doesNotMatch(ctxOf(out), /Argon이라고 가정하지 말 것/);
 });
 
 test("#given no model in payload #when session starts #then model is unknown, never inferred", () => {
@@ -32,8 +34,8 @@ test("#given no model in payload #when session starts #then model is unknown, ne
 		const res = run("{}", tmp);
 		assert.equal(res.status, 0, res.stderr);
 		const out = JSON.parse(res.stdout);
-		assert.match(out.additionalContext, /세션 모델: unknown/);
-		assert.match(out.additionalContext, /범위 잠금 \(\.lazyargon\/ulw-scope\.md\)\n\n없음/);
+		assert.match(ctxOf(out), /세션 모델: unknown/);
+		assert.match(ctxOf(out), /범위 잠금 \(\.lazyargon\/ulw-scope\.md\)\n\n없음/);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 	}
@@ -49,15 +51,15 @@ test("#given workspacePaths: [tmpDir] #when session_start.mjs runs from unrelate
 		const res = run(payload, os.tmpdir());
 		assert.equal(res.status, 0, res.stderr);
 		const out = JSON.parse(res.stdout);
-		assert.match(out.additionalContext, /목표: workspacePaths 우선 해석/);
-		assert.match(out.additionalContext, /- ws_pin: deadbeef1234/);
-		assert.ok(out.additionalContext.includes(tmp));
+		assert.match(ctxOf(out), /목표: workspacePaths 우선 해석/);
+		assert.match(ctxOf(out), /- ws_pin: deadbeef1234/);
+		assert.ok(ctxOf(out).includes(tmp));
 		if (fs.existsSync(WS_SCRIPT)) {
 			const wsRes = run(payload, os.tmpdir(), {}, WS_SCRIPT);
 			assert.equal(wsRes.status, 0, wsRes.stderr);
 			const wsOut = JSON.parse(wsRes.stdout);
-			assert.match(wsOut.additionalContext, /목표: workspacePaths 우선 해석/);
-			assert.ok(Buffer.byteLength(wsOut.additionalContext, "utf8") < 2048, "workspace session_start must not re-inject the full GEMINI.md");
+			assert.match(ctxOf(wsOut), /목표: workspacePaths 우선 해석/);
+			assert.ok(Buffer.byteLength(ctxOf(wsOut), "utf8") < 2048, "workspace session_start must not re-inject the full GEMINI.md");
 		}
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
@@ -74,12 +76,12 @@ test("#given .lazyargon/ulw-scope.md in cwd #when session starts #then scope loc
 		const res = run("{}", tmp);
 		assert.equal(res.status, 0, res.stderr);
 		const out = JSON.parse(res.stdout);
-		assert.match(out.additionalContext, /목표: 훅 테스트/);
-		assert.match(out.additionalContext, /예산: 4 레인/);
-		assert.match(out.additionalContext, /고정 식별자 \(\.lazyargon\/pins\.md/);
-		assert.match(out.additionalContext, /- id19: a{8}19/);
-		assert.doesNotMatch(out.additionalContext, /- id20:/);
-		assert.match(out.additionalContext, /5줄 생략 — 파일을 직접 읽을 것/);
+		assert.match(ctxOf(out), /목표: 훅 테스트/);
+		assert.match(ctxOf(out), /예산: 4 레인/);
+		assert.match(ctxOf(out), /고정 식별자 \(\.lazyargon\/pins\.md/);
+		assert.match(ctxOf(out), /- id19: a{8}19/);
+		assert.doesNotMatch(ctxOf(out), /- id20:/);
+		assert.match(ctxOf(out), /5줄 생략 — 파일을 직접 읽을 것/);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 	}

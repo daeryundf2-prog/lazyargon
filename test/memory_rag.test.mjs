@@ -137,8 +137,8 @@ test("AutoRAG Korean morpheme RRF search, extractive compression, budgets, and s
 		const parsed = JSON.parse(sRes.stdout.trim());
 		assert.ok(Array.isArray(parsed.injectSteps));
 		// recall pack is quarantined (experimental/): session_start must not inject it even when memory.db exists
-		assert.doesNotMatch(parsed.additionalContext, /로컬 메모리 리콜 팩/);
-		assert.doesNotMatch(parsed.additionalContext, /갑호증 제출처 서울중앙지방법원/);
+		assert.doesNotMatch(parsed.injectSteps[0].systemMessage.systemMessage, /로컬 메모리 리콜 팩/);
+		assert.doesNotMatch(parsed.injectSteps[0].systemMessage.systemMessage, /갑호증 제출처 서울중앙지방법원/);
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}

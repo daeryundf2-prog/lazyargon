@@ -127,13 +127,8 @@ const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.arg
 if (isMain) {
 	const payload = parsePayload(await readStdin(200));
 	const context = runtimeContext(payload);
-	const hookEventName = typeof payload.hook_event_name === "string" && payload.hook_event_name ? payload.hook_event_name : "SessionStart";
-	process.stdout.write(
-		`${JSON.stringify({
-			injectSteps: [{ systemMessage: { systemMessage: context } }],
-			additionalContext: context,
-			hookSpecificOutput: { hookEventName, additionalContext: context },
-		})}\n`,
-	);
+	// Antigravity drops the whole SessionStart output when it carries keys beyond injectSteps
+	// (verified live 2026-10-30: extra additionalContext/hookSpecificOutput -> nothing injected).
+	process.stdout.write(`${JSON.stringify({ injectSteps: [{ systemMessage: { systemMessage: context } }] })}\n`);
 	process.exit(0);
 }
