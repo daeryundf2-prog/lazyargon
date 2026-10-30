@@ -14,7 +14,9 @@
         "scripts/upstream_radar.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "0f9cf0c"
+      "claimed_pin": "0f9cf0c",
+      "observed_head_sha": "b906cb4258fdbf084fd9b2853d47dd97c7d6d978",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "NousResearch/hermes-agent",
@@ -25,7 +27,9 @@
         "scripts/doctor.mjs",
         "scripts/session_start.mjs"
       ],
-      "status": "verified"
+      "status": "verified",
+      "observed_head_sha": "2d2808ee84549f9836b0056750265058e5488a8a",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "can1357/oh-my-pi",
@@ -37,7 +41,9 @@
         "skills/debugging/references/dap-session-plan.md"
       ],
       "status": "unverified",
-      "claimed_pin": "omp-lsp-dap-v1"
+      "claimed_pin": "omp-lsp-dap-v1",
+      "observed_head_sha": "95db18ef9936bff96fbd33268b2363ab25a9bb9d",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "michael-denyer/pstack-claude",
@@ -48,7 +54,9 @@
         "skills/programming/references/formal-verify.md"
       ],
       "status": "unverified",
-      "claimed_pin": "pstack-v1"
+      "claimed_pin": "pstack-v1",
+      "observed_head_sha": "22b5e137e945cb65dd29dac5fc703c13d83a00aa",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "faxenoff/ultracode",
@@ -59,7 +67,9 @@
         "scripts/codegraph.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "codegraph-ppr-v1"
+      "claimed_pin": "codegraph-ppr-v1",
+      "observed_head_sha": "58d6126fc11ecc0fc9615a4c7d0ba1e149f91042",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "revfactory/showreel",
@@ -69,7 +79,9 @@
       "mapped_targets": [
         "../lazyargon-workspace/skills/video-editor/references/showreel-videogen.md"
       ],
-      "status": "verified"
+      "status": "verified",
+      "observed_head_sha": "ae09a4a757b6e1d22c4193a09c70c88bda5b3e92",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "blader/humanizer",
@@ -80,7 +92,9 @@
         "experimental/scripts/lazy_slop_cleaner.mjs",
         "../lazyargon-workspace/skills/humanize-korean/SKILL.md"
       ],
-      "status": "verified"
+      "status": "verified",
+      "observed_head_sha": "0ef9fe5bc3572734fd3ae6c448fe00a30cd5dcf0",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "code-yeongyu/oh-my-openagent",
@@ -91,7 +105,9 @@
         "skills/ulw/SKILL.md",
         "scripts/stop_claim_guard.mjs"
       ],
-      "status": "verified"
+      "status": "verified",
+      "observed_head_sha": "12bc5cfc37d2cc590441d7d31fba809adc510531",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "Yeachan-Heo/oh-my-claudecode",
@@ -101,7 +117,9 @@
       "mapped_targets": [
         "experimental/scripts/lazy_slop_cleaner.mjs"
       ],
-      "status": "verified"
+      "status": "verified",
+      "observed_head_sha": "ef8d0d3087a0bf73ac50abbdaa93f764dce89839",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "Yeachan-Heo/oh-my-codex",
@@ -112,7 +130,9 @@
         "experimental/scripts/dag_ulw.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "omx-runtime-v1"
+      "claimed_pin": "omx-runtime-v1",
+      "observed_head_sha": "a60b9435a8e6d894ba69d1540ecf20afaac63a7a",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "obra/superpowers",
@@ -123,7 +143,9 @@
         "skills/debugging/SKILL.md",
         "skills/debugging/references/dap-session-plan.md"
       ],
-      "status": "verified"
+      "status": "verified",
+      "observed_head_sha": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "garrytan/gstack",
@@ -134,7 +156,9 @@
         "skills/ulw/references/gstack-gates.md"
       ],
       "status": "unverified",
-      "claimed_pin": "gstack-23roles"
+      "claimed_pin": "gstack-23roles",
+      "observed_head_sha": "11c17d466af329ee0a27654f353b84d5484d503b",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "karpathy/autoresearch",
@@ -146,7 +170,9 @@
         "experimental/docs/measured-loop-discipline.md"
       ],
       "status": "unverified",
-      "claimed_pin": "autoresearch-v1"
+      "claimed_pin": "autoresearch-v1",
+      "observed_head_sha": "228791fb499afffb54b46200aca536f79142f117",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "deepseek-ai/deepseek-harness",
@@ -158,7 +184,9 @@
         "experimental/scripts/lazy_slop_cleaner.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "cordis-2608.25512"
+      "claimed_pin": "cordis-2608.25512",
+      "observed_head_sha": "ce7073d51254c26cd63b22a60835b8f948deb447",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "MoonshotAI/kimi-cli",
@@ -169,7 +197,9 @@
         "experimental/scripts/model_calibrate.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "kimi-k3.1-pro"
+      "claimed_pin": "kimi-k3.1-pro",
+      "observed_head_sha": "9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "zai-org/ZCode",
@@ -180,7 +210,9 @@
         "experimental/scripts/model_calibrate.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "glm-5.3-zcode"
+      "claimed_pin": "glm-5.3-zcode",
+      "observed_head_sha": "a60ba6a7e5a06742270ca605f5d2cc2766afa7e1",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "mem0ai/mem0",
@@ -191,7 +223,9 @@
         "experimental/scripts/lazy_memory.py"
       ],
       "status": "unverified",
-      "claimed_pin": "mem0-graph-v1"
+      "claimed_pin": "mem0-graph-v1",
+      "observed_head_sha": "26cdefb46600c0fa5953c4b5ee5003c125539fc4",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "letta-ai/letta",
@@ -202,7 +236,9 @@
         "experimental/scripts/lazy_memory.py"
       ],
       "status": "unverified",
-      "claimed_pin": "letta-dreaming-v1"
+      "claimed_pin": "letta-dreaming-v1",
+      "observed_head_sha": "8816d3a8516893bfdc0fa14bfb1235226012e295",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "Marker-Inc-Korea/AutoRAG",
@@ -213,7 +249,9 @@
         "experimental/scripts/lazy_rag.py"
       ],
       "status": "unverified",
-      "claimed_pin": "autorag-rrf-v1"
+      "claimed_pin": "autorag-rrf-v1",
+      "observed_head_sha": "7a751446d3571b257317e256305c31389fa652eb",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "google-research/harness2",
@@ -225,7 +263,9 @@
         "experimental/scripts/lazy_slop_cleaner.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "harness2-keep-base"
+      "claimed_pin": "harness2-keep-base",
+      "observed_head_sha": "1cfe254e8d25b15f37048c3730134686abe60335",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "anthropics/claude-code",
@@ -237,7 +277,9 @@
         "scripts/session_start.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "v1.0.24"
+      "claimed_pin": "v1.0.24",
+      "observed_head_sha": "b3f291d131924810e2b7713ededc144843a229d5",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "openai/codex",
@@ -248,7 +290,9 @@
         "skills/programming/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "codex-cli-01a8f2c"
+      "claimed_pin": "codex-cli-01a8f2c",
+      "observed_head_sha": "a9e474c8fc7874cdb13b03ef8ffec0bead7c4fbd",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "google-gemini/gemini-cli",
@@ -260,7 +304,9 @@
         "scripts/doctor.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "a4c91e2"
+      "claimed_pin": "a4c91e2",
+      "observed_head_sha": "b633c0703417eff3f6db8b684515e2b26a824e82",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "anomalyco/opencode",
@@ -272,7 +318,9 @@
         "scripts/lsp_diagnostics.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "9b3d41e"
+      "claimed_pin": "9b3d41e",
+      "observed_head_sha": "6b4329c88579c5b100620c8e72e8ca97b1baf3d0",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "Aider-AI/aider",
@@ -283,7 +331,9 @@
         "scripts/codegraph.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "7c2e89a"
+      "claimed_pin": "7c2e89a",
+      "observed_head_sha": "5dc9490bb35f9729ef2c95d00a19ccd30c26339c",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "OpenHands/OpenHands",
@@ -294,7 +344,9 @@
         "skills/gf-qa-behavioral-verification/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "5f1b30d"
+      "claimed_pin": "5f1b30d",
+      "observed_head_sha": "940dc61587e31f2625d6a59e07d70340878031d2",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "SWE-agent/SWE-agent",
@@ -305,7 +357,9 @@
         "skills/debugging/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "3e8a71c"
+      "claimed_pin": "3e8a71c",
+      "observed_head_sha": "3ea751c087f32b16e039a2233dd6eefecef325d5",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "continuedev/continue",
@@ -316,7 +370,9 @@
         "experimental/scripts/lazy_rag.py"
       ],
       "status": "unverified",
-      "claimed_pin": "4d9c20b"
+      "claimed_pin": "4d9c20b",
+      "observed_head_sha": "5522c6f44ca0ac3528b37244818fbfa39b5af470",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "cline/cline",
@@ -327,7 +383,9 @@
         "skills/visual-qa/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "8a1f64e"
+      "claimed_pin": "8a1f64e",
+      "observed_head_sha": "a47448718ad77e6316b12d81927fc1373ade1243",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "firecrawl/firecrawl",
@@ -338,7 +396,9 @@
         "skills/ulw-research/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "2c7e51a"
+      "claimed_pin": "2c7e51a",
+      "observed_head_sha": "273412baa50cdec4cd022740a3191593fbc2a322",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "ast-grep/ast-grep",
@@ -349,7 +409,9 @@
         "skills/ast-grep/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "6b4d92f"
+      "claimed_pin": "6b4d92f",
+      "observed_head_sha": "72f150994f2f5ffe52fd6d1e72f18a93c3998e0e",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     },
     {
       "repo": "biomejs/biome",
@@ -361,7 +423,9 @@
         "scripts/lsp_diagnostics.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "1f8e34c"
+      "claimed_pin": "1f8e34c",
+      "observed_head_sha": "397b0eb28ca9d5a5eadc552d0a81b45540611d79",
+      "observed_at": "2026-10-30T13:46:46.993Z"
     }
   ]
 }
