@@ -89,6 +89,7 @@ These are not phases — read them when the situation calls for them:
 | The failure is intermittent — fails sometimes, a different test each run, passes in isolation, or only fails in CI | 📖 **[references/methodology/03-flaky-triage.md](references/methodology/03-flaky-triage.md)** — read BEFORE Phase 2; the failure signature usually collapses the search space in one round |
 | You cannot run the actual operation (paid API, blocked network, missing hardware) but still need runtime evidence | 📖 **[references/methodology/partial-runtime-evidence.md](references/methodology/partial-runtime-evidence.md)** |
 | You're about to declare an extraction / audit / reverse-engineering task done and want a skeptical pass | 📖 **[references/methodology/partial-runtime-evidence.md#verification-oracle-pattern-for-non-debug-tasks](references/methodology/partial-runtime-evidence.md#verification-oracle-pattern-for-non-debug-tasks)** (Verification Oracle is *not* the same as Oracle Triple — read the file) |
+| You are attaching a native/runtime debugger (`lldb-dap`, `codelldb`, `gdb -i=dap`, `debugpy`, `dlv dap`, `node --inspect-brk`) or hit 3 failed repair attempts | 📖 **[references/dap-session-plan.md](references/dap-session-plan.md)** — `debugger_session_plan/v1` observation contract (no speculative `printf` rebuilds) & 3-Strike Architecture Escalation |
 
 ---
 

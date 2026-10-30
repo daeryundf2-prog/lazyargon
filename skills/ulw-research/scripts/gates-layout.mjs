@@ -14,6 +14,10 @@ export const OVERFLOW_PX = 2
 export const SCROLL_SLACK_PX = 2
 export const ASPECT_DRIFT = 0.03
 export const OVERLAP_PX = 12
+export const PAGE_FILL_MIN = 0.6
+export const CELL_VOID_ROW_MIN_PX = 84
+export const CELL_CONTENT_RATIO_MAX = 0.3
+export const CELL_VOID_MIN_PX = 52
 
 const OUT_OF_FLOW = new Set(["absolute", "fixed"])
 const IN_FLOW = new Set(["static", "relative"])
@@ -118,6 +122,59 @@ function checkSiblings(boxes) {
 	return defects
 }
 
+// L6: non-cover, non-final page containers whose in-flow body children fill less than 60% of inner height (>40% bottom void).
+function checkPageUnderfill(boxes) {
+	const pages = boxes.filter((b) => b.isPage && b.rect && b.rect.h >= 400)
+	if (pages.length < 2) return []
+	const defects = []
+	for (let i = 0; i < pages.length - 1; i += 1) {
+		const page = pages[i]
+		if (page.isCover || (page.flowCount !== undefined && page.flowCount <= 2) || page.flowBottom === null || page.flowBottom === undefined) continue
+		const pt = page.spacing?.pt ?? 0
+		const pb = page.spacing?.pb ?? 0
+		const innerH = r1(page.rect.h - pt - pb)
+		if (innerH <= 0) continue
+		const usedH = r1(page.flowBottom - (page.rect.y + pt))
+		const fillRatio = usedH / innerH
+		if (fillRatio < PAGE_FILL_MIN) {
+			const voidPct = ((1 - fillRatio) * 100).toFixed(1)
+			defects.push(defect("layout_page_underfill", page.selector, `${page.selector} leaves ${voidPct}% vertical bottom void (used ${usedH}px of ${innerH}px inner height)`))
+		}
+	}
+	return defects
+}
+
+// L7: table rows >= 84px tall where >= 50% of 1x1 text cells use <= 30% of the row's inner height (>= 52px vertical void).
+function checkCellVoidImbalance(boxes) {
+	const rows = new Map()
+	for (const box of boxes) {
+		if ((box.tag !== "td" && box.tag !== "th") || !box.parentSelector) continue
+		if (box.span && (box.span.row > 1 || box.span.col > 1 || box.span.hasMedia)) continue
+		if (typeof box.contentH !== "number") continue
+		const list = rows.get(box.parentSelector) ?? []
+		list.push(box)
+		rows.set(box.parentSelector, list)
+	}
+	const trBySelector = new Map(boxes.filter((b) => b.tag === "tr").map((b) => [b.selector, b]))
+	const defects = []
+	for (const [rowSelector, cells] of rows.entries()) {
+		if (cells.length < 2) continue
+		const tr = trBySelector.get(rowSelector)
+		if (tr?.isSubRow) continue
+		const rowH = tr ? tr.rect.h : Math.max(...cells.map((c) => c.rect.h))
+		if (rowH < CELL_VOID_ROW_MIN_PX) continue
+		const sparseCells = cells.filter((c) => {
+			const availH = r1(c.rect.h - (c.spacing?.pt ?? 0) - (c.spacing?.pb ?? 0))
+			return availH > 0 && c.contentH / availH <= CELL_CONTENT_RATIO_MAX && r1(availH - c.contentH) >= CELL_VOID_MIN_PX
+		})
+		if (sparseCells.length >= Math.ceil(cells.length * 0.5)) {
+			const voidPx = r1(rowH - Math.min(...sparseCells.map((c) => c.contentH)))
+			defects.push(defect("layout_cell_void_imbalance", rowSelector, `${rowSelector} is ${rowH}px tall while ${sparseCells.length}/${cells.length} cells leave up to ${voidPx}px of vertical empty void`))
+		}
+	}
+	return defects
+}
+
 function validateProbe(probe) {
 	if (probe === null || typeof probe !== "object") throw new ProbeError("invalid_probe", "layout probe must be an object")
 	if (probe.probe_version !== PROBE_VERSION) {
@@ -140,6 +197,8 @@ export function checkLayout(probe) {
 		}
 	}
 	defects.push(...checkSiblings(probe.boxes))
+	defects.push(...checkPageUnderfill(probe.boxes))
+	defects.push(...checkCellVoidImbalance(probe.boxes))
 	let summary = `layout: ${probe.boxes.length} boxes checked, ${defects.length} defects`
 	if (probe.truncated) summary += `; layout sample truncated`
 	return { defects, summary }

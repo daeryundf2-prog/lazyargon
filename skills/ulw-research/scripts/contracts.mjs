@@ -37,6 +37,8 @@ export const DEFECT_CODES = deepFreeze({
 	layout_scroll_container: { severity: "minor", integrity: false, hint: "Scrolling content prints clipped; make the content fit or wrap the table in a scroll wrapper only for HTML deliverables." },
 	layout_image_distorted: { severity: "major", integrity: false, hint: "Preserve the image aspect ratio (object-fit: contain inside a fixed container)." },
 	layout_sibling_overlap: { severity: "major", integrity: false, hint: "Separate the overlapping elements (margins, grid, or a slide split)." },
+	layout_page_underfill: { severity: "major", integrity: false, hint: "Eliminate >40% floating bottom page void: use .a4-sheet flex shell with .sheet-footer { margin-top: auto }, relax forced break-before: page, or split oversized atomic tables." },
+	layout_cell_void_imbalance: { severity: "minor", integrity: false, hint: "Eliminate >70% vertical empty void in table rows: move 64-char hashes, paths, or multi-line quotes into a full-width <tr class=\"row-sub\"><td colspan=\"N\"> sub-row wrapped in <tbody class=\"row-group\">." },
 })
 
 const LAYOUT_PREFIX = "layout_"

@@ -88,7 +88,7 @@ function guardParity() {
 		return;
 	}
 	const drift = [];
-	for (const g of ["markdown_structure_guard.mjs", "json_schema_guard.mjs"]) {
+	for (const g of ["markdown_structure_guard.mjs", "json_schema_guard.mjs", "stop_claim_guard.mjs"]) {
 		const a = join(root, "scripts", g);
 		const b = join(sibling, g);
 		if (!existsSync(a) || !existsSync(b)) {
@@ -394,12 +394,37 @@ function skillsScriptRefs() {
 	);
 }
 
+function skillsSourceReceipts() {
+	const radarScript = join(root, "scripts", "upstream_radar.mjs");
+	const receiptsFile = join(root, "docs", "skill-source-receipts.json");
+	if (!existsSync(radarScript) || !existsSync(receiptsFile)) {
+		add("skills.source_receipts", "warn", "upstream_radar.mjs 또는 docs/skill-source-receipts.json 없음");
+		return;
+	}
+	const res = spawnSync("node", [radarScript, "audit", "--json"], { cwd: root, encoding: "utf8", timeout: 3000 });
+	if (res.error || res.status !== 0) {
+		add("skills.source_receipts", "fail", `업스트림 영수증 감사 실패: ${(res.stderr || res.stdout || "").trim()}`);
+		return;
+	}
+	try {
+		const data = JSON.parse(res.stdout);
+		add(
+			"skills.source_receipts",
+			data.ok ? "ok" : "fail",
+			data.ok ? `${data.source_count}개 업스트림 하네스 SHA 영수증 및 ${data.verified_targets}개 타겟 실존 확인` : `누락 타겟: ${(data.missing_targets || []).join(", ")}`,
+		);
+	} catch (e) {
+		add("skills.source_receipts", "fail", `영수증 JSON 파싱 실패: ${e.message}`);
+	}
+}
+
 nodeVersion();
 pythonVersion();
 hooksWiring();
 skillsFrontmatter();
 skillsRoutingCoverage();
 skillsScriptRefs();
+skillsSourceReceipts();
 guardParity();
 manifestVersions();
 scopeLock();

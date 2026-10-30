@@ -11,7 +11,7 @@
 // PATH_FUNCTION_SOURCE, embedded verbatim in the probe and exercised by the parity test.
 
 export const PROBE_VERSION = 1
-export const SAMPLED_SELECTOR = "figure, .fig, img, svg, table, h1, h2, h3, p, pre"
+export const SAMPLED_SELECTOR = "figure, .fig, img, svg, table, tr, th, td, h1, h2, h3, p, pre, .page, .a4-page, .a4-sheet, .page-section, [data-page]"
 export const EXCLUDED_ANCESTORS = Object.freeze(["svg", "nav", "header", "footer"])
 
 /** In-page path rule. idCount(id) returns how many elements carry that id. */
@@ -65,13 +65,43 @@ export function buildProbeSource({ cap = 400, root = "main, article" } = {}) {
 	const boxes = all.slice(0, CAP).map((el) => {
 		const cs = getComputedStyle(el);
 		const parent = el.parentElement;
+		const tag = el.tagName.toLowerCase();
+		const pt = r1(parseFloat(cs.paddingTop) || 0);
+		const pb = r1(parseFloat(cs.paddingBottom) || 0);
+		let contentH = null;
+		if (tag === "td" || tag === "th") {
+			const range = document.createRange();
+			range.selectNodeContents(el);
+			contentH = r1(range.getBoundingClientRect().height);
+		}
+		const isPage = el.matches(".page, .a4-page, .a4-sheet, .page-section, [data-page]");
+		let flowBottom = null;
+		let flowCount = 0;
+		if (isPage) {
+			const flowKids = Array.from(el.children).filter((c) => {
+				const ccs = getComputedStyle(c);
+				return ccs.position !== "absolute" && ccs.position !== "fixed" && !c.matches("footer, .page-footer, .sheet-footer, [data-role='footer']");
+			});
+			flowCount = flowKids.length;
+			if (flowKids.length > 0) {
+				flowBottom = Math.max(...flowKids.map((c) => { const cb = rect(c); return r1(cb.y + cb.h); }));
+			}
+		}
 		const box = {
-			selector: path(el), tag: el.tagName.toLowerCase(), rect: rect(el),
+			selector: path(el), tag, rect: rect(el),
 			parentSelector: parent ? path(parent) : null, parentRect: parent ? rect(parent) : null,
 			parentOverflow: parent ? { x: getComputedStyle(parent).overflowX, y: getComputedStyle(parent).overflowY } : null,
 			scroll: { sw: el.scrollWidth, cw: el.clientWidth, sh: el.scrollHeight, ch: el.clientHeight },
 			overflow: { x: cs.overflowX, y: cs.overflowY }, position: cs.position,
 			textLen: (el.textContent || "").trim().length,
+			spacing: { pt, pb },
+			contentH,
+			isPage,
+			isCover: isPage && el.matches(".cover, .title-page, [data-page-role='cover']"),
+			flowBottom,
+			flowCount,
+			isSubRow: tag === "tr" && el.classList.contains("row-sub"),
+			span: (tag === "td" || tag === "th") ? { row: el.rowSpan || 1, col: el.colSpan || 1, hasMedia: Boolean(el.querySelector("img, svg, canvas")) } : null,
 		};
 		if (el.tagName === "IMG") { box.objectFit = cs.objectFit; box.natural = { w: el.naturalWidth, h: el.naturalHeight }; }
 		return box;

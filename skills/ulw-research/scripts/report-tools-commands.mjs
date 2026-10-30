@@ -58,7 +58,7 @@ export function runCheck(argv) {
 		const layoutResult = checkLayout(readJsonFile(args.flags.layout))
 		defects.push(...layoutResult.defects)
 		gatesRun.push("layout")
-		layout = layoutResult.defects.some((d) => d.severity === "blocker") ? "fail" : "pass"
+		layout = layoutResult.defects.some((d) => d.severity === "blocker" || d.severity === "major") ? "fail" : "pass"
 	}
 	defects.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || (a.line ?? 0) - (b.line ?? 0) || a.code.localeCompare(b.code))
 	const counts = { blocker: 0, major: 0, minor: 0, total: defects.length }

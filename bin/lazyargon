@@ -1,0 +1,45 @@
+#!/usr/bin/env node
+/**
+ * bin/lazyargon — Unified LazyArgon v2.0 CLI Entrypoint
+ * Supports:
+ *   lazyargon [tui] [--once] [--json] [--cwd <dir>]
+ *   lazyargon radar <audit|list|poll> [--json]
+ *   lazyargon doctor [--json] [--strict]
+ */
+import { spawnSync } from "node:child_process";
+import { chmodSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const binPath = fileURLToPath(import.meta.url);
+const root = join(dirname(binPath), "..");
+
+try {
+	chmodSync(binPath, 0o755);
+} catch {
+	// ignore read-only fs
+}
+
+const args = process.argv.slice(2);
+const sub = args[0] || "tui";
+
+let script = "lazy_tui.mjs";
+let forwarded = args;
+
+if (sub === "tui") {
+	script = "lazy_tui.mjs";
+	forwarded = args.slice(1);
+} else if (sub === "radar" || sub === "upstream") {
+	script = "upstream_radar.mjs";
+	forwarded = args.slice(1);
+} else if (sub === "doctor") {
+	script = "doctor.mjs";
+	forwarded = args.slice(1);
+}
+
+const res = spawnSync(process.execPath, [join(root, "scripts", script), ...forwarded], {
+	stdio: "inherit",
+	cwd: process.cwd(),
+});
+
+process.exit(res.status ?? 0);

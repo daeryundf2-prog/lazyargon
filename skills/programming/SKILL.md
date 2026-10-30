@@ -82,6 +82,7 @@ Before declaring any coding task complete:
 
 - `references/code-smells.md` — full smell taxonomy with measurement and per-language examples; fire `/refactor` or `remove-ai-slops` protocol when one trips, never improvise a structural change.
 - `references/logging.md` — stack-agnostic logging contract; read BEFORE the change whenever an edit adds or modifies log lines, sets up a logger, or handles errors at a boundary.
+- `references/formal-verify.md` — formal verification workflow (`@poteto` `pstack`: TLA+ `tlc`, Lean 4, Rust `cargo kani`, Python Hypothesis/Z3) for state machines, locks, and financial invariants; run `node scripts/lsp_diagnostics.mjs` for `language_diagnostic_evidence/v1` and rename-preview checks.
 
 ## Per-Language Jump Table
 

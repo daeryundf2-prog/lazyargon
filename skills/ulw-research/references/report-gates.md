@@ -36,6 +36,8 @@ This reference catalogs every defect code the report gates (`static`, `layout`, 
 | `layout_scroll_container` | minor | false | A table or list is wrapped in a scrollable container for HTML deliverables. Scrolling content prints clipped in PDF or DOCX. | Scrolling content prints clipped; make the content fit or wrap the table in a scroll wrapper only for HTML deliverables. |
 | `layout_image_distorted` | major | false | An image is distorted, stretched, or squeezed (aspect ratio is not preserved). The visual information is misrepresented. | Preserve the image aspect ratio (object-fit: contain inside a fixed container). |
 | `layout_sibling_overlap` | major | false | Two adjacent block elements overlap (via negative margins, absolute positioning, or grid collision). Layout is broken. | Separate the overlapping elements (margins, grid, or a slide split). |
+| `layout_page_underfill` | major | false | A non-cover, non-final page container (`.page`, `.a4-page`, `.a4-sheet`, `.page-section`) leaves >40% bottom vertical void because an atomic block was pushed to the next page or no bottom footer anchor exists. | Use `.a4-sheet` flex shell with `.sheet-footer { margin-top: auto }`, relax forced `break-before: page`, or split oversized atomic tables. |
+| `layout_cell_void_imbalance` | minor | false | A table row (`>= 84px` tall) has >= 50% of its 1x1 text cells using <= 30% of the row's inner height (`>= 52px` empty vertical void), typically caused by a 64-char hash or long quote wrapping in one narrow column. | Move 64-char hashes, paths, or multi-line quotes into a full-width `<tr class="row-sub"><td colspan="N">` sub-row wrapped in `<tbody class="row-group">`. |
 
 ## Exit Codes
 

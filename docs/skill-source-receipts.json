@@ -1,0 +1,27 @@
+{
+  "schema": "skill_source_closure_audit/v1",
+  "version": "1.0.0",
+  "updated_at": "2026-10-30T11:45:00Z",
+  "sources": [
+    { "repo": "rlaope/oh-my-hermes", "url": "https://github.com/rlaope/oh-my-hermes", "pinned_sha": "0f9cf0c", "keyword": "OMH / oh-my-hermes", "mapped_targets": ["scripts/dag_ulw.mjs", "scripts/lazy_tui.mjs", "scripts/upstream_radar.mjs"] },
+    { "repo": "NousResearch/hermes-agent", "url": "https://github.com/NousResearch/hermes-agent", "pinned_sha": "63d0b941", "keyword": "Hermes-Agent base", "mapped_targets": ["scripts/doctor.mjs", "scripts/session_start.mjs"] },
+    { "repo": "can1357/oh-my-pi", "url": "https://github.com/can1357/oh-my-pi", "pinned_sha": "omp-lsp-dap-v1", "keyword": "omp LSP & DAP", "mapped_targets": ["scripts/lsp_diagnostics.mjs", "skills/debugging/references/dap-session-plan.md"] },
+    { "repo": "michael-denyer/pstack-claude", "url": "https://github.com/michael-denyer/pstack-claude", "pinned_sha": "pstack-v1", "keyword": "poteto pstack & skills", "mapped_targets": ["skills/programming/references/formal-verify.md"] },
+    { "repo": "faxenoff/ultracode", "url": "https://github.com/faxenoff/ultracode", "pinned_sha": "codegraph-ppr-v1", "keyword": "ultracode graph engineering", "mapped_targets": ["scripts/codegraph.mjs"] },
+    { "repo": "revfactory/showreel", "url": "https://github.com/revfactory/showreel", "pinned_sha": "64521220a2f8", "keyword": "videogen / showreel", "mapped_targets": ["../lazyargon-workspace/skills/video-editor/references/showreel-videogen.md"] },
+    { "repo": "blader/humanizer", "url": "https://github.com/blader/humanizer", "pinned_sha": "8c307f36", "keyword": "humanizer(말투)", "mapped_targets": ["scripts/lazy_slop_cleaner.mjs", "../lazyargon-workspace/skills/humanize-korean/SKILL.md"] },
+    { "repo": "code-yeongyu/oh-my-openagent", "url": "https://github.com/code-yeongyu/oh-my-openagent", "pinned_sha": "v5.1.51", "keyword": "OmO", "mapped_targets": ["skills/ulw/SKILL.md", "scripts/stop_claim_guard.mjs"] },
+    { "repo": "Yeachan-Heo/oh-my-claudecode", "url": "https://github.com/Yeachan-Heo/oh-my-claudecode", "pinned_sha": "8262f9f7", "keyword": "OMC", "mapped_targets": ["scripts/lazy_slop_cleaner.mjs"] },
+    { "repo": "Yeachan-Heo/oh-my-codex", "url": "https://github.com/Yeachan-Heo/oh-my-codex", "pinned_sha": "omx-runtime-v1", "keyword": "OMX", "mapped_targets": ["scripts/dag_ulw.mjs"] },
+    { "repo": "obra/superpowers", "url": "https://github.com/obra/superpowers", "pinned_sha": "v7.0.1", "keyword": "superpowers", "mapped_targets": ["skills/debugging/SKILL.md", "skills/debugging/references/dap-session-plan.md"] },
+    { "repo": "garrytan/gstack", "url": "https://github.com/garrytan/gstack", "pinned_sha": "gstack-23roles", "keyword": "gstack", "mapped_targets": ["skills/ulw/references/gstack-gates.md"] },
+    { "repo": "karpathy/autoresearch", "url": "https://github.com/karpathy/autoresearch", "pinned_sha": "autoresearch-v1", "keyword": "auto-research", "mapped_targets": ["scripts/autoresearch_loop.mjs", "skills/ulw/references/measured-loop-discipline.md"] },
+    { "repo": "deepseek-ai/deepseek-harness", "url": "https://github.com/deepseek-ai/deepseek-harness", "pinned_sha": "cordis-2608.25512", "keyword": "deepseek-harness", "mapped_targets": ["rules/AGENTS.md", "scripts/lazy_slop_cleaner.mjs"] },
+    { "repo": "MoonshotAI/kimi-cli", "url": "https://github.com/MoonshotAI/kimi-cli", "pinned_sha": "kimi-k3.1-pro", "keyword": "kimi-code", "mapped_targets": ["scripts/model_calibrate.mjs"] },
+    { "repo": "zai-org/ZCode", "url": "https://github.com/zai-org/ZCode", "pinned_sha": "glm-5.3-zcode", "keyword": "zcode", "mapped_targets": ["scripts/model_calibrate.mjs"] },
+    { "repo": "mem0ai/mem0", "url": "https://github.com/mem0ai/mem0", "pinned_sha": "mem0-graph-v1", "keyword": "mem0", "mapped_targets": ["scripts/lazy_memory.py"] },
+    { "repo": "letta-ai/letta", "url": "https://github.com/letta-ai/letta", "pinned_sha": "letta-dreaming-v1", "keyword": "letta", "mapped_targets": ["scripts/lazy_memory.py"] },
+    { "repo": "MarkrAI/AutoRAG", "url": "https://github.com/MarkrAI/AutoRAG", "pinned_sha": "autorag-rrf-v1", "keyword": "autorag", "mapped_targets": ["scripts/lazy_rag.py"] },
+    { "repo": "google-research/harness2", "url": "https://github.com/google-research/harness2", "pinned_sha": "harness2-keep-base", "keyword": "harness2", "mapped_targets": ["scripts/doctor.mjs", "scripts/lazy_slop_cleaner.mjs"] }
+  ]
+}
