@@ -1,39 +1,367 @@
 {
   "schema": "skill_source_closure_audit/v1",
-  "version": "1.0.0",
-  "updated_at": "2026-10-30T11:45:00Z",
+  "version": "1.1.0",
+  "updated_at": "2026-10-30T13:38:39.643Z",
   "sources": [
-    { "repo": "rlaope/oh-my-hermes", "url": "https://github.com/rlaope/oh-my-hermes", "pinned_sha": "0f9cf0c", "keyword": "OMH / oh-my-hermes", "mapped_targets": ["scripts/dag_ulw.mjs", "scripts/lazy_tui.mjs", "scripts/upstream_radar.mjs"] },
-    { "repo": "NousResearch/hermes-agent", "url": "https://github.com/NousResearch/hermes-agent", "pinned_sha": "63d0b941", "keyword": "Hermes-Agent base", "mapped_targets": ["scripts/doctor.mjs", "scripts/session_start.mjs"] },
-    { "repo": "can1357/oh-my-pi", "url": "https://github.com/can1357/oh-my-pi", "pinned_sha": "omp-lsp-dap-v1", "keyword": "omp LSP & DAP", "mapped_targets": ["scripts/lsp_diagnostics.mjs", "skills/debugging/references/dap-session-plan.md"] },
-    { "repo": "michael-denyer/pstack-claude", "url": "https://github.com/michael-denyer/pstack-claude", "pinned_sha": "pstack-v1", "keyword": "poteto pstack & skills", "mapped_targets": ["skills/programming/references/formal-verify.md"] },
-    { "repo": "faxenoff/ultracode", "url": "https://github.com/faxenoff/ultracode", "pinned_sha": "codegraph-ppr-v1", "keyword": "ultracode graph engineering", "mapped_targets": ["scripts/codegraph.mjs"] },
-    { "repo": "revfactory/showreel", "url": "https://github.com/revfactory/showreel", "pinned_sha": "64521220a2f8", "keyword": "videogen / showreel", "mapped_targets": ["../lazyargon-workspace/skills/video-editor/references/showreel-videogen.md"] },
-    { "repo": "blader/humanizer", "url": "https://github.com/blader/humanizer", "pinned_sha": "8c307f36", "keyword": "humanizer(말투)", "mapped_targets": ["scripts/lazy_slop_cleaner.mjs", "../lazyargon-workspace/skills/humanize-korean/SKILL.md"] },
-    { "repo": "code-yeongyu/oh-my-openagent", "url": "https://github.com/code-yeongyu/oh-my-openagent", "pinned_sha": "v5.1.51", "keyword": "OmO", "mapped_targets": ["skills/ulw/SKILL.md", "scripts/stop_claim_guard.mjs"] },
-    { "repo": "Yeachan-Heo/oh-my-claudecode", "url": "https://github.com/Yeachan-Heo/oh-my-claudecode", "pinned_sha": "8262f9f7", "keyword": "OMC", "mapped_targets": ["scripts/lazy_slop_cleaner.mjs"] },
-    { "repo": "Yeachan-Heo/oh-my-codex", "url": "https://github.com/Yeachan-Heo/oh-my-codex", "pinned_sha": "omx-runtime-v1", "keyword": "OMX", "mapped_targets": ["scripts/dag_ulw.mjs"] },
-    { "repo": "obra/superpowers", "url": "https://github.com/obra/superpowers", "pinned_sha": "v7.0.1", "keyword": "superpowers", "mapped_targets": ["skills/debugging/SKILL.md", "skills/debugging/references/dap-session-plan.md"] },
-    { "repo": "garrytan/gstack", "url": "https://github.com/garrytan/gstack", "pinned_sha": "gstack-23roles", "keyword": "gstack", "mapped_targets": ["skills/ulw/references/gstack-gates.md"] },
-    { "repo": "karpathy/autoresearch", "url": "https://github.com/karpathy/autoresearch", "pinned_sha": "autoresearch-v1", "keyword": "auto-research", "mapped_targets": ["scripts/autoresearch_loop.mjs", "skills/ulw/references/measured-loop-discipline.md"] },
-    { "repo": "deepseek-ai/deepseek-harness", "url": "https://github.com/deepseek-ai/deepseek-harness", "pinned_sha": "cordis-2608.25512", "keyword": "deepseek-harness", "mapped_targets": ["rules/AGENTS.md", "scripts/lazy_slop_cleaner.mjs"] },
-    { "repo": "MoonshotAI/kimi-cli", "url": "https://github.com/MoonshotAI/kimi-cli", "pinned_sha": "kimi-k3.1-pro", "keyword": "kimi-code", "mapped_targets": ["scripts/model_calibrate.mjs"] },
-    { "repo": "zai-org/ZCode", "url": "https://github.com/zai-org/ZCode", "pinned_sha": "glm-5.3-zcode", "keyword": "zcode", "mapped_targets": ["scripts/model_calibrate.mjs"] },
-    { "repo": "mem0ai/mem0", "url": "https://github.com/mem0ai/mem0", "pinned_sha": "mem0-graph-v1", "keyword": "mem0", "mapped_targets": ["scripts/lazy_memory.py"] },
-    { "repo": "letta-ai/letta", "url": "https://github.com/letta-ai/letta", "pinned_sha": "letta-dreaming-v1", "keyword": "letta", "mapped_targets": ["scripts/lazy_memory.py"] },
-    { "repo": "MarkrAI/AutoRAG", "url": "https://github.com/MarkrAI/AutoRAG", "pinned_sha": "autorag-rrf-v1", "keyword": "autorag", "mapped_targets": ["scripts/lazy_rag.py"] },
-    { "repo": "google-research/harness2", "url": "https://github.com/google-research/harness2", "pinned_sha": "harness2-keep-base", "keyword": "harness2", "mapped_targets": ["scripts/doctor.mjs", "scripts/lazy_slop_cleaner.mjs"] },
-    { "repo": "anthropics/claude-code", "url": "https://github.com/anthropics/claude-code", "pinned_sha": "v1.0.24", "keyword": "Claude Code Hook & Subagent Harness", "mapped_targets": ["hooks.json", "scripts/session_start.mjs"] },
-    { "repo": "openai/codex", "url": "https://github.com/openai/codex", "pinned_sha": "codex-cli-01a8f2c", "keyword": "OpenAI Codex CLI Sandbox Harness", "mapped_targets": ["skills/programming/SKILL.md"] },
-    { "repo": "google-gemini/gemini-cli", "url": "https://github.com/google-gemini/gemini-cli", "pinned_sha": "a4c91e2", "keyword": "Gemini CLI Agent Runtime", "mapped_targets": ["rules/AGENTS.md", "scripts/doctor.mjs"] },
-    { "repo": "anomalyco/opencode", "url": "https://github.com/anomalyco/opencode", "pinned_sha": "9b3d41e", "keyword": "OpenCode TUI & LSP Harness", "mapped_targets": ["scripts/lazy_tui.mjs", "scripts/lsp_diagnostics.mjs"] },
-    { "repo": "Aider-AI/aider", "url": "https://github.com/Aider-AI/aider", "pinned_sha": "7c2e89a", "keyword": "Aider RepoMap PageRank Harness", "mapped_targets": ["scripts/codegraph.mjs"] },
-    { "repo": "All-Hands-AI/OpenHands", "url": "https://github.com/All-Hands-AI/OpenHands", "pinned_sha": "5f1b30d", "keyword": "OpenHands Runtime Verification", "mapped_targets": ["skills/gf-qa-behavioral-verification/SKILL.md"] },
-    { "repo": "SWE-agent/SWE-agent", "url": "https://github.com/SWE-agent/SWE-agent", "pinned_sha": "3e8a71c", "keyword": "SWE-agent ACI Debugging", "mapped_targets": ["skills/debugging/SKILL.md"] },
-    { "repo": "ContinueDev/continue", "url": "https://github.com/ContinueDev/continue", "pinned_sha": "4d9c20b", "keyword": "Continue Context Rerank", "mapped_targets": ["scripts/lazy_rag.py"] },
-    { "repo": "cline/cline", "url": "https://github.com/cline/cline", "pinned_sha": "8a1f64e", "keyword": "Cline Plan/Act & Browser QA", "mapped_targets": ["skills/visual-qa/SKILL.md"] },
-    { "repo": "mendableai/firecrawl", "url": "https://github.com/mendableai/firecrawl", "pinned_sha": "2c7e51a", "keyword": "Firecrawl Web Evidence & Deep Research", "mapped_targets": ["skills/ulw-research/SKILL.md"] },
-    { "repo": "ast-grep/ast-grep", "url": "https://github.com/ast-grep/ast-grep", "pinned_sha": "6b4d92f", "keyword": "ast-grep Structural Codemod", "mapped_targets": ["skills/ast-grep/SKILL.md"] },
-    { "repo": "biomejs/biome", "url": "https://github.com/biomejs/biome", "pinned_sha": "1f8e34c", "keyword": "Biome Fast Lint & Format Guard", "mapped_targets": ["skills/programming/SKILL.md", "scripts/lsp_diagnostics.mjs"] }
+    {
+      "repo": "rlaope/oh-my-hermes",
+      "url": "https://github.com/rlaope/oh-my-hermes",
+      "pinned_sha": null,
+      "keyword": "OMH / oh-my-hermes",
+      "mapped_targets": [
+        "scripts/dag_ulw.mjs",
+        "scripts/lazy_tui.mjs",
+        "scripts/upstream_radar.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "0f9cf0c"
+    },
+    {
+      "repo": "NousResearch/hermes-agent",
+      "url": "https://github.com/NousResearch/hermes-agent",
+      "pinned_sha": "63d0b94120027d487c9a5235b9ec64b696af1b26",
+      "keyword": "Hermes-Agent base",
+      "mapped_targets": [
+        "scripts/doctor.mjs",
+        "scripts/session_start.mjs"
+      ],
+      "status": "verified"
+    },
+    {
+      "repo": "can1357/oh-my-pi",
+      "url": "https://github.com/can1357/oh-my-pi",
+      "pinned_sha": null,
+      "keyword": "omp LSP & DAP",
+      "mapped_targets": [
+        "scripts/lsp_diagnostics.mjs",
+        "skills/debugging/references/dap-session-plan.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "omp-lsp-dap-v1"
+    },
+    {
+      "repo": "michael-denyer/pstack-claude",
+      "url": "https://github.com/michael-denyer/pstack-claude",
+      "pinned_sha": null,
+      "keyword": "poteto pstack & skills",
+      "mapped_targets": [
+        "skills/programming/references/formal-verify.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "pstack-v1"
+    },
+    {
+      "repo": "faxenoff/ultracode",
+      "url": "https://github.com/faxenoff/ultracode",
+      "pinned_sha": null,
+      "keyword": "ultracode graph engineering",
+      "mapped_targets": [
+        "scripts/codegraph.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "codegraph-ppr-v1"
+    },
+    {
+      "repo": "revfactory/showreel",
+      "url": "https://github.com/revfactory/showreel",
+      "pinned_sha": "64521220a2f8e91cb9894400c48c15b7f45205d6",
+      "keyword": "videogen / showreel",
+      "mapped_targets": [
+        "../lazyargon-workspace/skills/video-editor/references/showreel-videogen.md"
+      ],
+      "status": "verified"
+    },
+    {
+      "repo": "blader/humanizer",
+      "url": "https://github.com/blader/humanizer",
+      "pinned_sha": "8c307f367c91bd974002f10f2be2965d642c13df",
+      "keyword": "humanizer(말투)",
+      "mapped_targets": [
+        "scripts/lazy_slop_cleaner.mjs",
+        "../lazyargon-workspace/skills/humanize-korean/SKILL.md"
+      ],
+      "status": "verified"
+    },
+    {
+      "repo": "code-yeongyu/oh-my-openagent",
+      "url": "https://github.com/code-yeongyu/oh-my-openagent",
+      "pinned_sha": "c8955517dd95d2d8dd1ed6c871705a2eb9921840",
+      "keyword": "OmO",
+      "mapped_targets": [
+        "skills/ulw/SKILL.md",
+        "scripts/stop_claim_guard.mjs"
+      ],
+      "status": "verified"
+    },
+    {
+      "repo": "Yeachan-Heo/oh-my-claudecode",
+      "url": "https://github.com/Yeachan-Heo/oh-my-claudecode",
+      "pinned_sha": "8262f9f790eed35e6cbd66572b36c2acba18f679",
+      "keyword": "OMC",
+      "mapped_targets": [
+        "scripts/lazy_slop_cleaner.mjs"
+      ],
+      "status": "verified"
+    },
+    {
+      "repo": "Yeachan-Heo/oh-my-codex",
+      "url": "https://github.com/Yeachan-Heo/oh-my-codex",
+      "pinned_sha": null,
+      "keyword": "OMX",
+      "mapped_targets": [
+        "scripts/dag_ulw.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "omx-runtime-v1"
+    },
+    {
+      "repo": "obra/superpowers",
+      "url": "https://github.com/obra/superpowers",
+      "pinned_sha": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+      "keyword": "superpowers",
+      "mapped_targets": [
+        "skills/debugging/SKILL.md",
+        "skills/debugging/references/dap-session-plan.md"
+      ],
+      "status": "verified"
+    },
+    {
+      "repo": "garrytan/gstack",
+      "url": "https://github.com/garrytan/gstack",
+      "pinned_sha": null,
+      "keyword": "gstack",
+      "mapped_targets": [
+        "skills/ulw/references/gstack-gates.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "gstack-23roles"
+    },
+    {
+      "repo": "karpathy/autoresearch",
+      "url": "https://github.com/karpathy/autoresearch",
+      "pinned_sha": null,
+      "keyword": "auto-research",
+      "mapped_targets": [
+        "scripts/autoresearch_loop.mjs",
+        "skills/ulw/references/measured-loop-discipline.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "autoresearch-v1"
+    },
+    {
+      "repo": "deepseek-ai/deepseek-harness",
+      "url": "https://github.com/deepseek-ai/deepseek-harness",
+      "pinned_sha": null,
+      "keyword": "deepseek-harness",
+      "mapped_targets": [
+        "rules/AGENTS.md",
+        "scripts/lazy_slop_cleaner.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "cordis-2608.25512"
+    },
+    {
+      "repo": "MoonshotAI/kimi-cli",
+      "url": "https://github.com/MoonshotAI/kimi-cli",
+      "pinned_sha": null,
+      "keyword": "kimi-code",
+      "mapped_targets": [
+        "scripts/model_calibrate.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "kimi-k3.1-pro"
+    },
+    {
+      "repo": "zai-org/ZCode",
+      "url": "https://github.com/zai-org/ZCode",
+      "pinned_sha": null,
+      "keyword": "zcode",
+      "mapped_targets": [
+        "scripts/model_calibrate.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "glm-5.3-zcode"
+    },
+    {
+      "repo": "mem0ai/mem0",
+      "url": "https://github.com/mem0ai/mem0",
+      "pinned_sha": null,
+      "keyword": "mem0",
+      "mapped_targets": [
+        "scripts/lazy_memory.py"
+      ],
+      "status": "unverified",
+      "claimed_pin": "mem0-graph-v1"
+    },
+    {
+      "repo": "letta-ai/letta",
+      "url": "https://github.com/letta-ai/letta",
+      "pinned_sha": null,
+      "keyword": "letta",
+      "mapped_targets": [
+        "scripts/lazy_memory.py"
+      ],
+      "status": "unverified",
+      "claimed_pin": "letta-dreaming-v1"
+    },
+    {
+      "repo": "Marker-Inc-Korea/AutoRAG",
+      "url": "https://github.com/Marker-Inc-Korea/AutoRAG",
+      "pinned_sha": null,
+      "keyword": "autorag",
+      "mapped_targets": [
+        "scripts/lazy_rag.py"
+      ],
+      "status": "unverified",
+      "claimed_pin": "autorag-rrf-v1"
+    },
+    {
+      "repo": "google-research/harness2",
+      "url": "https://github.com/google-research/harness2",
+      "pinned_sha": null,
+      "keyword": "harness2",
+      "mapped_targets": [
+        "scripts/doctor.mjs",
+        "scripts/lazy_slop_cleaner.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "harness2-keep-base"
+    },
+    {
+      "repo": "anthropics/claude-code",
+      "url": "https://github.com/anthropics/claude-code",
+      "pinned_sha": null,
+      "keyword": "Claude Code Hook & Subagent Harness",
+      "mapped_targets": [
+        "hooks.json",
+        "scripts/session_start.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "v1.0.24"
+    },
+    {
+      "repo": "openai/codex",
+      "url": "https://github.com/openai/codex",
+      "pinned_sha": null,
+      "keyword": "OpenAI Codex CLI Sandbox Harness",
+      "mapped_targets": [
+        "skills/programming/SKILL.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "codex-cli-01a8f2c"
+    },
+    {
+      "repo": "google-gemini/gemini-cli",
+      "url": "https://github.com/google-gemini/gemini-cli",
+      "pinned_sha": null,
+      "keyword": "Gemini CLI Agent Runtime",
+      "mapped_targets": [
+        "rules/AGENTS.md",
+        "scripts/doctor.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "a4c91e2"
+    },
+    {
+      "repo": "anomalyco/opencode",
+      "url": "https://github.com/anomalyco/opencode",
+      "pinned_sha": null,
+      "keyword": "OpenCode TUI & LSP Harness",
+      "mapped_targets": [
+        "scripts/lazy_tui.mjs",
+        "scripts/lsp_diagnostics.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "9b3d41e"
+    },
+    {
+      "repo": "Aider-AI/aider",
+      "url": "https://github.com/Aider-AI/aider",
+      "pinned_sha": null,
+      "keyword": "Aider RepoMap PageRank Harness",
+      "mapped_targets": [
+        "scripts/codegraph.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "7c2e89a"
+    },
+    {
+      "repo": "OpenHands/OpenHands",
+      "url": "https://github.com/OpenHands/OpenHands",
+      "pinned_sha": null,
+      "keyword": "OpenHands Runtime Verification",
+      "mapped_targets": [
+        "skills/gf-qa-behavioral-verification/SKILL.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "5f1b30d"
+    },
+    {
+      "repo": "SWE-agent/SWE-agent",
+      "url": "https://github.com/SWE-agent/SWE-agent",
+      "pinned_sha": null,
+      "keyword": "SWE-agent ACI Debugging",
+      "mapped_targets": [
+        "skills/debugging/SKILL.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "3e8a71c"
+    },
+    {
+      "repo": "continuedev/continue",
+      "url": "https://github.com/continuedev/continue",
+      "pinned_sha": null,
+      "keyword": "Continue Context Rerank",
+      "mapped_targets": [
+        "scripts/lazy_rag.py"
+      ],
+      "status": "unverified",
+      "claimed_pin": "4d9c20b"
+    },
+    {
+      "repo": "cline/cline",
+      "url": "https://github.com/cline/cline",
+      "pinned_sha": null,
+      "keyword": "Cline Plan/Act & Browser QA",
+      "mapped_targets": [
+        "skills/visual-qa/SKILL.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "8a1f64e"
+    },
+    {
+      "repo": "firecrawl/firecrawl",
+      "url": "https://github.com/firecrawl/firecrawl",
+      "pinned_sha": null,
+      "keyword": "Firecrawl Web Evidence & Deep Research",
+      "mapped_targets": [
+        "skills/ulw-research/SKILL.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "2c7e51a"
+    },
+    {
+      "repo": "ast-grep/ast-grep",
+      "url": "https://github.com/ast-grep/ast-grep",
+      "pinned_sha": null,
+      "keyword": "ast-grep Structural Codemod",
+      "mapped_targets": [
+        "skills/ast-grep/SKILL.md"
+      ],
+      "status": "unverified",
+      "claimed_pin": "6b4d92f"
+    },
+    {
+      "repo": "biomejs/biome",
+      "url": "https://github.com/biomejs/biome",
+      "pinned_sha": null,
+      "keyword": "Biome Fast Lint & Format Guard",
+      "mapped_targets": [
+        "skills/programming/SKILL.md",
+        "scripts/lsp_diagnostics.mjs"
+      ],
+      "status": "unverified",
+      "claimed_pin": "1f8e34c"
+    }
   ]
 }

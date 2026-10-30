@@ -22,7 +22,7 @@ test("upstream_radar.mjs audit --json verifies all 32 sources and closure target
 	assert.ok(data.verified_targets >= 15);
 });
 
-test("upstream_radar.mjs audit negative path detects missing target and fails closed", () => {
+test("upstream_radar.mjs audit negative path detects missing target and fabricated pin, fails closed", () => {
 	const tmp = mkdtempSync(join(tmpdir(), "radar-test-"));
 	try {
 		const badReceipts = join(tmp, "bad-receipts.json");
@@ -36,9 +36,18 @@ test("upstream_radar.mjs audit negative path detects missing target and fails cl
 					{
 						repo: "example/missing-repo",
 						url: "https://github.com/example/missing-repo",
-						pinned_sha: "deadbeef",
+						pinned_sha: null,
+						status: "unverified",
 						keyword: "missing",
 						mapped_targets: ["scripts/does_not_exist_anywhere_999.mjs"],
+					},
+					{
+						repo: "example/fabricated-pin",
+						url: "https://github.com/example/fabricated-pin",
+						pinned_sha: "deadbeef",
+						status: "verified",
+						keyword: "fabricated",
+						mapped_targets: ["scripts/doctor.mjs"],
 					},
 				],
 			}),
@@ -48,6 +57,7 @@ test("upstream_radar.mjs audit negative path detects missing target and fails cl
 		const data = JSON.parse(res.stdout);
 		assert.equal(data.ok, false);
 		assert.ok(data.missing_targets.includes("scripts/does_not_exist_anywhere_999.mjs"));
+		assert.deepEqual(data.invalid_sources, ["example/fabricated-pin"]);
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}

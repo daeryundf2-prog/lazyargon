@@ -435,8 +435,8 @@ function skillsSourceReceipts() {
 		return;
 	}
 	const res = spawnSync("node", [radarScript, "audit", "--json"], { cwd: root, encoding: "utf8", timeout: 3000 });
-	if (res.error || res.status !== 0) {
-		add("skills.source_receipts", "fail", `업스트림 영수증 감사 실패: ${(res.stderr || res.stdout || "").trim()}`);
+	if (res.error || !res.stdout) {
+		add("skills.source_receipts", "fail", `업스트림 영수증 감사 실패: ${(res.error?.message || res.stderr || "").trim()}`);
 		return;
 	}
 	try {
@@ -444,7 +444,9 @@ function skillsSourceReceipts() {
 		add(
 			"skills.source_receipts",
 			data.ok ? "ok" : "fail",
-			data.ok ? `${data.source_count}개 업스트림 하네스 SHA 영수증 및 ${data.verified_targets}개 타겟 실존 확인` : `누락 타겟: ${(data.missing_targets || []).join(", ")}`,
+			data.ok
+				? `${data.source_count}개 업스트림 영수증 (40자 SHA 핀 ${data.pinned_verified}개 / 미확인 ${data.pinned_unverified}개), ${data.verified_targets}개 타겟 실존`
+				: `부정확한 핀: ${(data.invalid_sources || []).join(", ") || "없음"}; 누락 타겟: ${(data.missing_targets || []).join(", ") || "없음"}`,
 		);
 	} catch (e) {
 		add("skills.source_receipts", "fail", `영수증 JSON 파싱 실패: ${e.message}`);

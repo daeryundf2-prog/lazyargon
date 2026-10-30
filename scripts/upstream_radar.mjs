@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * upstream_radar.mjs — 30+ Global Harness & 20 Core Upstream Tracker (v2.0 Wave 5)
+ * upstream_radar.mjs — upstream receipt audit + real HEAD SHA tracker
  * CLI:
- *   node scripts/upstream_radar.mjs <audit|list|poll> [--receipts docs/skill-source-receipts.json] [--json] [--offline|--remote]
+ *   node scripts/upstream_radar.mjs <audit|list|poll> [--receipts docs/skill-source-receipts.json] [--json] [--offline|--remote] [--write]
+ * poll --remote --write records observed_head_sha/observed_at; pins change only by human decision.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -19,7 +20,7 @@ function parseArgs(argv) {
 	let receipts = DEFAULT_RECEIPTS;
 	let json = false;
 	let remote = false;
-	let strict = false;
+	let write = false;
 	for (let i = 0; i < args.length; i += 1) {
 		const a = args[i];
 		if (a === "audit" || a === "list" || a === "poll") cmd = a;
@@ -31,9 +32,9 @@ function parseArgs(argv) {
 		} else if (a === "--json") json = true;
 		else if (a === "--remote") remote = true;
 		else if (a === "--offline") remote = false;
-		else if (a === "--strict") strict = true;
+		else if (a === "--write") write = true;
 	}
-	return { cmd, receipts, json, remote, strict };
+	return { cmd, receipts, json, remote, write };
 }
 
 export function loadReceipts(receiptsPath = DEFAULT_RECEIPTS) {
@@ -44,8 +45,14 @@ export function loadReceipts(receiptsPath = DEFAULT_RECEIPTS) {
 	return JSON.parse(raw);
 }
 
-export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS, options = {}) {
-	const strict = Boolean(options.strict);
+// A pin is honest only when it is a full commit SHA marked verified, or explicitly null + unverified.
+export function pinIsHonest(s) {
+	if (s?.status === "verified") return typeof s.pinned_sha === "string" && /^[0-9a-f]{40}$/.test(s.pinned_sha);
+	if (s?.status === "unverified") return s.pinned_sha === null;
+	return false;
+}
+
+export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS) {
 	const isDefault = resolve(receiptsPath) === resolve(DEFAULT_RECEIPTS);
 	let data;
 	try {
@@ -65,8 +72,6 @@ export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS, options = {}) {
 
 	const sources = Array.isArray(data.sources) ? data.sources : [];
 	const baseDir = isDefault ? root : dirname(dirname(resolve(receiptsPath)));
-	const skillSourcesDoc = join(root, "docs", "SKILL-SOURCES.md");
-	const docText = existsSync(skillSourcesDoc) ? readFileSync(skillSourcesDoc, "utf8") : "";
 	const verifiedSet = new Set();
 	const missingSet = new Set();
 	const invalidSources = [];
@@ -84,8 +89,7 @@ export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS, options = {}) {
 			s.repo.includes("/") &&
 			typeof s.url === "string" &&
 			/^https?:\/\/github\.com\//.test(s.url) &&
-			typeof s.pinned_sha === "string" &&
-			s.pinned_sha.trim().length > 0 &&
+			pinIsHonest(s) &&
 			Array.isArray(s.mapped_targets) &&
 			s.mapped_targets.length > 0;
 		if (!validFields) {
@@ -100,8 +104,7 @@ export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS, options = {}) {
 			const candidateA = resolve(baseDir, target);
 			const candidateB = resolve(root, target);
 			const onDisk = existsSync(candidateA) || existsSync(candidateB);
-			const docBacked = !strict && isDefault && docText.includes(basename(target)) && existsSync(dirname(candidateB));
-			if (onDisk || docBacked) verifiedSet.add(target);
+			if (onDisk) verifiedSet.add(target);
 			else missingSet.add(target);
 		}
 	}
@@ -115,6 +118,8 @@ export function auditReceipts(receiptsPath = DEFAULT_RECEIPTS, options = {}) {
 		schema: "skill_source_closure_audit/v1",
 		ok,
 		source_count: sources.length,
+		pinned_verified: sources.filter((s) => s?.status === "verified").length,
+		pinned_unverified: sources.filter((s) => s?.status === "unverified").length,
 		verified_targets: verified_target_list.length,
 		verified_target_list,
 		missing_targets,
@@ -132,40 +137,59 @@ export function pollReceipts(receiptsPath = DEFAULT_RECEIPTS, options = {}) {
 		}
 		const res = spawnSync("gh", ["api", `repos/${s.repo}/commits/HEAD`, "--jq", ".sha"], {
 			encoding: "utf8",
-			timeout: 3000,
+			timeout: 15000,
 		});
 		const sha = !res.error && res.status === 0 && res.stdout ? res.stdout.trim() : "";
-		if (!sha || !/^[0-9a-f]{7,40}$/i.test(sha)) {
-			return { repo: s.repo, keyword: s.keyword, pinned_sha: s.pinned_sha, remote_sha: null, drift: false, status: "offline_fallback" };
+		if (!/^[0-9a-f]{40}$/.test(sha)) {
+			const error = (res.error?.message || res.stderr || res.stdout || "no sha").trim().slice(0, 200);
+			return { repo: s.repo, keyword: s.keyword, pinned_sha: s.pinned_sha, remote_sha: null, drift: false, status: "unreachable", error };
 		}
-		const drift = !sha.startsWith(s.pinned_sha) && s.pinned_sha !== sha;
-		return { repo: s.repo, keyword: s.keyword, pinned_sha: s.pinned_sha, remote_sha: sha.slice(0, 12), drift, status: drift ? "drift_detected" : "up_to_date" };
+		if (!s.pinned_sha) {
+			return { repo: s.repo, keyword: s.keyword, pinned_sha: null, remote_sha: sha, drift: false, status: "unpinned" };
+		}
+		const drift = s.pinned_sha !== sha;
+		return { repo: s.repo, keyword: s.keyword, pinned_sha: s.pinned_sha, remote_sha: sha, drift, status: drift ? "drift_detected" : "up_to_date" };
 	});
+	if (remote && options.write) {
+		const observedAt = new Date().toISOString();
+		const byRepo = new Map(results.map((r) => [r.repo, r]));
+		for (const s of sources) {
+			const r = byRepo.get(s.repo);
+			if (r?.remote_sha) {
+				s.observed_head_sha = r.remote_sha;
+				s.observed_at = observedAt;
+			}
+		}
+		const tmp = `${receiptsPath}.${process.pid}.tmp`;
+		writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`);
+		renameSync(tmp, receiptsPath);
+	}
 	return {
 		schema: "skill_source_closure_audit/v1",
 		mode: remote ? "remote" : "offline",
 		source_count: results.length,
 		drift_count: results.filter((r) => r.drift).length,
+		unreachable_count: results.filter((r) => r.status === "unreachable").length,
 		sources: results,
 	};
 }
 
 function main() {
-	const { cmd, receipts, json, remote, strict } = parseArgs(process.argv);
+	const { cmd, receipts, json, remote, write } = parseArgs(process.argv);
 	if (cmd === "list") {
 		const data = loadReceipts(receipts);
 		const sources = data.sources || [];
 		if (json) console.log(JSON.stringify({ schema: data.schema, source_count: sources.length, sources }, null, 2));
-		else for (const s of sources) console.log(`${s.repo.padEnd(28)} ${s.pinned_sha.padEnd(18)} [${s.keyword}] -> ${s.mapped_targets.join(", ")}`);
+		else for (const s of sources) console.log(`${s.repo.padEnd(28)} ${String(s.pinned_sha ?? "unverified").padEnd(40)} [${s.keyword}] -> ${s.mapped_targets.join(", ")}`);
 		process.exit(0);
 	}
 	if (cmd === "poll") {
-		const res = pollReceipts(receipts, { remote });
+		const res = pollReceipts(receipts, { remote, write });
 		if (json) console.log(JSON.stringify(res, null, 2));
-		else for (const r of res.sources) console.log(`[${r.status.padEnd(16)}] ${r.repo.padEnd(28)} pinned=${r.pinned_sha}${r.remote_sha ? ` remote=${r.remote_sha}` : ""}`);
-		process.exit(0);
+		else for (const r of res.sources) console.log(`[${r.status.padEnd(16)}] ${r.repo.padEnd(28)} pinned=${r.pinned_sha ?? "unverified"}${r.remote_sha ? ` remote=${r.remote_sha}` : ""}`);
+		process.exit(res.unreachable_count ? 1 : 0);
 	}
-	const res = auditReceipts(receipts, { strict });
+	const res = auditReceipts(receipts);
 	if (json) console.log(JSON.stringify(res, null, 2));
 	else console.log(`[UPSTREAM RADAR] ok=${res.ok} sources=${res.source_count} verified=${res.verified_targets} missing=${res.missing_targets.length}`);
 	process.exit(res.ok ? 0 : 1);
