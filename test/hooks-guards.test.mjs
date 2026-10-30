@@ -148,7 +148,7 @@ test("#given stop_claim_guard.mjs #when fullyIdle:false, executionNum:2, or USER
 		{ hook_event_name: "Stop", terminationReason: "USER_CANCELED", last_assistant_message: grandClaim },
 		{ hook_event_name: "Stop", terminationReason: "MAX_TOKEN_BUDGET_EXCEEDED", last_assistant_message: grandClaim },
 	]) {
-		const res = runShCommand(stopCmd, JSON.stringify(bypassPayload));
+		const res = runShCommand(stopCmd, JSON.stringify(bypassPayload), ROOT, { LAZYARGON_STOP_GUARD: "enforce" });
 		assert.equal(res.status, 0, res.stderr);
 		assert.deepEqual(JSON.parse(res.stdout), {});
 	}
@@ -160,7 +160,7 @@ test("#given stop_claim_guard.mjs #when fullyIdle:false, executionNum:2, or USER
 		terminationReason: "NO_TOOL_CALL",
 		last_assistant_message: grandClaim,
 	};
-	const blockRes = runShCommand(stopCmd, JSON.stringify(blockPayload));
+	const blockRes = runShCommand(stopCmd, JSON.stringify(blockPayload), ROOT, { LAZYARGON_STOP_GUARD: "enforce" });
 	assert.equal(blockRes.status, 0);
 	assert.equal(JSON.parse(blockRes.stdout).decision, "block");
 });
