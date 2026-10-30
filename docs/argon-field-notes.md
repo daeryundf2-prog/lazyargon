@@ -89,6 +89,21 @@
 | SQLite freelist/WAL 카빙 및 세션 복구 실증: 삭제된 대화 복원 실무에서 `sqlite-evidence-query`의 freelist/WAL 카빙과 protobuf 디코딩을 통한 세션 복구 성공 확인 | 로컬 세션 1049b798 (10/22) |
 | SPA 동적 라이브 채증 시 DOM 대기: 동적 라이브(숲 악플 채증 등) 시 `locator.click` 타임아웃 및 브라우저 evaluate 레퍼런스 에러 방지를 위한 waitForSelector 필수 | 로컬 세션 edb82dff, 4ce21098 |
 
+## 2-4. 10/24 ~ 10/30 신규 (CLI 1.4.7~1.4.11 릴리스 노트·실세션 훅 실측·Gemini 4 Carbon·오픈소스 — 10/30 원문 대조)
+
+| 관찰 | 출처 |
+|---|---|
+| 1.4.7(10/24): 훅 stdin JSON에 `lastUserInput` 추가(실세션 SessionStart 페이로드에서 확인), ADC 로그인 시 스킬·룰·플러그인·훅이 로드되지 않던 문제 수정, 같은 OS 계정의 다른 사용자가 저장한 플러그인 OAuth 토큰을 쓰던 문제 수정, 단일 대형 메시지로 컴팩션이 반복되던 문제 수정 | antigravity-cli 1.4.7 |
+| 1.4.8(10/27): `/diff` Per Turn 탭 `[`·`]` 턴 이동, `agy plugin validate`가 `plugin.json`의 `author`/`homepage`/`repository`를 검사(경고), 이름에 콜론이 든 커스텀 에이전트 실행 수정, `/goal`이 포크로 상속되던 문제 수정, 사이드카 플러그인 메모리 누수 수정 | antigravity-cli 1.4.8 |
+| 1.4.9(10/28): 터미널 붙여넣기 단축키로 이미지 붙여넣기, `plugin validate`가 소문자 kebab-case가 아닌 `name`을 경고, 래핑 코드 주변 `U+FFF9`/`U+FFFA` 누출 수정, 짝 없는 tool result 때문에 매 턴 실패하던 대화 수정 | antigravity-cli 1.4.9 |
+| 1.4.10(10/29): 스크롤백 스트리밍, 시작 직후 약 100 MB 메모리 반환, 컴팩션 후 크기 표시 정밀화, 컴팩션 뒤 서브에이전트가 부모 과제·ID를 잃던 문제 수정 | antigravity-cli 1.4.10 |
+| 1.4.11(10/30): GCP 로그인 후 구독/Pay As You Go 과금 선택, `PreInvocation` 훅 `terminationBehavior: "terminate"`(모델 호출 전 턴 중단), `--output-format json`/`stream-json` 결과에 `finished_reason`, `agy plugin import claude`가 Claude 마켓플레이스 설치본을 못 찾던 문제 수정 | antigravity-cli 1.4.11 |
+| 실측(앱 2.28.2): SessionStart 출력에 `injectSteps` 외 키(`additionalContext`, `hookSpecificOutput`)가 있으면 주입 전체가 무시된다. `injectSteps`만 내보내면 `SYSTEM_MESSAGE` 단계로 주입된다. Stop 훅은 실제로 호출되지만 페이로드에 절대경로 워크스페이스가 없어 cwd(플러그인 루트) 기준으로 파일을 쓰면 안 된다 | 로컬 세션 2d8f2645, fa4f0c19, 2b2371f0, 8bd5dda6 |
+| Gemini 4 Carbon(10/28 발표): Fairwind 프로그램의 선별된 사이버 방어 조직에 먼저 제공, Artificial Analysis Intelligence Index 59, SEC-bench Pro 88.2%. 일반 개발용 주력은 여전히 `gemini-4-argon` | SecurityWeek, Reuters, BetaNews, Forbes (10/28~30) |
+| 오픈소스(실존·푸시일 GitHub API 확인): 주간 갱신 `sshahzaiib/agy-bridge`(Claude Code가 `agy`에 작업을 위임하는 MCP, 10/28), `ali0zdas/Argon-Flash-Orchestrator`(Argon 설계 + 3.8 Flash 병렬 서브에이전트, 10/20 생성), `zacbemis/pi-antigravity-acp-provider`·`jellydn/pi-agy-provider`·`Rahularya01/pi-antigravity`(Pi 프로바이더), `cortexkit/antigravity-auth`(OpenCode·Pi용 Antigravity OAuth). 주간 이전 갱신: `Joonghyun-Lee-Frieren/oh-my-antigravity`(10/19), `jacob-bd/antigravity-cli-skill`(10/18), `rmyndharis/antigravity-skills`(10/14), `ART1KZ/omp-antigravity-pro`(10/06) | GitHub API (10/30) |
+
+미확인(원문을 찾지 못함, 규칙에 반영하지 않음): `/compact` 도구 선언 보존·구형 thinking 블록 드롭, 유휴 CPU 50% 절감, 동시 세션 이벤트 격리, Argon 11/30 반값 프로모션, 커뮤니티 '降智' 후기, 마켓플레이스 플러그인 개수.
+
 ## 3. 규칙으로의 매핑
 
 | 노트 | 규칙·스킬 |
@@ -127,7 +142,8 @@
 | §2-3 PostToolUse 내부 메타파일 오탐 방지 | `lazyargon-workspace/scripts/hallucination_guard.mjs` `isAgentInternalFile` |
 | §2-3 SQLite freelist/WAL 카빙 및 세션 복구 | `skills/sqlite-evidence-query/SKILL.md` |
 | §2-3 SPA 동적 증거 채증 시 DOM 대기 | `skills/web-evidence-capture/SKILL.md` |
+| §2-4 SessionStart `injectSteps` 단독 출력, Stop 로그 경로(절대경로 워크스페이스 또는 홈) | `scripts/session_start.mjs`(양쪽 플러그인), `scripts/stop_claim_guard.mjs` |
 
 ## 4. 출처 목록
 
-HN 50073879 · Techzine 144960 · Analytics Vidhya 10/14 · 경향신문 202610141113011/202610142044005 · AI타임스 216220 · DeepLearning.AI The Batch 10/09 · TestingCatalog 10/11 · online-tech-tips · Antigravity 블로그 10/13 · 개발자 포럼 189559/189476/189085/189556/189699 · GitHub antigravity-cli #1228/#1245/#1249/#1254/#1255/#1266, 릴리스 1.3.6/1.4.0/1.4.1/1.4.2/1.4.3/1.4.4/1.4.5/1.4.6 · @antigravity X 10/15 · 개발자 포럼 189611/189620/189646/189731/189734/189741/189747/189748/189763/189788/190078/190412/190533 · Gen AI SDK 문서(Implicit Caching / `CONTINUATION`) · locdd 100913 · CyberQ 10/14 · note.com masa_wunder/kazu_t/10-19/10-24 · Zenn algoartis/10-18/10-23 · 虎嗅 4897290 · 知乎 10/19/10-24 · ritsuto Substack · dev.to akartit · BrainBytes Lab · ohmyunicorn · BigGo(Theo, Every 요약) · AGIラボ · i-Style · MindStudio · Roboflow · 新智元/163 · bilibili BV1Sqpy6KE2p · LuminaBench · TechTimes 329026 · Qiita htani0817/10-17/10-23 · 클리앙 19277187/19277177/19277539/19280145 · 에펨코리아 10448101474/10444308272 · 디시 thesingularity 1479216, ai_utilize 132243 · 루리웹 77025045/10-17 · 아카라이브 10/18/10-24 · 위시켓 · GeekNews 35306 · GitHub `google-research/harness2` (`arXiv:2610.14224`) · 로컬 brain 세션 실무(a0551456, 1049b798, edb82dff, 4ce21098).
+HN 50073879 · Techzine 144960 · Analytics Vidhya 10/14 · 경향신문 202610141113011/202610142044005 · AI타임스 216220 · DeepLearning.AI The Batch 10/09 · TestingCatalog 10/11 · online-tech-tips · Antigravity 블로그 10/13 · 개발자 포럼 189559/189476/189085/189556/189699 · GitHub antigravity-cli #1228/#1245/#1249/#1254/#1255/#1266, 릴리스 1.3.6/1.4.0/1.4.1/1.4.2/1.4.3/1.4.4/1.4.5/1.4.6/1.4.7/1.4.8/1.4.9/1.4.10/1.4.11 · @antigravity X 10/15 · 개발자 포럼 189611/189620/189646/189731/189734/189741/189747/189748/189763/189788/190078/190412/190533 · Gen AI SDK 문서(Implicit Caching / `CONTINUATION`) · locdd 100913 · CyberQ 10/14 · note.com masa_wunder/kazu_t/10-19/10-24 · Zenn algoartis/10-18/10-23 · 虎嗅 4897290 · 知乎 10/19/10-24 · V2EX 10/25~29 · ritsuto Substack · dev.to akartit · BrainBytes Lab · ohmyunicorn · BigGo(Theo, Every 요약) · AGIラボ · i-Style · MindStudio · Roboflow · 新智元/163 · bilibili BV1Sqpy6KE2p · LuminaBench · TechTimes 329026 · Qiita htani0817/10-17/10-23 · 클리앙 19277187/19277177/19277539/19280145 · 에펨코리아 10448101474/10444308272 · 디시 thesingularity 1479216, ai_utilize 132243 · 루리웹 77025045/10-17 · 아카라이브 10/18/10-24/10-28/10-29 · 위시켓 · GeekNews 35306 · GitHub `google-research/harness2` (`arXiv:2610.14224`) · GitHub `Joonghyun-Lee-Frieren/oh-my-antigravity` · `ali0zdas/Argon-Flash-Orchestrator` · `sshahzaiib/agy-bridge` · `ART1KZ/omp-antigravity-pro` · `zacbemis/pi-antigravity-acp-provider` · `Rahularya01/pi-antigravity` · `cortexkit/antigravity-auth` · `jacob-bd/antigravity-cli-skill` · `rmyndharis/antigravity-skills` · 로컬 brain 세션 실무(a0551456, 1049b798, edb82dff, 4ce21098). · GitHub google-antigravity/antigravity-cli 릴리스 1.4.7/1.4.8/1.4.9/1.4.10/1.4.11 · SecurityWeek·Reuters·BetaNews·Forbes Gemini 4 Carbon (10/28~30) · GitHub API 저장소 메타데이터 (10/30)
