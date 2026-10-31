@@ -4,11 +4,11 @@ Google Antigravity용 자율 실행(`/ulw`)·소프트웨어 엔지니어링·�
 
 ## v1.1.0 — Argon 실사용 보고 반영 (2026-10)
 
-출시 후 2주간의 1차 사용기(HN, Google AI 개발자 포럼, 국내외 블로그·커뮤니티 30여 건, [`docs/argon-field-notes.md`](docs/argon-field-notes.md))에서 반복 확인된 제약을 규칙·스킬·훅에 넣었다.
+출시 후 2주간의 1차 사용기(HN, Google AI 개발자 포럼, 국내외 블로그·커뮤니티; 출처 목록은 [`docs/argon-field-notes.md`](docs/argon-field-notes.md))에서 반복 보고된 제약을 규칙·스킬·훅에 넣었다.
 
 | 관찰 | 반영 |
 |---|---|
-| 큰 단일 `write_to_file`(≈1,000줄)이 호스트 60초 컷오프로 유실 | 모든 쓰기 100줄 청크 + 쓴 구간 재열람 (`rules/AGENTS.md`, `ulw`, `frontend`) |
+| 큰 단일 `write_to_file`(≈1,000줄)이 호스트 60초 컷오프로 유실 | 100줄·20KB 청크 쓰기 권장 + 쓴 구간 재열람 (`rules/AGENTS.md`, `ulw`, `frontend`); `write_chunk_guard.mjs`가 250줄 또는 24KB 초과 단일 쓰기를 차단 |
 | 컴팩션 뒤 기억에 의존한 편집이 없는 식별자를 만듦 | 컴팩션 후 재열람 규칙 + 범위 잠금 파일 `.lazyargon/ulw-scope.md` 를 `SessionStart`가 재주입 |
 | 워커 1개가 Flash의 ~20× 출력 토큰, 5시간 한도 급속 소진 | 팬아웃 전 `예산:` 선언(기본 4레인/2웨이브), 탐색·초안 레인은 `flash`, 판정 레인만 `inherit` |
 | 추론 루프·"Model unavailable" 재시도 | 워커 종료 조건(같은 도구 3회·호출 40회·무진척 2턴 → UNKNOWN) + 1회 재시도 후 제외 |
@@ -18,7 +18,7 @@ Google Antigravity용 자율 실행(`/ulw`)·소프트웨어 엔지니어링·�
 | API 키 모드에서 3.8 Flash로 무음 폴백 | `session_start.mjs`가 호스트 보고 모델명만 주입, 없으면 `unknown` |
 | 장황한 산출물, 지어낸 수치 패널 | 디자인 스킬에 카피 밀도 상한·수치 날조 금지 |
 | UI 표시와 달리 실제 컨텍스트 상한 256K, 컴팩션 뒤 ID·SHA 날조 (#1245) | `.lazyargon/pins.md`에 식별자 고정, `SessionStart`가 재주입 |
-| 예산을 넘은 규칙 파일이 통째로 빠짐 (#1254) | `rules/AGENTS.md` 21.9KB → 10KB, 키워드 표는 `docs/keyword-routing.md`, `doctor.mjs` `rules.budget` |
+| 예산을 넘은 규칙 파일이 통째로 빠짐 (#1254) | `rules/AGENTS.md` 10.5KB 이하로 축소, 키워드 표는 `docs/keyword-routing.md`, `doctor.mjs` `rules.budget` |
 | 한 턴 다중 도구 호출 시 승인 오배정으로 웨이브 정지 (#1249) | 워커 계약: 승인 도구는 한 턴에 하나 |
 | 한 번 차단된 대화는 계속 막힘, 보안 디버깅 차단 | 새 대화에서 범위 잠금으로 재개, 해당 레인만 Claude 5.5 |
 | API 키 모드 무음 폴백, 구버전 description 콜론 로딩 실패 | `doctor.mjs` `antigravity.model_provider`·`frontmatter.description_colon` |
@@ -36,13 +36,13 @@ Google Antigravity용 자율 실행(`/ulw`)·소프트웨어 엔지니어링·�
 | `remove-ai-slops` | AI 코드 슬롭 10종 병렬 제거 |
 | `git-master` | 원자적 커밋, 히스토리 분석, rebase/bisect 관리 |
 | `coding-agent-sessions` | 멀티 플랫폼 코딩 에이전트 세션 로그 탐색 및 복구 |
-| `frontend` | 시니어 디자이너급 UI/UX/AX 디자인 시스템 |
-| `visual-qa` | 멀티모달 시각 QA 및 CJK 조판 정밀 검증 (375px 우선) |
+| `frontend` | UI/UX/AX 디자인 시스템 레퍼런스와 구현 규칙 |
+| `visual-qa` | 스크린샷 기반 시각 QA 및 CJK 조판 점검 (375px 우선) |
 | `image-prompt` | 이미지 생성 프롬프트 컴파일러 및 플레이북 |
 | `diagram-design` | 39종 브랜드 에디토리얼 다이어그램 디자인 |
-| `logo-design` | 정밀 SVG 로고 및 브랜드 아이덴티티 디자인 |
+| `logo-design` | SVG 로고 및 브랜드 아이덴티티 디자인 (로고 카탈로그 1,400+) |
 | `data-scientist` | DuckDB / Polars 상주 커널 기반 데이터 분석 |
-| `gf-qa-behavioral-verification` | 런타임 행동 검증, 에러 은폐 차단, 채택 심사 |
+| `gf-qa-behavioral-verification` | 런타임 행동 검증, 에러 은폐 패턴 점검, 채택 심사 |
 | `gf-qa-computed-outputs` | 수식·파생 지표·참조 링크 무결성 검증 |
 | `gf-qa-artifact-consistency` | 산출물·미러 트리·매니페스트 일관성 검증 |
 

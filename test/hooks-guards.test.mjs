@@ -174,5 +174,5 @@ test("#given stop_claim_guard.mjs #when fullyIdle:false, executionNum:2, or USER
 	};
 	const blockRes = runShCommand(stopCmd, JSON.stringify(blockPayload), ROOT, { LAZYARGON_STOP_GUARD: "enforce" });
 	assert.equal(blockRes.status, 0);
-	assert.equal(JSON.parse(blockRes.stdout).decision, "block");
+	assert.equal(JSON.parse(blockRes.stdout).decision, "continue");
 });

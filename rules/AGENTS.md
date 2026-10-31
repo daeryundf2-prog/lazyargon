@@ -13,7 +13,7 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 </operating_principles>
 
 <argon_runtime_constraints>
-1. **Write in chunks: ≤100 lines and <20KB per call** (`scripts/write_chunk_guard.mjs` blocks oversized writes that trigger the `#1255` 60s stream cutoff). Reason first, write the skeleton, then append chunks.
+1. **Write in chunks of ≤100 lines and <20KB per call** (guidance). `scripts/write_chunk_guard.mjs` blocks single writes over 250 lines or 24KB, which risk the `#1255` 60s stream cutoff. Reason first, write the skeleton, then append chunks.
 2. **Real context cap is 256K tokens** (compaction at 240–280K resets cache). Before ~200K (and after each DB query batch), pin verified `(ID, artifact_name, value)` tuples to `.lazyargon/pins.md`. `<CONTEXT_SUMMARY>` cross-contaminates adjacent row IDs (`hit_id`, `source_id`) and artifact labels—after compaction, re-read `.lazyargon/ulw-scope.md`, `.lazyargon/pins.md`, and target files before editing; never copy IDs/metrics from `<CONTEXT_SUMMARY>`.
 3. **Re-open every written file** to verify before declaring it done.
 4. **State completeness explicitly.** Name the full file/case list; forbid duplicate implementations.
@@ -28,6 +28,7 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 13. **Vision & PDF coordinates.** Read each image once, record notes, and specify page numbers and spatial coordinates for PDFs/charts.
 14. **Safety filter loop & timeouts (300s+).** agy 1.4.4+ fixes silent filter retry loops; on refusal, record `미확인(모델 유보: 안전 필터)` and move on. For HIGH thinking, keep ≥300s keep-alive.
 15. **Implicit cache prefix invariance.** Top static rule/evidence prefix must stay byte-identical across turns to preserve the 95% discount (≥6,144 tokens); place dynamic metadata at the bottom.
+16. **Reply discipline.** No hype or flattery ('perfectly', '100% done', 'exhaustive', 'amazing', 'sharp point'). Do not add unrequested features, files, price or scope changes; propose in one line instead. Follow user-specified format/items/tone exactly. Completion reports state the commands run, their results and artifact paths; anything not checked is marked 미확인.
 </argon_runtime_constraints>
 
 <delegation_rules>

@@ -1,6 +1,6 @@
 ---
 name: vector-diagram
-description: "고해상도 벡터 다이어그램 & 아키텍처 구조도 코드 렌더링 스킬. 래스터 생성(generate_image)의 한글 글리프 깨짐과 쿼터 소진을 차단하고, XeLaTeX/Tectonic(Malgun Gothic / Pretendard / Apple SD Gothic Neo), Graphviz, Mermaid, Python SVG로 300DPI 무결점 벡터 이미지를 생성합니다. Triggers: vector diagram, diagram render, latex diagram, tectonic diagram, graphviz, 흐름도 생성, 구조도 생성, 벡터 다이어그램, 한글 다이어그램, 차트 렌더링"
+description: "고해상도 벡터 다이어그램 & 아키텍처 구조도 코드 렌더링 스킬. 래스터 생성(generate_image)의 한글 글리프 깨짐과 쿼터 소진을 차단하고, XeLaTeX/Tectonic(Malgun Gothic / Pretendard / Apple SD Gothic Neo), Graphviz, Mermaid, Python SVG로 300DPI 벡터 이미지를 생성합니다. Triggers: vector diagram, diagram render, latex diagram, tectonic diagram, graphviz, 흐름도 생성, 구조도 생성, 벡터 다이어그램, 한글 다이어그램, 차트 렌더링"
 ---
 
 # Vector Diagram: Code-Based High-Precision Diagram Renderer
@@ -21,7 +21,7 @@ flowchart TD
     Mmd --> PDFtoPNG
     
     PDFtoPNG --> Verify["4. $visual-qa 비전 검수<br/>- 절대경로 지정<br/>- 한글 라벨 Verbatim 인용 검증"]
-    Verify --> Done["무결점 고해상도 다이어그램 완성"]
+    Verify --> Done["다이어그램 렌더 완료"]
 ```
 
 ---
