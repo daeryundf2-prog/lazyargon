@@ -9,8 +9,20 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const HOOKS_JSON = JSON.parse(fs.readFileSync(path.join(ROOT, "hooks.json"), "utf8"));
 
+const FEEDBACK_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "lazyargon-feedback-"));
+process.on("exit", () => fs.rmSync(FEEDBACK_DIR, { recursive: true, force: true }));
+
+// PostToolUse guards are wrapped by post_tool_feedback.mjs: the hook always returns {} and queues failures.
+function takeFeedback(conversationId) {
+	const file = path.join(FEEDBACK_DIR, `${conversationId}.jsonl`);
+	if (!fs.existsSync(file)) return "";
+	const text = fs.readFileSync(file, "utf8");
+	fs.rmSync(file);
+	return text;
+}
+
 function runShCommand(cmd, stdinPayload, cwd = ROOT, extraEnv = {}) {
-	const env = { ...process.env, ...extraEnv };
+	const env = { ...process.env, LAZYARGON_FEEDBACK_DIR: FEEDBACK_DIR, ...extraEnv };
 	delete env.PLUGIN_ROOT;
 	const resolvedCmd = cmd.replace(/\$\{PLUGIN_ROOT:-\.\}/g, env.PLUGIN_ROOT || ".");
 	return spawnSync(resolvedCmd, {
@@ -92,14 +104,20 @@ test("#given lazyargon hooks.json commands #when executed without PLUGIN_ROOT #t
 		});
 
 		const mdFail = runShCommand(mdCmd, payload);
-		assert.equal(mdFail.status, 1);
-		assert.match(mdFail.stderr, /table_column_mismatch/);
+		assert.equal(mdFail.status, 0, mdFail.stderr);
+		assert.deepEqual(JSON.parse(mdFail.stdout), {});
+		// PreInvocation inject relays the queued failure to the model once, then the queue is empty
+		const injectCmd = HOOKS_JSON.hooks.PreInvocation[0].command;
+		const injected = JSON.parse(runShCommand(injectCmd, JSON.stringify({ conversationId: "conv-e2e" })).stdout);
+		assert.match(injected.injectSteps[0].ephemeralMessage, /table_column_mismatch/);
+		assert.deepEqual(JSON.parse(runShCommand(injectCmd, JSON.stringify({ conversationId: "conv-e2e" })).stdout), {});
 
 		// Fix markdown -> exit 0 and {}
 		fs.writeFileSync(brokenMd, "# Title\n\n| A | B |\n|---|---|\n| 1 | 2 |\n", "utf8");
 		const mdPass = runShCommand(mdCmd, payload);
 		assert.equal(mdPass.status, 0, mdPass.stderr);
 		assert.deepEqual(JSON.parse(mdPass.stdout), {});
+		assert.equal(takeFeedback("conv-e2e"), "");
 
 		// 3) Invalid JSON in transcript.jsonl -> exit 1 + stderr error
 		const brokenJson = path.join(tmpDir, "broken.json");
@@ -120,8 +138,8 @@ test("#given lazyargon hooks.json commands #when executed without PLUGIN_ROOT #t
 		});
 
 		const jsonFail = runShCommand(jsonCmd, jsonPayload);
-		assert.equal(jsonFail.status, 1);
-		assert.match(jsonFail.stderr, /JSON SCHEMA GUARD/);
+		assert.equal(jsonFail.status, 0, jsonFail.stderr);
+		assert.match(takeFeedback("conv-e2e"), /JSON SCHEMA GUARD/);
 
 		// Fix JSON (including workspace:*, github: shorthand, and relative endpoint) -> exit 0 and {}
 		fs.writeFileSync(
@@ -137,6 +155,7 @@ test("#given lazyargon hooks.json commands #when executed without PLUGIN_ROOT #t
 		const jsonPass = runShCommand(jsonCmd, jsonPayload);
 		assert.equal(jsonPass.status, 0, jsonPass.stderr);
 		assert.deepEqual(JSON.parse(jsonPass.stdout), {});
+		assert.equal(takeFeedback("conv-e2e"), "");
 
 		// 4) Markdown file > 10MB truncated mid-fence -> does not false-positive on unclosed_code_fence
 		const largeMd = path.join(tmpDir, "large.md");

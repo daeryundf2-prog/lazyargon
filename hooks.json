@@ -25,12 +25,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ./scripts/hook-runner.mjs FAIL_CLOSED none none node ./scripts/markdown_structure_guard.mjs",
+            "command": "node ./scripts/post_tool_feedback.mjs wrap node ./scripts/markdown_structure_guard.mjs",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "node ./scripts/hook-runner.mjs FAIL_CLOSED none none node ./scripts/json_schema_guard.mjs",
+            "command": "node ./scripts/post_tool_feedback.mjs wrap node ./scripts/json_schema_guard.mjs",
             "timeout": 5
           }
         ]
@@ -40,6 +40,13 @@
       {
         "type": "command",
         "command": "node ./scripts/stop_claim_guard.mjs",
+        "timeout": 5
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./scripts/post_tool_feedback.mjs inject",
         "timeout": 5
       }
     ]

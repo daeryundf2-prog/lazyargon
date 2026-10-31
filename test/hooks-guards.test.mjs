@@ -11,8 +11,20 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const WS_ROOT = path.resolve(ROOT, "..", "lazyargon-workspace");
 const HOOKS_JSON = JSON.parse(fs.readFileSync(path.join(ROOT, "hooks.json"), "utf8"));
 
+const FEEDBACK_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "lazyargon-feedback-"));
+process.on("exit", () => fs.rmSync(FEEDBACK_DIR, { recursive: true, force: true }));
+
+// PostToolUse guards are wrapped by post_tool_feedback.mjs: the hook always returns {} and queues failures.
+function takeFeedback(conversationId) {
+	const file = path.join(FEEDBACK_DIR, `${conversationId}.jsonl`);
+	if (!fs.existsSync(file)) return "";
+	const text = fs.readFileSync(file, "utf8");
+	fs.rmSync(file);
+	return text;
+}
+
 function runShCommand(cmd, stdinPayload, cwd = ROOT, extraEnv = {}) {
-	const env = { ...process.env, ...extraEnv };
+	const env = { ...process.env, LAZYARGON_FEEDBACK_DIR: FEEDBACK_DIR, ...extraEnv };
 	delete env.PLUGIN_ROOT;
 	const resolvedCmd = cmd.replace(/\$\{PLUGIN_ROOT:-\.\}/g, env.PLUGIN_ROOT || ".");
 	return spawnSync(resolvedCmd, {
@@ -111,8 +123,8 @@ test("#given PostToolUse guards #when transcript contains write_file({Path, Cont
 			stepIdx: 3,
 		});
 		const mdFail = runShCommand(mdCmd, mdPayload);
-		assert.equal(mdFail.status, 1);
-		assert.match(mdFail.stderr, /table_column_mismatch/);
+		assert.equal(mdFail.status, 0, mdFail.stderr);
+		assert.match(takeFeedback("conv-hg"), /table_column_mismatch/);
 
 		const brokenJson = path.join(tmpDir, "pkg.json");
 		fs.writeFileSync(brokenJson, '{"version": "invalid-semver"}', "utf8");
@@ -131,8 +143,8 @@ test("#given PostToolUse guards #when transcript contains write_file({Path, Cont
 			stepIdx: 5,
 		});
 		const jsonFail = runShCommand(jsonCmd, jsonPayload);
-		assert.equal(jsonFail.status, 1);
-		assert.match(jsonFail.stderr, /JSON SCHEMA GUARD/);
+		assert.equal(jsonFail.status, 0, jsonFail.stderr);
+		assert.match(takeFeedback("conv-hg"), /JSON SCHEMA GUARD/);
 	} finally {
 		fs.rmSync(tmpDir, { recursive: true, force: true });
 	}
