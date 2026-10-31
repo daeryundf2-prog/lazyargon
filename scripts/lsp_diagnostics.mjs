@@ -55,7 +55,8 @@ export function checkSingleFile(filePath) {
 		return res.status !== 0 ? { file: filePath, severity: "error", message: (res.stderr || res.stdout || "Syntax error").trim() } : null;
 	}
 	if (ext === ".py") {
-		const res = spawnSync("python3", ["-B", "-m", "py_compile", abs], {
+		const pyCmd = process.platform === "win32" ? "python" : "python3";
+		const res = spawnSync(pyCmd, ["-B", "-m", "py_compile", abs], {
 			encoding: "utf8",
 			timeout: 10000,
 			env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },

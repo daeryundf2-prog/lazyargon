@@ -3,10 +3,20 @@
 """lazy_memory.py — Zero-Server Local Memory Engine (Mem0 + Letta Core/Dreaming)."""
 
 from __future__ import annotations
-import argparse, contextlib, fcntl, hashlib, importlib.util, json, os, re, sqlite3, sys, time, uuid
+import argparse, contextlib, hashlib, importlib.util, json, os, re, sqlite3, sys, time, uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
 
 MAX_PINS_LINES = 20
 IMPERATIVE_RE = re.compile(r"(?:하라(?:\.|!|$|\s)|반드시\s+\S+.*해야|always\s+do\b|never\s+forget\s+to\b|you\s+must\b)", re.IGNORECASE)
@@ -85,12 +95,34 @@ def check_admission(kind: str, content: str) -> dict[str, Any] | None:
 @contextlib.contextmanager
 def _lock_pins(pins_path: Path):
     pins_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(pins_path.with_suffix(".lock"), "a+", encoding="utf-8") as lf:
-        fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
+    if fcntl:
+        with open(pins_path.with_suffix(".lock"), "a+", encoding="utf-8") as lf:
+            fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
+    elif msvcrt:
+        lock_file = pins_path.with_suffix(".lock")
+        if not lock_file.exists() or lock_file.stat().st_size == 0:
+            with contextlib.suppress(Exception):
+                lock_file.write_bytes(b"0")
+        with open(lock_file, "r+b") as lf:
+            for _ in range(200):
+                try:
+                    lf.seek(0)
+                    msvcrt.locking(lf.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    time.sleep(0.02)
+            try:
+                yield
+            finally:
+                with contextlib.suppress(OSError):
+                    lf.seek(0)
+                    msvcrt.locking(lf.fileno(), msvcrt.LK_UNLCK, 1)
+    else:
+        yield
 
 def read_pins(pins_path: Path) -> list[str]:
     return [ln.strip() for ln in pins_path.read_text(encoding="utf-8").splitlines() if ln.strip()] if pins_path.is_file() else []

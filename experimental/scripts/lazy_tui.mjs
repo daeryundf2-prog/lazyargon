@@ -76,7 +76,8 @@ function collectMemoryState(cwd) {
 	const dbBytes = dbExists ? statSync(dbPath).size : 0;
 	let active = 0, superseded = 0, deleted = 0, edges = 0, dreams = 0;
 	if (dbExists) {
-		const res = spawnSync("python3", [join(PLUGIN_ROOT, "experimental", "scripts", "lazy_memory.py"), "stats", "--db", dbPath, "--json"], {
+		const pythonBin = process.platform === "win32" ? "python" : "python3";
+		const res = spawnSync(pythonBin, [join(PLUGIN_ROOT, "experimental", "scripts", "lazy_memory.py"), "stats", "--db", dbPath, "--json"], {
 			encoding: "utf8",
 			timeout: 5000,
 		});

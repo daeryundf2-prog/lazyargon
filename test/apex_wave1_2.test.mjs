@@ -301,12 +301,13 @@ test("Wave 2-3: autoresearch_loop.mjs immutable harness lock, KEEP/DISCARD, 4-ru
 		assert.equal(initRes.json.lock.harness_mutable, false);
 
 		// [AR-1] --metric-cmd executes command, writes experiment-last.log, and parses last scalar
+		const metricCmdStr = `"${process.execPath}" -e "console.log('booting...'); console.log('score: 50.0')"`;
 		const step1 = runCli(SCRIPTS.autoresearch, [
 			"step",
 			"--ledger",
 			ledger,
 			"--metric-cmd",
-			`${process.execPath} -e "console.log('booting...'); console.log('score: 50.0')"`,
+			metricCmdStr,
 			"--hypothesis",
 			"baseline run",
 		]);
@@ -379,12 +380,20 @@ test("Pass 3 Regression: dag_ulw.mjs 10-way parallel settle, define boundary exi
 		const cgDir = join(tmp, "cg");
 		mkdirSync(cgDir, { recursive: true });
 		writeFileSync(join(cgDir, "ok.mjs"), "export const a = 1;\n", "utf8");
-		symlinkSync(join(cgDir, "missing-target.mjs"), join(cgDir, "broken-link.mjs"));
+		let symlinkCreated = false;
+		try {
+			symlinkSync(join(cgDir, "missing-target.mjs"), join(cgDir, "broken-link.mjs"));
+			symlinkCreated = true;
+		} catch (e) {
+			if (process.platform !== "win32" || e.code !== "EPERM") throw e;
+		}
 		const cgOut = join(tmp, "cg-out.json");
 		const cgRes = runCli(SCRIPTS.codegraph, ["build", "--root", cgDir, "--out", cgOut]);
 		assert.equal(cgRes.status, 0);
 		assert.ok(cgRes.json.nodes["ok.mjs"]);
-		assert.equal(cgRes.json.nodes["broken-link.mjs"], undefined);
+		if (symlinkCreated) {
+			assert.equal(cgRes.json.nodes["broken-link.mjs"], undefined);
+		}
 		assert.ok(existsSync(cgOut));
 
 		// 4. autoresearch_loop 10-way parallel step preserves all 11 TSV lines + failed rollbackCmd -> rolled_back: false

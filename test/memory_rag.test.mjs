@@ -11,9 +11,10 @@ const root = join(__dirname, "..");
 const memPy = join(root, "experimental", "scripts", "lazy_memory.py");
 const ragPy = join(root, "experimental", "scripts", "lazy_rag.py");
 const sessionStartMjs = join(root, "scripts", "session_start.mjs");
+const pyBin = process.platform === "win32" ? "python" : "python3";
 
 function runPy(script, args) {
-	const res = spawnSync("python3", [script, ...args], { encoding: "utf8" });
+	const res = spawnSync(pyBin, [script, ...args], { encoding: "utf8" });
 	let json = null;
 	try {
 		json = JSON.parse((res.stdout || "").trim());
@@ -170,11 +171,11 @@ test("Adversarial Auditor 3 regression suite (8 fixes)", () => {
 		}
 
 		// 5. --op ADD duplicate supersedes old record and purges old FTS entry
-		runPy(memPy, ["resolve", "--db", db, "--kind", "fact", "--subject", "담당재판부", "--predicate", "배당", "--object", "민사1부", "--content", "구버전전용토큰 민사1부 배당", "--op", "ADD", "--json"]);
-		const dupAdd = runPy(memPy, ["resolve", "--db", db, "--kind", "fact", "--subject", "담당재판부", "--predicate", "배당", "--object", "민사2부", "--content", "신버전전용토큰 민사2부 재배당", "--op", "ADD", "--json"]);
+		runPy(memPy, ["resolve", "--db", db, "--kind", "fact", "--subject", "담당재판부", "--predicate", "배당", "--object", "민사1부", "--content", "구버전독립시퀀스 민사1부 배당", "--op", "ADD", "--json"]);
+		const dupAdd = runPy(memPy, ["resolve", "--db", db, "--kind", "fact", "--subject", "담당재판부", "--predicate", "배당", "--object", "민사2부", "--content", "신버전독립매트릭스 민사2부 재배당", "--op", "ADD", "--json"]);
 		assert.equal(dupAdd.status, 0);
 		assert.ok(dupAdd.json?.superseded_id);
-		const oldQ = runPy(ragPy, ["query", "--db", db, "--query", "구버전전용토큰", "--json"]);
+		const oldQ = runPy(ragPy, ["query", "--db", db, "--query", "구버전독립시퀀스", "--json"]);
 		assert.equal(oldQ.json?.results?.length, 0);
 
 		// Also verify --op DELETE with --subject only
@@ -199,7 +200,7 @@ test("Adversarial Auditor 3 regression suite (8 fixes)", () => {
 			JSON.stringify({ step_index: 1, type: "USER_INPUT", content: "초기 일반 대화입니다." }),
 			JSON.stringify({ step_index: 2, type: "PLANNER_RESPONSE", content: "갑호증 타임라인 추출 및 경로 검증을 완료했습니다." }),
 		];
-		spawnSync("python3", ["-c", `import pathlib, sys; pathlib.Path(sys.argv[1]).write_text(sys.argv[2], encoding='utf-8')`, transcript, lines.join("\n")]);
+		spawnSync(pyBin, ["-c", `import pathlib, sys; pathlib.Path(sys.argv[1]).write_text(sys.argv[2], encoding='utf-8')`, transcript, lines.join("\n")]);
 		const rec = runPy(memPy, ["recall", "--db", db, "--transcript", transcript, "--query", "갑호증 경로", "--json"]);
 		assert.equal(rec.status, 0);
 		assert.equal(rec.json?.episodes?.length, 1);
@@ -216,7 +217,7 @@ test("Adversarial Auditor 3 regression suite (8 fixes)", () => {
 
 function runPyAsync(script, args) {
 	return new Promise((resolve) => {
-		const p = spawn("python3", [script, ...args], { stdio: ["ignore", "pipe", "pipe"] });
+		const p = spawn(pyBin, [script, ...args], { stdio: ["ignore", "pipe", "pipe"] });
 		let out = "", err = "";
 		p.stdout.on("data", (d) => { out += d; });
 		p.stderr.on("data", (d) => { err += d; });
@@ -235,7 +236,7 @@ test("Pass 3 Concurrency: 16 parallel core-append and 12 parallel resolve UPDATE
 		const resList = await Promise.all(Array.from({ length: 12 }, (_, i) => runPyAsync(memPy, ["resolve", "--db", db, "--kind", "fact", "--subject", "사건", "--predicate", "상태", "--object", `단계_${i}`, "--op", "UPDATE", "--json"])));
 		for (const r of resList) assert.equal(r.status, 0, `resolve failed: ${r.stderr}`);
 
-		const check = spawnSync("python3", ["-c", "import sqlite3,sys,json; c=sqlite3.connect(sys.argv[1]); print(json.dumps({'active':c.execute(\"SELECT COUNT(*) FROM memories WHERE status='active'\").fetchone()[0],'fts':c.execute('SELECT COUNT(*) FROM memories_fts').fetchone()[0]}))", db], { encoding: "utf8" });
+		const check = spawnSync(pyBin, ["-c", "import sqlite3,sys,json; c=sqlite3.connect(sys.argv[1]); print(json.dumps({'active':c.execute(\"SELECT COUNT(*) FROM memories WHERE status='active'\").fetchone()[0],'fts':c.execute('SELECT COUNT(*) FROM memories_fts').fetchone()[0]}))", db], { encoding: "utf8" });
 		const counts = JSON.parse(check.stdout.trim());
 		assert.equal(counts.active, 1);
 		assert.equal(counts.fts, 1);

@@ -14,7 +14,7 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 
 <argon_runtime_constraints>
 1. **Write in chunks: ≤100 lines and <20KB per call** (`scripts/write_chunk_guard.mjs` blocks oversized writes that trigger the `#1255` 60s stream cutoff). Reason first, write the skeleton, then append chunks.
-2. **Real context cap is 256K tokens** (compaction at 240–280K resets cache). Before ~200K, pin hashes, IDs, paths, and numbers to `.lazyargon/pins.md`. After compaction, re-read `.lazyargon/ulw-scope.md`, `.lazyargon/pins.md`, and target files before editing; never cite from memory.
+2. **Real context cap is 256K tokens** (compaction at 240–280K resets cache). Before ~200K (and after each DB query batch), pin verified `(ID, artifact_name, value)` tuples to `.lazyargon/pins.md`. `<CONTEXT_SUMMARY>` cross-contaminates adjacent row IDs (`hit_id`, `source_id`) and artifact labels—after compaction, re-read `.lazyargon/ulw-scope.md`, `.lazyargon/pins.md`, and target files before editing; never copy IDs/metrics from `<CONTEXT_SUMMARY>`.
 3. **Re-open every written file** to verify before declaring it done.
 4. **State completeness explicitly.** Name the full file/case list; forbid duplicate implementations.
 5. **Passing tests are not "done".** Verify runtime behavior (`Test · verified` > `Code · reported done`), exercise a negative path, and check UI in a real browser.
@@ -26,6 +26,8 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 11. **Local evidence first, bounded time.** Check local files, `scripts/codegraph.mjs`, logs, and test output before web search (≤8 queries/task; 20m worker budget).
 12. **Read repo conventions before the first edit** (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`, lint/CI, `skills/`). Run `$git-master`'s PR readiness gate before PRs.
 13. **Vision & PDF coordinates.** Read each image once, record notes, and specify page numbers and spatial coordinates for PDFs/charts.
+14. **Safety filter loop & timeouts (300s+).** agy 1.4.4+ fixes silent filter retry loops; on refusal, record `미확인(모델 유보: 안전 필터)` and move on. For HIGH thinking, keep ≥300s keep-alive.
+15. **Implicit cache prefix invariance.** Top static rule/evidence prefix must stay byte-identical across turns to preserve the 95% discount (≥6,144 tokens); place dynamic metadata at the bottom.
 </argon_runtime_constraints>
 
 <delegation_rules>
