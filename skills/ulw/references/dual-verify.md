@@ -17,7 +17,7 @@ flowchart TD
     Cross --> Consensus{"만장일치 합의 도달?"}
     Consensus -- "No (결함 발견)" --> Heal["Tiered Blocking & Self-Healing<br/>(결정론적 수정 및 재검증)"]
     Heal --> Audit
-    Consensus -- "Yes (UNANIMOUS_PASS)" --> Pass["무결점 인도 승인"]
+    Consensus -- "Yes (UNANIMOUS_PASS)" --> Pass["인도 승인"]
 ```
 
 ---

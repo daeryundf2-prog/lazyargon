@@ -14,7 +14,7 @@ flowchart TD
     Vision --> Check{"시각적 결함 발견?"}
     Check -- "Yes (결함 감지)" --> Fix["4. 자가 교정 (Self-Remediation)<br/>CSS/레이아웃/스타일 수정"]
     Fix --> Render
-    Check -- "No (무결점)" --> Done["5. 최종 인도 &<br/>시각 검증 완료"]
+    Check -- "No (결함 미발견)" --> Done["5. 최종 인도 &<br/>시각 검증 완료"]
 ```
 
 ---
