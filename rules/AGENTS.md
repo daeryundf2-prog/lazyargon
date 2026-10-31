@@ -9,6 +9,7 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 - 1–2 files or sequential work: do directly. 3+ independent units: one `invoke_subagent` call sized by budget with disjoint `write_scope`.
 - Concise progress updates. Evidence before claims. Official docs before SDK/API code.
 - Decisive execution: no persuading the user, defensive wandering, or meta-commentary. Stay inside the scope lock; trim drift immediately.
+- Reversible forks: take the option you would recommend (user's words, then project convention, then the smallest reversible change) and continue; in the result write `결정: <갈림길> → <고른 안> (버린 안: <대안>, 이유)`. Ask only before irreversible actions: deleting data outside version control, rewriting or force-pushing shared history, sending or publishing to third parties, destroying infrastructure, exposing secrets. Never reach a hook- or tool-denied action another way (other command, flag, tool, or partial variant).
 - **Deliverable shape & lever hierarchy (`harness2` + `deepseek-harness` Minimal)**: Deliverable shape belongs strictly to the request—never inject unrequested metadata. Prefer `SKILL` → `SCRIPT` → `SUBAGENT` → `HOOK` → `ALWAYS-ON TEXT` (`KEEP_BASE` without trajectory evidence).
 </operating_principles>
 
@@ -76,7 +77,7 @@ Route by each skill's `description`; `/ulw`·"ultrawork"·`/goal`·`$boost` → 
 </data_handling_rules>
 
 <anti_slop_invariants>
-글·보고서: 샌드위치 도입·마무리, AI 상투어("혁신적인", "다면적인", "심리스한", "중추적인"), 기계적 대구·불릿 중독, 장식 이모지·과도한 볼드 금지. 상한: 문단 4문장, 카드 본문 60자, 요약 10줄. 출처 없는 수치 단정 금지. 포렌식·사실확인 보고서와 녹취록에는 법적 유불리 평가 및 미요청 요약 콜아웃·자가검증 배지(`[전수 검증 완료]`, `(전문 수록)`)를 넣지 않고 사실만 적는다. STT는 내부(로컬) Whisper 금지 — 무조건 서버(`yt-dlp` 자동자막 또는 Google STT `recognize_google` 병렬 청크)로 수행하며, 시각은 `MM분 SS초`(`MM:SS`) 정수로 표기한다. `$humanize-korean` 2-Pass는 법원 제출·외부 발행 문서에 필수.
+글·보고서: 샌드위치 도입·마무리, AI 상투어("혁신적인", "다면적인", "심리스한", "중추적인"), 기계적 대구·불릿 중독, 장식 이모지·과도한 볼드 금지. 한국어: 연결어미 뒤 쉼표(`-고,` `-며,` `-지만,`) 금지. `박다`·`꽂다`·`때려 넣다` 대신 `지정한다`·`등록한다`·`고정되어 있다`, `~를 보유하고 있다`·`결정을 내리다`·`영향을 주다` 대신 직접 동사(`~가 있다`·`결정했다`·`좌우한다`). 상한: 문단 4문장, 카드 본문 60자, 요약 10줄. 출처 없는 수치 단정 금지. 포렌식·사실확인 보고서와 녹취록에는 법적 유불리 평가 및 미요청 요약 콜아웃·자가검증 배지(`[전수 검증 완료]`, `(전문 수록)`)를 넣지 않고 사실만 적는다. STT는 내부(로컬) Whisper 금지 — 무조건 서버(`yt-dlp` 자동자막 또는 Google STT `recognize_google` 병렬 청크)로 수행하며, 시각은 `MM분 SS초`(`MM:SS`) 정수로 표기한다. `$humanize-korean` 2-Pass는 법원 제출·외부 발행 문서에 필수.
 
 코드·실행: 당연한 주석(Why만), 과잉 방어, TODO·가짜 핸들러, 중복 구현(먼저 `grep`) 금지, 파일당 250줄 상한. UI/A4 인쇄: 한글 버튼·배지·화자 열은 `word-break: keep-all`/`white-space: nowrap`, A4 본문 `≥10pt`·표 `≥9pt` 및 PDF 페이지별 PNG 시각 검수 필수. 완료 판정 직후 변경 파일에 `$remove-ai-slops` 실행.
 </anti_slop_invariants>
