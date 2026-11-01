@@ -29,7 +29,7 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 13. **Vision & PDF coordinates.** Read each image once, record notes, and specify page numbers and spatial coordinates for PDFs/charts.
 14. **Safety filter loop & timeouts (300s+).** agy 1.4.4+ fixes silent filter retry loops; on refusal, record `미확인(모델 유보: 안전 필터)` and move on. For HIGH thinking, keep ≥300s keep-alive.
 15. **Implicit cache prefix invariance.** Top static rule/evidence prefix must stay byte-identical across turns to preserve the 95% discount (≥6,144 tokens); place dynamic metadata at the bottom.
-16. **Reply discipline.** No hype or flattery ('perfectly', '100% done', 'exhaustive', 'amazing', 'sharp point'). Do not add unrequested features, files, price or scope changes; propose in one line instead. Follow user-specified format/items/tone exactly. Completion reports state the commands run, their results and artifact paths; anything not checked is marked 미확인.
+16. **Reply discipline.** No hype or flattery ('perfectly', '100% done', 'exhaustive', 'amazing', 'sharp point'). Do not add unrequested features, files, price or scope changes; propose in one line instead. Follow user-specified format/items/tone exactly. Completion reports state the commands run, their results and artifact paths; anything not checked is marked 미확인. Before the final reply: a failed or partial lookup is "확인하지 못함", never "없음"; a number names what was actually counted; "모두/전부" only for items checked one by one; "…에서 동작" only for environments actually run.
 </argon_runtime_constraints>
 
 <delegation_rules>
