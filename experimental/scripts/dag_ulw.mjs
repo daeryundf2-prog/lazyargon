@@ -2,13 +2,15 @@
 /**
  * dag_ulw.mjs — Explicit DAG Orchestration & Disjoint Write-Scope Enforcer (v2.0 Wave 1-4)
  */
-import { existsSync, mkdirSync, readFileSync, renameSync, rmdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MAX_NODES = 48;
 const VALID_STATES = new Set(["not_run", "running", "reported_done", "verified", "failed", "ESCALATE_ARCHITECTURE"]);
 const SLEEP_BUF = new Int32Array(new SharedArrayBuffer(4));
+// Windows reports EPERM/EACCES while a just-removed lock dir is still pending delete; on POSIX they are real permission errors.
+const LOCK_RETRY_CODES = process.platform === "win32" ? ["EEXIST", "EPERM", "EACCES"] : ["EEXIST"];
 
 export function withFileLock(filePath, fn) {
 	const lockDir = `${resolve(filePath)}.lock`;
@@ -19,7 +21,7 @@ export function withFileLock(filePath, fn) {
 			mkdirSync(lockDir);
 			break;
 		} catch (e) {
-			if (!["EEXIST", "EPERM", "EACCES"].includes(e.code) || Date.now() > deadline) throw e;
+			if (!LOCK_RETRY_CODES.includes(e.code) || Date.now() > deadline) throw e;
 			Atomics.wait(SLEEP_BUF, 0, 0, 5);
 		}
 	}
@@ -206,7 +208,8 @@ function saveDag(file, dag) {
 		renameSync(tmp, abs);
 	} catch {
 		writeFileSync(abs, content, "utf8");
-		try { rmdirSync(tmp); } catch {}
+		// Best effort: the content is already in place, so a leftover temp file must not fail the write.
+		try { rmSync(tmp, { force: true }); } catch {}
 	}
 }
 

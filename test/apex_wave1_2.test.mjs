@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, statSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPTS = {
@@ -426,6 +426,60 @@ test("Pass 3 Regression: dag_ulw.mjs 10-way parallel settle, define boundary exi
 		assert.equal(failRb.json.verdict, "DISCARD");
 		assert.equal(failRb.json.rolled_back, false);
 	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+// Preload that makes every fs.renameSync throw EPERM, as Windows does when the target is held open.
+const RENAME_FAILS_PRELOAD = [
+	'import fs from "node:fs";',
+	'import { syncBuiltinESMExports } from "node:module";',
+	'fs.renameSync = () => { throw Object.assign(new Error("EPERM: simulated rename failure"), { code: "EPERM" }); };',
+	"syncBuiltinESMExports();",
+].join("\n");
+
+test("Rename fallback: autoresearch init and dag define still write their files and leave no .tmp behind", () => {
+	const tmp = mkdtempSync(join(tmpdir(), "lazyargon-rename-"));
+	try {
+		const preload = pathToFileURL(join(tmp, "rename-fails.mjs")).href;
+		writeFileSync(join(tmp, "rename-fails.mjs"), `${RENAME_FAILS_PRELOAD}\n`, "utf8");
+		const evalScript = join(tmp, "eval.mjs");
+		writeFileSync(evalScript, "console.log(100);\n", "utf8");
+		const ledger = join(tmp, "experiment-ledger.tsv");
+		const dagFile = join(tmp, "dag.json");
+		const spec = { goal: "g", budget: { lanes: 1, waves: 1 }, nodes: [{ id: "n1", role: "Core", deps: [], write_scope: ["src"], verify_cmd: "npm test" }] };
+		const runs = [
+			spawnSync(process.execPath, ["--import", preload, SCRIPTS.autoresearch, "init", "--ledger", ledger, "--eval-script", evalScript, "--direction", "min"], { encoding: "utf8" }),
+			spawnSync(process.execPath, ["--import", preload, SCRIPTS.dag, "define", "--file", dagFile, "--spec", JSON.stringify(spec)], { encoding: "utf8" }),
+		];
+		for (const r of runs) assert.equal(r.status, 0, r.stderr);
+		assert.match(readFileSync(ledger, "utf8"), /^iter\tcommit/);
+		assert.equal(JSON.parse(readFileSync(dagFile, "utf8")).schema, "lazyargon_dag/v1");
+		assert.deepEqual(readdirSync(tmp, { recursive: true }).filter((f) => String(f).endsWith(".tmp")), []);
+	} finally {
+		rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("Lock retry: a POSIX permission error fails at once instead of spinning for 30s", { skip: process.platform === "win32" && "Windows retries EPERM/EACCES while a lock dir is pending delete" }, async () => {
+	const { withLock } = await import(pathToFileURL(SCRIPTS.autoresearch).href);
+	const { withFileLock } = await import(pathToFileURL(SCRIPTS.dag).href);
+	const tmp = mkdtempSync(join(tmpdir(), "lazyargon-lockperm-"));
+	const roState = join(tmp, "repo", ".lazyargon");
+	const roDagDir = join(tmp, "dags");
+	mkdirSync(roState, { recursive: true });
+	mkdirSync(roDagDir);
+	chmodSync(roState, 0o555);
+	chmodSync(roDagDir, 0o555);
+	try {
+		for (const attempt of [() => withLock(join(tmp, "repo"), () => {}), () => withFileLock(join(roDagDir, "dag.json"), () => {})]) {
+			const started = Date.now();
+			assert.throws(attempt, (e) => e.code === "EACCES" || e.code === "EPERM");
+			assert.ok(Date.now() - started < 2000, `failed after ${Date.now() - started}ms`);
+		}
+	} finally {
+		chmodSync(roState, 0o755);
+		chmodSync(roDagDir, 0o755);
 		rmSync(tmp, { recursive: true, force: true });
 	}
 });

@@ -4,13 +4,15 @@
  * Inspired by karpathy/autoresearch + OMH Measured Loop Discipline
  */
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const TSV_HEADER = "iter\tcommit\tmetric\tdelta\tverdict\thypothesis";
 const SLEEP_BUF = new Int32Array(new SharedArrayBuffer(4));
+// Windows reports EPERM/EACCES while a just-removed lock dir is still pending delete; on POSIX they are real permission errors.
+const LOCK_RETRY_CODES = process.platform === "win32" ? ["EEXIST", "EPERM", "EACCES"] : ["EEXIST"];
 
 export function withLock(cwd, fn) {
 	const lockDir = join(resolve(cwd), ".lazyargon", "experiment.lock");
@@ -21,7 +23,7 @@ export function withLock(cwd, fn) {
 			mkdirSync(lockDir);
 			break;
 		} catch (e) {
-			if (!["EEXIST", "EPERM", "EACCES"].includes(e.code) || Date.now() > deadline) throw e;
+			if (!LOCK_RETRY_CODES.includes(e.code) || Date.now() > deadline) throw e;
 			Atomics.wait(SLEEP_BUF, 0, 0, 5);
 		}
 	}
@@ -45,7 +47,8 @@ function writeAtomic(filePath, content) {
 		renameSync(tmp, abs);
 	} catch {
 		writeFileSync(abs, content, "utf8");
-		try { rmdirSync(tmp); } catch {}
+		// Best effort: the content is already in place, so a leftover temp file must not fail the write.
+		try { rmSync(tmp, { force: true }); } catch {}
 	}
 }
 
