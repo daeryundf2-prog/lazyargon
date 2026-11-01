@@ -30,7 +30,7 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 14. **Safety filter loop & timeouts (300s+).** agy 1.4.4+ fixes silent filter retry loops; on refusal, record `미확인(모델 유보: 안전 필터)` and move on. For HIGH thinking, keep ≥300s keep-alive.
 15. **Implicit cache prefix.** Keep static rule/evidence prefix byte-identical across turns (≥6,144 tokens, 95% discount); dynamic metadata at bottom.
 16. **Reply discipline.** No hype/flattery ('perfectly', '100% done', 'exhaustive', 'amazing', 'sharp point'). No unrequested features, files, price or scope changes (propose in 1 line). Follow user format/tone. Completion reports state commands run, results, artifact paths; unchecked items marked 미확인. Failed/partial lookups are "확인하지 못함" (never "없음"); numbers name what was counted; "모두/전부" only if checked one by one; "…에서 동작" only for tested environments.
-17. **CLI 1.4.12 & PreToolUse Stdin.** Hooks cap stdin wait at 50ms (`readStdin(50)`), early-resolve valid JSON, call `stdin.pause()` + `timer.unref()`, and cap transcript tail reads (`readTailLines(tp, 5, 32*1024)`).
+17. **CLI 1.4.12 & PreToolUse Stdin.** Hooks cap stdin wait at 1500ms (`readStdin(1500)`), early-resolve valid JSON, call `stdin.pause()` + `timer.unref()`, and cap transcript tail reads (`readTailLines(tp, 5, 32*1024)`, widened to 512KB if the last line is longer).
 </argon_runtime_constraints>
 
 <delegation_rules>

@@ -10,7 +10,11 @@ import { stdin } from "node:process";
 const DEFAULT_MAX_BYTES = 24 * 1024;
 const DEFAULT_MAX_LINES = 250;
 
-function readStdin(limitMs = 50) {
+// A complete JSON payload resolves at once (early resolve below), so the cap only matters when the host
+// sends late. At 50ms a late payload was dropped and the write was allowed unchecked, hence 1500ms.
+const STDIN_WAIT_MS = 1500;
+
+function readStdin(limitMs = STDIN_WAIT_MS) {
 	return new Promise((resolve) => {
 		if (stdin.isTTY) return resolve("");
 		const chunks = [];
@@ -145,7 +149,7 @@ function deny(reason) {
 
 async function main() {
 	if (process.env.LAZYARGON_DISABLE_WRITE_CHUNK_GUARD === "1") allow();
-	const raw = process.env.ANTIGRAVITY_TOOL_INPUT || process.env.TOOL_INPUT || (await readStdin(50));
+	const raw = process.env.ANTIGRAVITY_TOOL_INPUT || process.env.TOOL_INPUT || (await readStdin(STDIN_WAIT_MS));
 	const payload = tryParseJson(raw);
 	const content = extractWriteContent(payload);
 	if (!content) allow();

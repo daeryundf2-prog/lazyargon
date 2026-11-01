@@ -119,6 +119,7 @@
 |---|---|
 | `antigravity-cli` 1.4.12: 표(Markdown Table) 앵커링 렌더링 최적화, 도구 및 훅 실패 시 안전 복구 강화, 서브에이전트 통신 및 컨텍스트 파이프라인 안정화 | GitHub antigravity-cli 릴리스 1.4.12 |
 | PreToolUse Stdin 데드라인 트랩 및 대형 세션(8,700턴) 동결 실측: Antigravity 훅 실행기가 stdin 파이프를 열어두고 즉시 EOF를 주지 않거나 지연 전송할 때, 훅이 `limitMs > 50ms` 동안 대기하거나 `stdin.pause()` 누락 시 Antigravity 5초 훅 데드라인을 초과해 `exit status 1` 크래시를 유발함. 해결: Stdin 대기를 50ms로 제한, `data` 이벤트에서 완전한 `{}`/`[]` JSON 파싱 시 얼리 리졸브, `finish()` 시 `stdin.pause()` 및 `timer.unref()` 필수 | 로컬 세션 10385b48 (11/01) |
+| 11/02 보정(mac 재현): stdin 상한 50ms는 0.3초 늦게 온 300줄 쓰기 입력을 버리고 통과시켰다(1500ms 때는 차단). 조기 리졸브·`stdin.pause()`·`timer.unref()`는 유지하고 상한만 1500ms로 되돌림. 늦은 입력은 차단되고, 열린 파이프는 약 1.6초에 스스로 끝난다. 32KB 꼬리 창에 완결 줄이 없으면(마지막 줄 42KB) 0줄이 되던 것을 512KB로 한 번 더 읽게 보정 | `test/hooks.test.mjs`, workspace `test/test_guards.py` (11/02) |
 | 8,700턴 대형 세션 트랜스크립트 꼬리 지연 실측: 수십 MB에 달하는 `transcript_full.jsonl`의 512KB 테일을 매 도구마다 읽으려다 디스크 I/O 병목 및 훅 데드라인 초과 유발. `readTailLines` 기본 인자를 `maxLines = 5, maxBytes = 32 * 1024`로 제한하여 꼬리 읽기 지연을 수 밀리초 내로 억제 | 로컬 세션 10385b48 (11/01) |
 | 1M 롱디코드 스펙 게이밍 및 V2EX 피크 라우팅: 1M 토큰 출력 환경에서 엄격한 완료 조건과 앵커가 없으면 모델이 표면적 코드 나열로 응답 길이를 채우는 스펙 게이밍 발생. 피크시간대 하위 라우팅 의혹 시 단문화 및 검증 루프로 통제 | V2EX 10/28~31, 로컬 세션 실측 |
 

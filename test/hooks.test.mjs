@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -247,4 +247,42 @@ test("#given PreToolUse write_chunk_guard.mjs #when payload is within or exceeds
 	const denyBytesRes = runShCommand(preCmd, manyBytesPayload);
 	assert.equal(denyBytesRes.status, 1);
 	assert.equal(JSON.parse(denyBytesRes.stdout).decision, "deny");
+});
+
+// Runs write_chunk_guard with stdin held open; `payload` is written `delayMs` after spawn (null = never written).
+// The child is killed after 8s so a hang fails the test instead of stalling the runner.
+function runChunkGuardWithLateStdin(payload, delayMs) {
+	return new Promise((resolve) => {
+		const started = Date.now();
+		const env = { ...process.env, ANTIGRAVITY_TOOL_INPUT: "", TOOL_INPUT: "", LAZYARGON_DISABLE_WRITE_CHUNK_GUARD: "" };
+		const child = spawn(process.execPath, [path.join(ROOT, "scripts", "write_chunk_guard.mjs")], { cwd: ROOT, env });
+		let stdout = "";
+		child.stdout.on("data", (c) => {
+			stdout += c;
+		});
+		const writer = payload === null ? null : setTimeout(() => child.stdin.end(payload), delayMs);
+		const killer = setTimeout(() => child.kill(), 8000);
+		child.on("exit", (status) => {
+			clearTimeout(writer);
+			clearTimeout(killer);
+			child.stdin.destroy();
+			resolve({ status, stdout, ms: Date.now() - started });
+		});
+	});
+}
+
+test("#given write_chunk_guard.mjs #when an oversized payload arrives 300ms after spawn #then it is still read and denied", async () => {
+	const payload = JSON.stringify({
+		toolCall: { name: "write_to_file", args: { TargetFile: "/tmp/late.js", CodeContent: "const a = 1;\n".repeat(260) } },
+	});
+	const res = await runChunkGuardWithLateStdin(payload, 300);
+	assert.equal(res.status, 1, res.stdout);
+	assert.equal(JSON.parse(res.stdout).decision, "deny");
+});
+
+test("#given write_chunk_guard.mjs #when stdin stays open with no data #then it allows and exits on its own within 4s", async () => {
+	const res = await runChunkGuardWithLateStdin(null, 0);
+	assert.equal(res.status, 0, res.stdout);
+	assert.equal(JSON.parse(res.stdout).decision, "allow");
+	assert.ok(res.ms < 4000, `exited after ${res.ms}ms`);
 });
