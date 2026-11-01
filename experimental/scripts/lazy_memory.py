@@ -84,6 +84,19 @@ def init_db(db_path: Path) -> sqlite3.Connection:
             time.sleep(0.05)
     return conn
 
+def _begin_immediate(conn: sqlite3.Connection) -> None:
+    # Windows 에서 여러 프로세스가 동시에 쓰기를 시작하면 busy_timeout 을 거치지 않고 바로
+    # 'database is locked' 가 나는 경우가 있다(12프로세스 동시성 테스트, 2026-11-02). init_db 와 같이 재시도한다.
+    for attempt in range(200):
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            return
+        except sqlite3.OperationalError as e:
+            if "locked" not in str(e).lower() and "busy" not in str(e).lower() or attempt == 199:
+                raise
+            time.sleep(0.05)
+
+
 def make_id(subject: str, predicate: str, obj: str, content: str, ts: str) -> str:
     return f"mem_{hashlib.sha256(f'{subject}|{predicate}|{obj}|{content}|{ts}'.encode('utf-8')).hexdigest()[:6]}_{uuid.uuid4().hex[:10]}"
 
@@ -156,7 +169,7 @@ def cmd_resolve(conn: sqlite3.Connection, args: argparse.Namespace) -> tuple[dic
         rej = check_admission(args.kind or "fact", content)
         if rej:
             return rej, 2
-    conn.execute("BEGIN IMMEDIATE")
+    _begin_immediate(conn)
     ts, existing = now_iso(), _match_existing(conn, mid_arg, subj, pred, content)
     if op == "DELETE":
         ids = [r["id"] for r in existing]
@@ -198,7 +211,7 @@ def cmd_core(pins_path: Path, mode: str, args: argparse.Namespace) -> dict[str, 
 
 
 def cmd_dream(conn: sqlite3.Connection, pins_path: Path, turn_interval: int, turn_arg: int | None = None) -> dict[str, Any]:
-    conn.execute("BEGIN IMMEDIATE")
+    _begin_immediate(conn)
     last = conn.execute("SELECT turn_count FROM dream_log ORDER BY id DESC LIMIT 1").fetchone()
     last_turn = int(last["turn_count"] or 0) if last else None
     if turn_arg is not None and last_turn is not None and (turn_arg - last_turn) < turn_interval:
