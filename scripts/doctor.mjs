@@ -20,8 +20,10 @@ function nodeVersion() {
 }
 
 function pythonVersion() {
-	for (const cmd of ["python3", "python"]) {
-		const res = spawnSync(cmd, ["--version"], { encoding: "utf8" });
+	// Windows 의 python3/python 은 Microsoft Store 별칭일 수 있어 느리거나 멈춘다. py 런처를 먼저 쓰고, 각 호출에 제한 시간을 둔다.
+	const cands = process.platform === "win32" ? [["py", ["-3", "--version"]], ["python", ["--version"]], ["python3", ["--version"]]] : [["python3", ["--version"]], ["python", ["--version"]]];
+	for (const [cmd, cmdArgs] of cands) {
+		const res = spawnSync(cmd, cmdArgs, { encoding: "utf8", timeout: 5000 });
 		if (!res.error && res.status === 0) {
 			add("python", "ok", `${cmd}: ${(res.stdout || res.stderr).trim()}`);
 			return;
@@ -459,29 +461,24 @@ function skillsSourceReceipts() {
 	}
 }
 
-nodeVersion();
-pythonVersion();
-hooksWiring();
-skillsFrontmatter();
-skillsRoutingCoverage();
-skillsScriptRefs();
-skillsSourceReceipts();
-guardParity();
-manifestVersions();
-scopeLock();
-modelProvider();
-rulesBudget();
-descriptionColons();
-liveRpcCheck();
+// 느린 검사를 바로 보이게 한다(Windows 에서 '너무 오래 걸린다'는 보고, 2026-11-02).
+const slow = [];
+for (const fn of [nodeVersion, pythonVersion, hooksWiring, skillsFrontmatter, skillsRoutingCoverage, skillsScriptRefs, skillsSourceReceipts, guardParity, manifestVersions, scopeLock, modelProvider, rulesBudget, descriptionColons, liveRpcCheck]) {
+	const t0 = Date.now();
+	fn();
+	const ms = Date.now() - t0;
+	if (ms >= 1000) slow.push({ check: fn.name, ms });
+}
 
 const args = process.argv.slice(2);
 const strict = args.includes("--strict");
 const failed = checks.filter((c) => c.status === "fail" || (strict && c.status === "warn"));
-const summary = { ok: failed.length === 0, strict, checks };
+const summary = { ok: failed.length === 0, strict, checks, slow };
 if (args.includes("--json")) {
 	console.log(JSON.stringify(summary, null, 2));
 } else {
 	for (const c of checks) console.log(`[${c.status.padEnd(4)}] ${c.id}: ${c.detail}`);
+	for (const s of slow) console.log(`[slow] ${s.check}: ${s.ms}ms`);
 	console.log(failed.length ? `\nFAIL ${failed.length}개` : "\n모든 검사 통과");
 }
 process.exit(summary.ok ? 0 : 1);
