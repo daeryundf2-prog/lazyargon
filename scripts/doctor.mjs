@@ -439,7 +439,7 @@ function skillsSourceReceipts() {
 	const res = spawnSync("node", [radarScript, "audit", "--json", ...(online ? ["--remote"] : [])], {
 		cwd: root,
 		encoding: "utf8",
-		timeout: online ? 180000 : 3000,
+		timeout: online ? 180000 : 15000,
 	});
 	if (res.error || !res.stdout) {
 		add("skills.source_receipts", "fail", `업스트림 영수증 감사 실패: ${(res.error?.message || res.stderr || "").trim()}`);

@@ -10,7 +10,7 @@ import { stdin } from "node:process";
 const DEFAULT_MAX_BYTES = 24 * 1024;
 const DEFAULT_MAX_LINES = 250;
 
-function readStdin(limitMs = 1500) {
+function readStdin(limitMs = 50) {
 	return new Promise((resolve) => {
 		if (stdin.isTTY) return resolve("");
 		const chunks = [];
@@ -19,11 +19,24 @@ function readStdin(limitMs = 1500) {
 			if (settled) return;
 			settled = true;
 			clearTimeout(timer);
+			try {
+				stdin.pause();
+			} catch {}
 			stdin.removeAllListeners();
 			resolve(val);
 		};
 		const timer = setTimeout(() => finish(Buffer.concat(chunks).toString("utf8")), limitMs);
-		stdin.on("data", (c) => chunks.push(c));
+		if (typeof timer.unref === "function") timer.unref();
+		stdin.on("data", (c) => {
+			chunks.push(c);
+			const acc = Buffer.concat(chunks).toString("utf8").trim();
+			if ((acc.startsWith("{") && acc.endsWith("}")) || (acc.startsWith("[") && acc.endsWith("]"))) {
+				try {
+					JSON.parse(acc);
+					finish(acc);
+				} catch {}
+			}
+		});
 		stdin.on("end", () => finish(Buffer.concat(chunks).toString("utf8")));
 		stdin.on("error", () => finish(""));
 	});
@@ -132,7 +145,7 @@ function deny(reason) {
 
 async function main() {
 	if (process.env.LAZYARGON_DISABLE_WRITE_CHUNK_GUARD === "1") allow();
-	const raw = process.env.ANTIGRAVITY_TOOL_INPUT || process.env.TOOL_INPUT || (await readStdin(1500));
+	const raw = process.env.ANTIGRAVITY_TOOL_INPUT || process.env.TOOL_INPUT || (await readStdin(50));
 	const payload = tryParseJson(raw);
 	const content = extractWriteContent(payload);
 	if (!content) allow();
