@@ -169,6 +169,9 @@ def cmd_resolve(conn: sqlite3.Connection, args: argparse.Namespace) -> tuple[dic
         rej = check_admission(args.kind or "fact", content)
         if rej:
             return rej, 2
+    # 형태소 분석(첫 호출 때 Kiwi 초기화)은 쓰기 잠금을 잡기 전에 한다. 잠금 안에서 하면 동시 실행이
+    # 초기화를 줄지어 기다려 12프로세스 테스트가 48초 걸렸다(Windows QA, 2026-11-02).
+    morph = " ".join(extract_morphemes(f"{subj} {pred} {obj} {content}"))
     _begin_immediate(conn)
     ts, existing = now_iso(), _match_existing(conn, mid_arg, subj, pred, content)
     if op == "DELETE":
@@ -187,7 +190,7 @@ def cmd_resolve(conn: sqlite3.Connection, args: argparse.Namespace) -> tuple[dic
         action, sup_id = ("ADDED" if op == "ADD" else "UPDATED"), top["id"]
     else:
         action, sup_id = "ADDED", None
-    mid, morph = make_id(subj, pred, obj, content, ts), " ".join(extract_morphemes(f"{subj} {pred} {obj} {content}"))
+    mid = make_id(subj, pred, obj, content, ts)
     conn.execute("INSERT INTO memories VALUES(?,?,?,?,?,?,?,?,?,'active',?,?)", (mid, args.kind or "fact", subj, pred, obj, content, morph, ts, None, args.hit_count or 0, args.source_ref or ""))
     conn.execute("INSERT INTO memories_fts VALUES(?,?,?,?,?)", (mid, content, morph, subj, obj))
     if subj and pred and obj:
@@ -211,6 +214,7 @@ def cmd_core(pins_path: Path, mode: str, args: argparse.Namespace) -> dict[str, 
 
 
 def cmd_dream(conn: sqlite3.Connection, pins_path: Path, turn_interval: int, turn_arg: int | None = None) -> dict[str, Any]:
+    extract_morphemes("준비")  # Kiwi 초기화를 잠금 밖에서 끝낸다
     _begin_immediate(conn)
     last = conn.execute("SELECT turn_count FROM dream_log ORDER BY id DESC LIMIT 1").fetchone()
     last_turn = int(last["turn_count"] or 0) if last else None
