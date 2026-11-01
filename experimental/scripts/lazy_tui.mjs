@@ -79,7 +79,7 @@ function collectMemoryState(cwd) {
 		const pythonBin = process.platform === "win32" ? "python" : "python3";
 		const res = spawnSync(pythonBin, [join(PLUGIN_ROOT, "experimental", "scripts", "lazy_memory.py"), "stats", "--db", dbPath, "--json"], {
 			encoding: "utf8",
-			timeout: 5000,
+			timeout: 20000,
 		});
 		if (res.status === 0 && res.stdout) {
 			try {

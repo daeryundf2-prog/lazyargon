@@ -13,13 +13,13 @@ const SLEEP_BUF = new Int32Array(new SharedArrayBuffer(4));
 export function withFileLock(filePath, fn) {
 	const lockDir = `${resolve(filePath)}.lock`;
 	mkdirSync(dirname(lockDir), { recursive: true });
-	const deadline = Date.now() + 10000;
+	const deadline = Date.now() + 30000;
 	while (true) {
 		try {
 			mkdirSync(lockDir);
 			break;
 		} catch (e) {
-			if (e.code !== "EEXIST" || Date.now() > deadline) throw e;
+			if (!["EEXIST", "EPERM", "EACCES"].includes(e.code) || Date.now() > deadline) throw e;
 			Atomics.wait(SLEEP_BUF, 0, 0, 5);
 		}
 	}
@@ -200,8 +200,14 @@ function saveDag(file, dag) {
 	const abs = resolve(file);
 	mkdirSync(dirname(abs), { recursive: true });
 	const tmp = `${abs}.${process.pid}.${Date.now()}.tmp`;
-	writeFileSync(tmp, `${JSON.stringify(dag, null, 2)}\n`, "utf8");
-	renameSync(tmp, abs);
+	const content = `${JSON.stringify(dag, null, 2)}\n`;
+	writeFileSync(tmp, content, "utf8");
+	try {
+		renameSync(tmp, abs);
+	} catch {
+		writeFileSync(abs, content, "utf8");
+		try { rmdirSync(tmp); } catch {}
+	}
 }
 
 function main() {

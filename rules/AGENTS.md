@@ -28,9 +28,9 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 12. **Read repo conventions before the first edit** (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`, lint/CI, `skills/`). Run `$git-master`'s PR readiness gate before PRs.
 13. **Vision & PDF coordinates.** Read each image once, record notes, and specify page numbers and spatial coordinates for PDFs/charts.
 14. **Safety filter loop & timeouts (300s+).** agy 1.4.4+ fixes silent filter retry loops; on refusal, record `미확인(모델 유보: 안전 필터)` and move on. For HIGH thinking, keep ≥300s keep-alive.
-15. **Implicit cache prefix invariance.** Top static rule/evidence prefix must stay byte-identical across turns to preserve the 95% discount (≥6,144 tokens); place dynamic metadata at the bottom.
-16. **Reply discipline.** No hype or flattery ('perfectly', '100% done', 'exhaustive', 'amazing', 'sharp point'). Do not add unrequested features, files, price or scope changes; propose in one line instead. Follow user-specified format/items/tone exactly. Completion reports state the commands run, their results and artifact paths; anything not checked is marked 미확인. Before the final reply: a failed or partial lookup is "확인하지 못함", never "없음"; a number names what was actually counted; "모두/전부" only for items checked one by one; "…에서 동작" only for environments actually run.
-17. **CLI 1.4.12 & PreToolUse Stdin 비차단 규약.** 훅은 비동기 파이프 대기 시 50ms 상한(`readStdin(50)`)과 완전한 JSON 감지 시 조기 리졸브(`try { JSON.parse(acc); finish(acc); } catch {}`), `finish()` 시 `stdin.pause()` 및 `timer.unref()`를 강제해 5초 데드라인 트랩을 방지한다. 대형 세션(8,700턴+) 트랜스크립트 탐색은 5행·32KB 상한(`readTailLines(tp, 5, 32*1024)`)으로 꼬리 지연을 차단한다.
+15. **Implicit cache prefix.** Keep static rule/evidence prefix byte-identical across turns (≥6,144 tokens, 95% discount); dynamic metadata at bottom.
+16. **Reply discipline.** No hype/flattery ('perfectly', '100% done', 'exhaustive', 'amazing', 'sharp point'). No unrequested features, files, price or scope changes (propose in 1 line). Follow user format/tone. Completion reports state commands run, results, artifact paths; unchecked items marked 미확인. Failed/partial lookups are "확인하지 못함" (never "없음"); numbers name what was counted; "모두/전부" only if checked one by one; "…에서 동작" only for tested environments.
+17. **CLI 1.4.12 & PreToolUse Stdin.** Hooks cap stdin wait at 50ms (`readStdin(50)`), early-resolve valid JSON, call `stdin.pause()` + `timer.unref()`, and cap transcript tail reads (`readTailLines(tp, 5, 32*1024)`).
 </argon_runtime_constraints>
 
 <delegation_rules>
@@ -72,9 +72,9 @@ Route by each skill's `description`; `/ulw`·"ultrawork"·`/goal`·`$boost` → 
 </claim_evidence>
 
 <data_handling_rules>
-개인정보 기본 양식 규칙 (2026-09-23 확정) — 포렌식 문서 스튜디오 기본값/샘플 데이터:
-- **대륜 측 정보 유지**: 법인명, 주소, 대표전화(02-780-1128), 계좌, 변호사·분석관 성명, 직인 등 대륜 식별정보는 유지한다.
-- **상대방 개인정보 비움**: `(의뢰사 상호명 입력)`, `(담당자 부서·직위·성명) 귀하`, `의뢰사 입회인`(또는 홍길동, ○○의원, 010-0000-0000) 플레이스홀더로 둔다. 특정 의뢰사용 개별 발행본에는 적용하지 않는다.
+개인정보 기본 양식 규칙 (2026-09-23) — 포렌식 문서 기본값/샘플:
+- **대륜 측 정보 유지**: 법인명, 주소, 대표전화(02-780-1128), 계좌, 변호사·분석관 성명, 직인 등 식별정보 유지.
+- **상대방 개인정보 비움**: `(의뢰사 상호명 입력)`, `(담당자 부서·직위·성명) 귀하`, `의뢰사 입회인`(또는 홍길동, ○○의원, 010-0000-0000) 플레이스홀더 사용. 개별 발행본 제외.
 </data_handling_rules>
 
 <anti_slop_invariants>

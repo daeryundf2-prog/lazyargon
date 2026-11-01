@@ -15,13 +15,13 @@ const SLEEP_BUF = new Int32Array(new SharedArrayBuffer(4));
 export function withLock(cwd, fn) {
 	const lockDir = join(resolve(cwd), ".lazyargon", "experiment.lock");
 	mkdirSync(dirname(lockDir), { recursive: true });
-	const deadline = Date.now() + 15000;
+	const deadline = Date.now() + 30000;
 	while (true) {
 		try {
 			mkdirSync(lockDir);
 			break;
 		} catch (e) {
-			if (e.code !== "EEXIST" || Date.now() > deadline) throw e;
+			if (!["EEXIST", "EPERM", "EACCES"].includes(e.code) || Date.now() > deadline) throw e;
 			Atomics.wait(SLEEP_BUF, 0, 0, 5);
 		}
 	}
@@ -41,7 +41,12 @@ function writeAtomic(filePath, content) {
 	mkdirSync(dirname(abs), { recursive: true });
 	const tmp = `${abs}.${process.pid}.${Date.now()}.tmp`;
 	writeFileSync(tmp, content, "utf8");
-	renameSync(tmp, abs);
+	try {
+		renameSync(tmp, abs);
+	} catch {
+		writeFileSync(abs, content, "utf8");
+		try { rmdirSync(tmp); } catch {}
+	}
 }
 
 const IDEA_LADDER = [
@@ -120,6 +125,7 @@ export function stepExperiment({
 	rollbackCmd = "",
 }) {
 	const baseDir = dirname(resolve(ledgerPath));
+	const commit = getShortCommit();
 	return withLock(baseDir, () => {
 		const lockPath = resolveLockPath(ledgerPath);
 		if (!existsSync(lockPath)) {
@@ -187,7 +193,6 @@ export function stepExperiment({
 
 		const existingLines = existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8").trim().split(/\r?\n/) : [TSV_HEADER];
 		const iter = Math.max(1, existingLines.length);
-		const commit = getShortCommit();
 		const cleanHyp = String(hypothesis).replace(/[\t\r\n]+/g, " ").trim();
 		const row = `${iter}\t${commit}\t${numMetric}\t${delta >= 0 ? `+${delta}` : delta}\t${verdict}\t${cleanHyp}`;
 		writeAtomic(resolve(ledgerPath), `${existingLines.join("\n")}\n${row}\n`);
