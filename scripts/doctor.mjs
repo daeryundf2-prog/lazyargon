@@ -123,7 +123,7 @@ function guardParity() {
 		return;
 	}
 	const drift = [];
-	for (const g of ["markdown_structure_guard.mjs", "json_schema_guard.mjs", "stop_claim_guard.mjs"]) {
+	for (const g of ["markdown_structure_guard.mjs", "json_schema_guard.mjs", "stop_claim_guard.mjs", "lookup_guard.mjs"]) {
 		const a = join(root, "scripts", g);
 		const b = join(sibling, g);
 		if (!existsSync(a) || !existsSync(b)) {
