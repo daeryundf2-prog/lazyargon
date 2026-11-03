@@ -1,4 +1,4 @@
-# Gemini 4 Argon 실사용 노트 (2026-10-09 ~ 10-21)
+# Gemini 4 Argon 실사용 노트 (2026-10-09 ~ 11-03)
 
 출시(9/30 제한 공개, 10/13 GA) 후 2주간 수집한 1차 사용기에서 **둘 이상의 독립 출처가 일치한 관찰**만 적는다. 규칙(`rules/AGENTS.md` `<argon_runtime_constraints>`)과 스킬의 근거 문서다. 수치는 각 출처의 자체 측정이며 재현하지 않았다.
 
@@ -123,6 +123,15 @@
 | 8,700턴 대형 세션 트랜스크립트 꼬리 지연 실측: 수십 MB에 달하는 `transcript_full.jsonl`의 512KB 테일을 매 도구마다 읽으려다 디스크 I/O 병목 및 훅 데드라인 초과 유발. `readTailLines` 기본 인자를 `maxLines = 5, maxBytes = 32 * 1024`로 제한하여 꼬리 읽기 지연을 수 밀리초 내로 억제 | 로컬 세션 10385b48 (11/01) |
 | 1M 롱디코드 스펙 게이밍 및 V2EX 피크 라우팅: 1M 토큰 출력 환경에서 엄격한 완료 조건과 앵커가 없으면 모델이 표면적 코드 나열로 응답 길이를 채우는 스펙 게이밍 발생. 피크시간대 하위 라우팅 의혹 시 단문화 및 검증 루프로 통제 | V2EX 10/28~31, 로컬 세션 실측 |
 
+## 2-6. 11/01 ~ 11/03 신규 (조회 실패 정직성·자가점검 교정률 계측·증거 가드 우회 차단·형태소 감사 로그 병목)
+
+| 관찰 | 출처 |
+|---|---|
+| 조회 실패를 "없음"으로 단정하는 환각 및 턴 간 경고 오염: `Read`/`Grep`/`Bash`(exit≠0, timeout, permission denied) 실패 직후 모델이 "없습니다/비어 있습니다"로 답하거나, 단일 파일 미발견(`parse_hwp.py`)을 기능 미지원("HWP는 지원하지 않습니다")으로 확대 해석함. 반대로 `PostToolUse`가 실패 경고를 큐에 쌓으면 다음 턴의 무관한 도구 호출 시점에 주입되어 맥락을 오염시킴 → `lookup_guard.mjs`는 상태만 추출하고 `stop_claim_guard.mjs`가 같은 사용자 요청 구간 안에서만 대조 | 로컬 세션 실측 (11/02~11/03), `lookup_guard.mjs`, `stop_claim_guard.mjs` |
+| 숫자 출처 세탁(Number Laundering) 및 전수 표현 오남용: 도구 출력의 줄 번호(`12: foo`), SHA-256 해시 속 숫자 조각, 이전 모델 응답의 숫자를 실제 측정 건수로 세탁하거나 `wc -l`(줄 수)을 사건/레코드 건수로 둔갑시키는 패턴 확인. `stop_claim_guard.mjs`에서 줄 번호·해시 조각·모델 자신의 이전 발언을 숫자 근거에서 제외하고, 되묻기 실효성은 `selfcheck_stats.mjs`로 종류별 교정 비율(`corrected / (corrected + passed)`)을 계측 | `stop_claim_guard.mjs`, `selfcheck_stats.mjs` (11/02~11/03) |
+| 증거 보호 가드(`evidence_guard.mjs`) 우회 패턴 및 NTFS 파서 0건 침묵 실패: PowerShell 메서드 호출(`(Get-Item x.evtx).Delete()`, `[IO.File]::WriteAllText`), `-enc` 인코딩 명령, NTFS ADS(`x.evtx::$DATA`), 8.3 단축명(`APP~1.EVT`), 축약 플래그(`--outp`, `-oC:\...`)로 `PreToolUse` 정규식을 우회하던 경로 차단. 또한 `parse_ntfs_artifacts.py`가 잘린 EVTX·한글 경로·버전 불일치 Prefetch에서 0건을 정상(exit 0)으로 반환하던 침묵 실패를 비정상 종료 및 건수 검증으로 보정 | workspace `evidence_guard.mjs`, `parse_ntfs_artifacts.py`, `test_guards.py` (11/02~11/03) |
+| Windows 장기 세션 `audit_trail.jsonl` 누적(647KB, 1,536행)에 따른 형태소 검증 25초 타임아웃: `PostToolUse` 체크포인트가 누적된 플러그인 루트 `.lazyforensic/audit_trail.jsonl`을 `verify_report.py --morph-grounding`이 통째로 `Kiwi.tokenize()`에 전달하면 3,000여 개 64자 해시 토큰화로 25초 데드라인(`FAIL_CLOSED`)을 초과함 → 로컬(`dir`/`cwd`) 증거 우선 탐색 및 대용량 `audit_trail.jsonl` 최근 고유 `(file, sha256)` 축약으로 해결 | Windows 실측 및 `hallucination_guard.mjs`, `verify_report.py` (11/03) |
+
 ## 3. 규칙으로의 매핑
 
 | 노트 | 규칙·스킬 |
@@ -173,6 +182,10 @@
 | §2-5 PreToolUse Stdin 데드라인 트랩 (50ms 제한, 얼리 리졸브, stdin.pause) | `rules/AGENTS.md` `<argon_runtime_constraints>` 17, `lazyargon-workspace` `evidence_guard`/`hallucination_guard` |
 | §2-5 8,700턴 대형 세션 트랜스크립트 꼬리 지연 방지 (5행·32KB 상한) | `lazyargon-workspace` `evidence_guard`/`hallucination_guard` `readTailLines` |
 | §2-5 1M 롱디코드 스펙 게이밍 방지 및 V2EX 피크 라우팅 대비 | `rules/AGENTS.md` `<argon_runtime_constraints>` 4, 16, `ulw` Step 1 완전성 잠금 |
+| §2-6 조회 실패 정직성("확인하지 못함" vs "없음") 및 턴 간 경고 오염 방지 | `rules/AGENTS.md` `<argon_runtime_constraints>` 16, `scripts/lookup_guard.mjs`, `scripts/stop_claim_guard.mjs` |
+| §2-6 숫자 출처 세탁(줄 번호·해시 조각·이전 모델 응답 제외) 및 되묻기 교정률 계측 | `scripts/stop_claim_guard.mjs`, `scripts/selfcheck_stats.mjs` |
+| §2-6 증거 가드 PowerShell 메서드/ADS/8.3 우회 차단 및 NTFS 파서 0건 침묵 실패 방지 | `lazyargon-workspace/scripts/evidence_guard.mjs`, `scripts/parse_ntfs_artifacts.py` |
+| §2-6 Windows 장기 세션 `audit_trail.jsonl` 형태소 검증 25초 타임아웃 방지 | `lazyargon-workspace/scripts/hallucination_guard.mjs`, `scripts/verify_report.py` |
 
 ## 4. 출처 목록
 
