@@ -46,24 +46,18 @@ done
 `invoke_subagent` (`Model: "inherit"`)를 사용하여 실패 로그와 타이밍 트레이스를 분석합니다.
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Flaky Test Diagnostician",
-      Model: "inherit",
-      Prompt: """목표: 간헐적 테스트 실패 로그를 분석하고 비동기 레이스 원인을 격리하라.
+invoke_subagent({
+  TypeName: "self",
+  Role: "Flaky Test Diagnostician",
+  Model: "inherit",
+  Prompt: """목표: 간헐적 테스트 실패 로그를 분석하고 비동기 레이스 원인을 격리하라.
 완료 조건: 아래 체크리스트 기준 원인 지목 및 결정론적 수정 코드 제시.
 범위:
 1. Arbitrary sleep/delay (setTimeout / time.sleep) vs deterministic event listeners
 2. Shared global state / uncleaned DB records across test cases
 3. Unawaited microtasks / floating Promises
 4. Port / filesystem resource contention"""
-    }
-  ],
-  toolAction: "Diagnosing flaky test timing hazards",
-  toolSummary: "Flaky test diagnosis"
-)
+})
 ```
 
 ### Step 3: Deterministic Hardening (결정론적 리팩토링)

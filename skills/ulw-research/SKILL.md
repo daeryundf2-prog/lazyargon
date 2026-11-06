@@ -21,7 +21,7 @@ This skill is authored against the Antigravity `invoke_subagent` tool surface. Y
 
 | Purpose | Tool | Key arguments |
 |---------|------|---------------|
-| Stand up the research wave once | `invoke_subagent` | one call carrying every first-wave `Subagents` entry: `{ TypeName: "self", Role, Model, Prompt }` — members start together |
+| Stand up the research wave once | `invoke_subagent` | parallel flat `{ TypeName: "self", Role, Model, Prompt }` calls in the same turn — members start together |
 | Send a lead / a debate round onward | next-wave `Prompt` | subagents cannot receive follow-up messages mid-run — fold the lead into the next wave's prompt text |
 | Collect member replies | returned results | results arrive on completion; act on each as it lands |
 | Track shared research state | `$SESSION_DIR` files | `expansion-log.md`, `claim-graph.md`, `sources-ledger.md` are the shared board — workers report in reply text, you journal |
@@ -97,19 +97,14 @@ Phase 6 opens by turning the recorded fields into `design-spec.md`.
 
 ## Phase 1 — Stand up the team (DEFAULT composition)
 
-**When the user asked for MASS research, scale the waves, not the roster.** "mass ulw research", "mulw research", "ulw mass research" — in any language — order over-collection that a single wave cannot produce. Run collection as chained `invoke_subagent` waves at mass scale: an opening wave at the runtime's parallel ceiling covering every angle the topic has, each wave's EXPAND leads defining the next wave's `Subagents` entries until convergence, and a synthesis that reduces through several parallel `Model: "inherit"` lanes into one `pro` reducer. Everything else in this skill still binds: the deliverable interview, the journal, the claim graph, the convergence rules, and the delivery gates. Keep a dedicated attack wave for the debate rounds of Phase 3 — attack is a prompt role, and collection lanes do not critique themselves.
+**When the user asked for MASS research, scale the waves, not the roster.** "mass ulw research", "mulw research", "ulw mass research" — in any language — order over-collection that a single wave cannot produce. Run collection as chained `invoke_subagent` waves at mass scale: an opening wave at the runtime's parallel ceiling covering every angle the topic has, each wave's EXPAND leads defining the next wave's `invoke_subagent` calls until convergence, and a synthesis that reduces through several parallel `Model: "inherit"` lanes into one `pro` reducer. Everything else in this skill still binds: the deliverable interview, the journal, the claim graph, the convergence rules, and the delivery gates. Keep a dedicated attack wave for the debate rounds of Phase 3 — attack is a prompt role, and collection lanes do not critique themselves.
 
-Otherwise a parallel wave is the DEFAULT for ulw-research, not an option: a lead one member surfaces almost always reshapes what another should search next, and debate needs cooperating members, not fire-and-forget workers. Launch it immediately after the brief — one `invoke_subagent` call carrying the whole first wave:
+Otherwise a parallel wave is the DEFAULT for ulw-research, not an option: a lead one member surfaces almost always reshapes what another should search next, and debate needs cooperating members, not fire-and-forget workers. Launch it immediately after the brief — emit parallel flat `invoke_subagent` calls in the same turn for the whole first wave:
 
 ```
-invoke_subagent({
-  Subagents: [
-    { TypeName: "self", Role: "axis-owner-1", Model: "flash", Prompt: "<member brief for axis 1 — see below>" },
-    { TypeName: "self", Role: "axis-owner-2", Model: "flash", Prompt: "<member brief for axis 2>" },
-    ...
-    { TypeName: "self", Role: "skeptic", Model: "inherit", Prompt: "<debate brief — see below>" },
-  ],
-})
+invoke_subagent({ TypeName: "self", Role: "axis-owner-1", Model: "flash", Prompt: "<member brief for axis 1 — see below>" })
+invoke_subagent({ TypeName: "self", Role: "axis-owner-2", Model: "flash", Prompt: "<member brief for axis 2>" })
+invoke_subagent({ TypeName: "self", Role: "skeptic", Model: "inherit", Prompt: "<debate brief — see below>" })
 ```
 
 Collection members run on `flash`; the skeptic, every attack/verification lane, and the final synthesis run on `inherit`. The total number of entries never exceeds the budget line in `brief.md`.
@@ -118,7 +113,7 @@ The binding rules, in short — one member per axis (ownership, never a job titl
 
 ## Phase 2 — Saturation wave
 
-Launch the entire first wave in one `invoke_subagent` call — every member briefed in a `Subagents` entry starts in parallel; include bounded lanes in the same call for the territories the axis owners cannot reach (read-only sweeps, blocked pages). Sequential launches and "start with one and see" defeat the mode.
+Launch the entire first wave in a single turn via parallel `invoke_subagent` calls — every member briefed in its own flat `invoke_subagent` call starts in parallel; include bounded lanes in the same turn for the territories the axis owners cannot reach (read-only sweeps, blocked pages). Sequential launches and "start with one and see" defeat the mode.
 
 **Budget first.** Before sizing the wave, write one line into `brief.md`: `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Without a user-stated budget the default is **4 lanes per wave, 2 waves**; exceeding it needs the user's yes. On Gemini 4 Argon one worker spends roughly 20× the output tokens of a Flash worker and a few heavy lanes exhaust a 5-hour Ultra window, so lane counts are a cost, not a quality knob. Fill the budget with `flash` lanes for collection and reserve `inherit` for the skeptic, verification, and synthesis lanes.
 
@@ -154,14 +149,14 @@ This loop is what makes the mode research rather than search. Collect returns as
 
 1. Journal the return the moment it lands, never at the end of the wave: digest plus verbatim EXPAND markers into `wave-<N>-<kind>-<axis>.md`, and append each new source, quote, and number to `sources-ledger.md` and `observation-manifest.md` in the same beat. Real-time journaling is what makes the run survivable — after a compaction the journal, not your memory, is the state.
 2. Deduplicate new markers against `expansion-log.md` — every lead ever seen, not just confirmed ones, or rejected leads resurface each wave.
-3. Route each new unchecked lead in the next expansion wave: batch the leads that arrived this round into one `invoke_subagent` call — one entry per territory, the lead embedded in its prompt:
+3. Route each new unchecked lead in the next expansion wave: batch the leads that arrived this round into parallel `invoke_subagent` calls in the same turn — one call per territory, the lead embedded in its prompt:
 
 ```
-invoke_subagent({ Subagents: [{ TypeName: "self", Role: "expansion-<territory>", Model: "inherit",
+invoke_subagent({ TypeName: "self", Role: "expansion-<territory>", Model: "inherit",
 Prompt: "TASK: expansion wave <N> — investigate: <lead>.
 PARENT: <which return surfaced it>. This is an explicit exhaustive-research assignment; budgets do not apply.
 <role protocol for the lead's territory>
-End your reply with the ## EXPAND tail." }] })
+End your reply with the ## EXPAND tail." })
 ```
 
 4. **Debate rounds (the ultradebate/hyperdebate engine).** Subagents cannot receive mid-run messages, so debate runs as dedicated waves: collect contested, high-risk, or surprising claims from the round's returns, then dispatch a `Model: "inherit"` attack wave — "ATTACK: <claim> — EVIDENCE: <what supports it> — find the weakest assumption, the missing counter-source, the independence failure." Relay the attack output back to a defense lane (fresh subagent carrying both sides, or the original claim embedded for re-examination), collect both sides, then record your verdict in `debate-log.md` and update the claim node. A claim that never drew an attack still gets one skeptic pass before it may enter the synthesis as supported.

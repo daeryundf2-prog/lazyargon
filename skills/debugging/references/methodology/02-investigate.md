@@ -64,39 +64,35 @@ Branch depending on what's available.
 
 ### Path A: Parallel investigation wave (default)
 
-Launch one `invoke_subagent` call — one member per evidence source, hypotheses split across them. This is the right default whenever you have ≥3 hypotheses and any of them would take >10 minutes to investigate single-threaded.
+Launch parallel `invoke_subagent` calls in the same turn — one member per evidence source, hypotheses split across them. This is the right default whenever you have ≥3 hypotheses and any of them would take >10 minutes to investigate single-threaded.
 
-**Wave spec** — one `invoke_subagent` call whose `Subagents` array carries these role briefs:
+**Wave spec** — parallel flat `invoke_subagent` calls carrying these role briefs:
 
-```json
-{
-  "Subagents": [
-    {
-      "TypeName": "self",
-      "Role": "Runtime State Inspector",
-      "Model": "flash",
-      "Prompt": "You are the Runtime State Inspector. Your job: attach to the live process, hit breakpoints, read program state (variables, heap, goroutines, stack, registers depending on runtime), and report observed values verbatim. Never guess — if you don't see the value, say so. Report back with file:line / address references and captured values. Never edit source code. Never run git commands. If you need an instrumentation statement added (breakpoint(), debugger;, dbg!, etc.), say so in your reply — the Lead approves all edits."
-    },
-    {
-      "TypeName": "self",
-      "Role": "Log Archaeologist",
-      "Model": "flash",
-      "Prompt": "You are the Log Archaeologist. Your job: grep server logs, stderr streams, SDK-internal debug output (DEBUG env, RUST_LOG, GODEBUG, PYTHONASYNCIODEBUG), and correlate timestamps. Produce a timeline of events with latencies. Flag anything that looks like a silent catch, a swallowed rejection, a panic recovered-and-ignored, a success response that contains failure signals (HTTP 200 with empty body, stopReason=error, exit 0 with error-in-stdout). Never edit source code."
-    },
-    {
-      "TypeName": "self",
-      "Role": "Reproduction Engineer",
-      "Model": "flash",
-      "Prompt": "You are the Reproduction Engineer. Your job: build the smallest reliable repro — a curl command, a vitest/pytest/go test, a shell script, a Playwright script for browser bugs, a pwntools script for binary targets. It must reproduce on first try and be copy-pasteable by the Lead. Document exact input, expected output, observed output. Save repro artifacts under /tmp/ and report their paths so the Lead can journal them. If the bug is browser-based you MUST use Playwright CLI — do not simulate with curl."
-    },
-    {
-      "TypeName": "self",
-      "Role": "Trace Correlator",
-      "Model": "flash",
-      "Prompt": "You are the Trace Correlator. Your job: take findings from the other members (quoted in this prompt) and cross-link them. Build a causal chain from symptom to suspected cause. Identify missing evidence. Propose the next single most-decisive runtime query. Never edit source code; only reason across already-captured evidence. If hypotheses diverge sharply after correlation, say so explicitly — that is the signal for the Oracle Triple."
-    }
-  ]
-}
+```javascript
+invoke_subagent({
+  TypeName: "self",
+  Role: "Runtime State Inspector",
+  Model: "flash",
+  Prompt: "You are the Runtime State Inspector. Your job: attach to the live process, hit breakpoints, read program state (variables, heap, goroutines, stack, registers depending on runtime), and report observed values verbatim. Never guess — if you don't see the value, say so. Report back with file:line / address references and captured values. Never edit source code. Never run git commands. If you need an instrumentation statement added (breakpoint(), debugger;, dbg!, etc.), say so in your reply — the Lead approves all edits."
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Log Archaeologist",
+  Model: "flash",
+  Prompt: "You are the Log Archaeologist. Your job: grep server logs, stderr streams, SDK-internal debug output (DEBUG env, RUST_LOG, GODEBUG, PYTHONASYNCIODEBUG), and correlate timestamps. Produce a timeline of events with latencies. Flag anything that looks like a silent catch, a swallowed rejection, a panic recovered-and-ignored, a success response that contains failure signals (HTTP 200 with empty body, stopReason=error, exit 0 with error-in-stdout). Never edit source code."
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Reproduction Engineer",
+  Model: "flash",
+  Prompt: "You are the Reproduction Engineer. Your job: build the smallest reliable repro — a curl command, a vitest/pytest/go test, a shell script, a Playwright script for browser bugs, a pwntools script for binary targets. It must reproduce on first try and be copy-pasteable by the Lead. Document exact input, expected output, observed output. Save repro artifacts under /tmp/ and report their paths so the Lead can journal them. If the bug is browser-based you MUST use Playwright CLI — do not simulate with curl."
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Trace Correlator",
+  Model: "flash",
+  Prompt: "You are the Trace Correlator. Your job: take findings from the other members (quoted in this prompt) and cross-link them. Build a causal chain from symptom to suspected cause. Identify missing evidence. Propose the next single most-decisive runtime query. Never edit source code; only reason across already-captured evidence. If hypotheses diverge sharply after correlation, say so explicitly — that is the signal for the Oracle Triple."
+})
 ```
 
 **Assignment rule**: one hypothesis per subagent `Prompt`. Give each hypothesis to the member whose evidence source is most likely to confirm or refute it, and embed the full hypothesis list in every brief — Antigravity subagents cannot message each other mid-run, so each prompt carries the shared context. The Trace Correlator runs in the wave AFTER the evidence lanes return, with their findings quoted into its prompt.
@@ -111,33 +107,27 @@ Launch one `invoke_subagent` call — one member per evidence source, hypotheses
 
 ### Path B: Reduced parallelism
 
-When the runtime rejects a large `Subagents` array or concurrency is constrained, fan out fewer `invoke_subagent` lanes — or investigate single-threaded yourself. Same rule: one hypothesis per lane.
+When concurrency is constrained, fan out fewer `invoke_subagent` lanes — or investigate single-threaded yourself. Same rule: one hypothesis per lane.
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Runtime State Scout",
-      Model: "inherit",
-      Prompt: "[CONTEXT: bug summary + which hypothesis you own + what state to look at]\nRuntime state investigation for hypothesis 1: ..."
-    },
-    {
-      TypeName: "self",
-      Role: "Log & Timing Scout",
-      Model: "inherit",
-      Prompt: "Log/timing investigation for hypothesis 2: ..."
-    },
-    {
-      TypeName: "self",
-      Role: "Reproduction Minimizer",
-      Model: "inherit",
-      Prompt: "Reproduction minimizer for hypothesis 3: ..."
-    }
-  ],
-  toolAction: "Investigating hypotheses in parallel",
-  toolSummary: "Parallel hypothesis investigation"
-)
+invoke_subagent({
+  TypeName: "self",
+  Role: "Runtime State Scout",
+  Model: "inherit",
+  Prompt: "[CONTEXT: bug summary + which hypothesis you own + what state to look at]\nRuntime state investigation for hypothesis 1: ..."
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Log & Timing Scout",
+  Model: "inherit",
+  Prompt: "Log/timing investigation for hypothesis 2: ..."
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Reproduction Minimizer",
+  Model: "inherit",
+  Prompt: "Reproduction minimizer for hypothesis 3: ..."
+})
 ```
 
 End your response, wait for completion notifications, then synthesize.

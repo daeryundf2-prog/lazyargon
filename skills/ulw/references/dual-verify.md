@@ -31,13 +31,11 @@ flowchart TD
 독립된 서브에이전트가 코드의 잠재적 취약점을 공격적으로 감사한다. 감사 결과의 모든 항목은 `파일:라인`과 함께 돌아와야 하며, 근거 라인을 열어 보지 않은 판정은 무효다(코드베이스 "설명" 환각 방지).
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Adversarial Code Critic",
-      Model: "inherit",
-      Prompt: """목표: 변경된 코드에 대한 3대 영역 적대적 감사를 수행하라.
+invoke_subagent({
+  TypeName: "self",
+  Role: "Adversarial Code Critic",
+  Model: "inherit",
+  Prompt: """목표: 변경된 코드에 대한 3대 영역 적대적 감사를 수행하라.
 완료 조건: 아래 3대 영역의 결함 유무를 파일:라인 근거와 함께 판정(UNANIMOUS_PASS 또는 BLOCKING)하라. 근거 라인은 반드시 직접 열어 인용한다.
 범위:
 1. Security: SQLi, command injection, path traversal, untrusted inputs.
@@ -45,11 +43,7 @@ invoke_subagent(
 3. Boundary: exhaustive matches, no 'as any', null safety.
 종료 조건: 같은 도구 호출 3회 반복 / 도구 호출 40회 초과 → UNKNOWN 반환
 반환 형식: ≤40줄, 판정·근거·재현 명령만"""
-    }
-  ],
-  toolAction: "Running adversarial code review",
-  toolSummary: "Adversarial 3-domain code review"
-)
+})
 ```
 
 ### Pass 3: Cross-Family Verdict (고위험 변경 기본)

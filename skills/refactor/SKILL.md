@@ -11,7 +11,7 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 | --- | --- |
 | Explore / research / plan / implement / QA / review | `invoke_subagent` + TASK/DELIVERABLE/SCOPE/VERIFY + role envelope |
 | Wait / poll children | Stay in parent; re-invoke incomplete lanes |
-| Child model hint | Pass `Subagents[].Model: "inherit"` (or `"flash_lite"` only for emergency quota fallback) |
+| Child model hint | Pass top-level `Model: "inherit"` (or `"flash_lite"` only for emergency quota fallback) |
 
 Use Antigravity tools only (`invoke_subagent`). Do **not** invent foreign spawn/wait/goal APIs or OpenCode kwargs.
 
@@ -111,37 +111,31 @@ For multi-module refactors, dispatch up to 3–4 focused scouts simultaneously u
 
 ```javascript
 invoke_subagent({
-  Subagents: [
-    {
-      TypeName: "self",
-      Role: "Refactoring Target & Dependency Scout",
-      Model: "inherit",
-      Prompt: `TASK: Find all definitions, occurrences, and import/dependency chains of [TARGET].
+  TypeName: "self",
+  Role: "Refactoring Target & Dependency Scout",
+  Model: "inherit",
+  Prompt: `TASK: Find all definitions, occurrences, and import/dependency chains of [TARGET].
 DELIVERABLE: file paths, line numbers, usage patterns, and dependency graph.
 SCOPE: repository read-only
 VERIFY: parent re-reads cited paths`
-    },
-    {
-      TypeName: "self",
-      Role: "Pattern & Architecture Scout",
-      Model: "inherit",
-      Prompt: `TASK: Find similar code patterns, module boundaries, and architectural conventions around [TARGET].
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Pattern & Architecture Scout",
+  Model: "inherit",
+  Prompt: `TASK: Find similar code patterns, module boundaries, and architectural conventions around [TARGET].
 DELIVERABLE: analogous implementations, layer structure, and design patterns in use.
 SCOPE: repository read-only
 VERIFY: parent cross-checks cited conventions`
-    },
-    {
-      TypeName: "self",
-      Role: "Test Coverage Scout",
-      Model: "inherit",
-      Prompt: `TASK: Find all test files and test cases related to [TARGET].
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Test Coverage Scout",
+  Model: "inherit",
+  Prompt: `TASK: Find all test files and test cases related to [TARGET].
 DELIVERABLE: test file paths, test case names, and coverage gaps.
 SCOPE: repository read-only
 VERIFY: parent runs discovered test files`
-    }
-  ],
-  toolAction: "Exploring refactoring scope and impact",
-  toolSummary: "Parallel refactoring scouts"
 })
 ```
 
@@ -236,19 +230,15 @@ Inspect `package.json`, `pyproject.toml`, `Cargo.toml`, or `go.mod` via `view_fi
 
 ```javascript
 invoke_subagent({
-  Subagents: [{
-    TypeName: "self",
-    Role: "Test Coverage Analyzer",
-    Model: "inherit",
-    Prompt: `Analyze test coverage for [TARGET]:
+  TypeName: "self",
+  Role: "Test Coverage Analyzer",
+  Model: "inherit",
+  Prompt: `Analyze test coverage for [TARGET]:
 1. Which test files cover this code?
 2. What test cases exist?
 3. Are there integration tests?
 4. What edge cases are tested?
 5. Estimated coverage percentage?`
-  }],
-  toolAction: "Analyzing test coverage for refactoring target",
-  toolSummary: "Test coverage analysis"
 })
 ```
 
@@ -310,11 +300,10 @@ For complex multi-module refactors, invoke a planning subagent (`Model: "inherit
 
 ```javascript
 invoke_subagent({
-  Subagents: [{
-    TypeName: "self",
-    Role: "Refactoring Plan Architect",
-    Model: "inherit",
-    Prompt: `Create a detailed refactoring plan:
+  TypeName: "self",
+  Role: "Refactoring Plan Architect",
+  Model: "inherit",
+  Prompt: `Create a detailed refactoring plan:
 
 ## Refactoring Goal
 [User's original request]
@@ -337,9 +326,6 @@ invoke_subagent({
 4. Specify exact files and line ranges for each step
 5. Include rollback strategy for each step
 6. Define commit checkpoints`
-  }],
-  toolAction: "Generating detailed refactoring plan",
-  toolSummary: "Refactoring plan generation"
 })
 ```
 
@@ -517,7 +503,7 @@ Use `sg run -p '<pattern>' -r '<rewrite>' -l <lang>` for structural transformati
 
 # Antigravity Parallel Execution
 
-Do **not** use OpenCode `team_*` or `Task(...)` tools on Antigravity. Dispatch independent refactor/verify lanes with `invoke_subagent` (`Model: "inherit"`, including `toolAction` and `toolSummary`). Stay in the parent and wait for `send_message` completion notifications.
+Do **not** use OpenCode `team_*` or `Task(...)` tools on Antigravity. Dispatch independent refactor/verify lanes with flat `invoke_subagent` calls (`{ TypeName, Role, Model: "inherit", Prompt }`). Stay in the parent and wait for `send_message` completion notifications.
 
 ## References
 

@@ -53,16 +53,10 @@ git checkout HEAD -- <polluted_file_path>
 동일한 실수가 반복되지 않도록 액티브 메모리에 실패 패턴과 주의사항(Gotcha)을 기록합니다.
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Audit Ledger Recorder",
-      Model: "inherit",
-      Prompt: "TASK: Record the audit findings and rollback reason into facts.jsonl.\nDELIVERABLE: verified fact entry preventing identical drift."
-    }
-  ],
-  toolAction: "Recording self-audit ledger",
-  toolSummary: "Self-audit ledger persistence"
-)
+invoke_subagent({
+  TypeName: "self",
+  Role: "Audit Ledger Recorder",
+  Model: "inherit",
+  Prompt: "TASK: Record the audit findings and rollback reason into facts.jsonl.\nDELIVERABLE: verified fact entry preventing identical drift."
+})
 ```

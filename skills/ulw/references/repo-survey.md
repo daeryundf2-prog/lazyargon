@@ -54,24 +54,18 @@ flowchart TD
 3. If codebase is large (>50k LOC), dispatch parallel scout subagents:
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Dependency & Symbol Scout",
-      Model: "inherit",
-      Prompt: "Map all exported types, functions, and cross-package imports in the repository. Output as structured TSV/JSON."
-    },
-    {
-      TypeName: "self",
-      Role: "Error Boundary Scout",
-      Model: "inherit",
-      Prompt: "Search for empty catch blocks, unhandled rejections, and unvalidated external inputs across all services."
-    }
-  ],
-  toolAction: "Scanning codebase symbols and boundaries",
-  toolSummary: "Parallel repo survey scouts"
-)
+invoke_subagent({
+  TypeName: "self",
+  Role: "Dependency & Symbol Scout",
+  Model: "inherit",
+  Prompt: "Map all exported types, functions, and cross-package imports in the repository. Output as structured TSV/JSON."
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Error Boundary Scout",
+  Model: "inherit",
+  Prompt: "Search for empty catch blocks, unhandled rejections, and unvalidated external inputs across all services."
+})
 ```
 
 ### Step 2: Synthesis & Analysis (In Parent)

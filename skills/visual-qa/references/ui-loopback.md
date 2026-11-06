@@ -45,13 +45,11 @@ browser_close     → QA 브라우저 컨텍스트 종료 (청소 필수)
 `invoke_subagent` (`Model: "inherit"`)를 사용하여 캡처된 스크린샷의 시각적 완성도를 판독합니다.
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Visual QA Oracle",
-      Model: "inherit",
-      Prompt: """REVIEW TYPE: VISUAL INSPECTION & CJK FIDELITY (Multimodal)
+invoke_subagent({
+  TypeName: "self",
+  Role: "Visual QA Oracle",
+  Model: "inherit",
+  Prompt: """REVIEW TYPE: VISUAL INSPECTION & CJK FIDELITY (Multimodal)
 GOAL: Inspect the rendered UI screenshot for visual bugs, alignment issues, and contrast defects.
 
 CHECKLIST:
@@ -65,11 +63,7 @@ OUTPUT FORMAT:
 VERDICT: PERFECT | REMEDIATION_REQUIRED
 DEFECTS: list of specific visual flaws with location and severity
 CSS_FIX: concrete CSS/code adjustments required"""
-    }
-  ],
-  toolAction: "Inspecting rendered UI via native vision",
-  toolSummary: "Visual UI loopback inspection"
-)
+})
 ```
 
 ### Step 3: Self-Remediation Loop (자가 교정)

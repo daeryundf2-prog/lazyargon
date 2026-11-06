@@ -177,19 +177,19 @@ Order rule (safest → riskiest): comments → dead code → defensive → dupli
 
 ### Phase 4: Parallel slop removal via `invoke_subagent` (`Model: "inherit"`) in batches of 3–5
 
-Files are processed by subagents (`Model: "inherit"`), **batched up to 3–5 at a time in parallel** via a single `invoke_subagent` call. `Model: "inherit"` gives the agent high speed and thoroughness to correctly evaluate the 10 categories and respect the KEEP rules without slipping into surface fixes.
+Files are processed by subagents (`Model: "inherit"`), **batched up to 3–5 at a time in parallel** via parallel flat `invoke_subagent` calls in the same turn. `Model: "inherit"` gives the agent high speed and thoroughness to correctly evaluate the 10 categories and respect the KEEP rules without slipping into surface fixes.
 
 **Batching protocol** (strict):
 
 1. Slice the in-scope file list into chunks of up to 3–5 files.
-2. For each chunk, launch all subagents **in a single `invoke_subagent` call** with `Subagents: [...]`, `toolAction`, and `toolSummary`.
+2. For each chunk, launch all subagents **in parallel in a single turn** with one flat `invoke_subagent({ TypeName, Role, Model, Prompt })` call per file (never wrap in `Subagents: [...]` or pass `toolAction`/`toolSummary`).
 3. Stop tool calling to end your turn. Reactive wakeup will trigger when each subagent finishes via `send_message`.
 4. Once all in the batch complete, collect results and proceed to the next batch. Repeat until every file is processed.
 5. If total files ≤ 5, launch all in one batch.
 
 **Never** launch all files at once when there are more than 5; **never** launch them serially when more than one remains in the current batch.
 
-**Per-file subagent entry** (inside `Subagents` array):
+**Per-file `invoke_subagent` call** (flat top-level arguments):
 
 ```json
 {

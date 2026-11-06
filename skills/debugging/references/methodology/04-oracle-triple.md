@@ -37,13 +37,11 @@ Spawn all three in parallel.
 ## The three prompts
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Oracle A - Obvious But Missed",
-      Model: "inherit",
-      Prompt: """[CONTEXT: bug description + evidence captured so far, verbatim, with file:line refs]
+invoke_subagent({
+  TypeName: "self",
+  Role: "Oracle A - Obvious But Missed",
+  Model: "inherit",
+  Prompt: """[CONTEXT: bug description + evidence captured so far, verbatim, with file:line refs]
 
 Framing A — OBVIOUS-BUT-MISSED.
 What is the most embarrassing, most obvious cause that a senior engineer would spot in 30 seconds and we've overlooked? Consider:
@@ -55,12 +53,12 @@ What is the most embarrassing, most obvious cause that a senior engineer would s
 - editing src/ while running dist/
 
 Give me exactly three candidate causes ranked by likelihood, with one sentence each explaining why our evidence is consistent with each."""
-    },
-    {
-      TypeName: "self",
-      Role: "Oracle B - System Boundary",
-      Model: "inherit",
-      Prompt: """[CONTEXT: bug description + evidence captured so far]
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Oracle B - System Boundary",
+  Model: "inherit",
+  Prompt: """[CONTEXT: bug description + evidence captured so far]
 
 Framing B — SYSTEM-BOUNDARY.
 What if the bug is NOT in the code we've been reading, but at a boundary? Consider:
@@ -74,12 +72,12 @@ What if the bug is NOT in the code we've been reading, but at a boundary? Consid
 - wrong transport (HTTP/1.1 vs HTTP/2, TLS version negotiation)
 
 Give me three candidate causes, each naming the specific boundary and the specific contract assumption that might be violated."""
-    },
-    {
-      TypeName: "self",
-      Role: "Oracle C - Invariant Violation",
-      Model: "inherit",
-      Prompt: """[CONTEXT: bug description + evidence captured so far]
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Oracle C - Invariant Violation",
+  Model: "inherit",
+  Prompt: """[CONTEXT: bug description + evidence captured so far]
 
 Framing C — INVARIANT-VIOLATION.
 Which invariants that we've been ASSUMING TRUE might actually be false?
@@ -88,11 +86,7 @@ Enumerate the five assumptions most load-bearing to our current hypotheses, then
 - predict what the observable would be if the invariant holds vs if it fails
 
 We want at least one of these queries to be decisive."""
-    }
-  ],
-  toolAction: "Dispatching Oracle Triple consultation",
-  toolSummary: "Oracle Triple parallel consult"
-)
+})
 ```
 
 ---

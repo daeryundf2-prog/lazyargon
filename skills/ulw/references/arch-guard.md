@@ -34,12 +34,10 @@ flowchart TD
 
 ```javascript
 invoke_subagent({
-  Subagents: [
-    {
-      TypeName: "self",
-      Role: "Architecture Boundary Oracle",
-      Model: "inherit",
-      Prompt: `REVIEW TYPE: CLEAN ARCHITECTURE DRIFT AUDIT
+  TypeName: "self",
+  Role: "Architecture Boundary Oracle",
+  Model: "inherit",
+  Prompt: `REVIEW TYPE: CLEAN ARCHITECTURE DRIFT AUDIT
 GOAL: Audit import graph and AST structure for architectural rule violations.
 
 CHECKLIST:
@@ -52,10 +50,6 @@ OUTPUT FORMAT:
 VERDICT: CLEAN | DRIFT_DETECTED
 VIOLATIONS: specific import statements with file:line
 REFACTORING: Dependency Inversion (DIP) abstraction interface proposal`
-    }
-  ],
-  toolAction: "Auditing architectural layer boundaries",
-  toolSummary: "Architecture drift audit"
 })
 ```
 

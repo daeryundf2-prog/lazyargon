@@ -6,7 +6,7 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 
 <operating_principles>
 - Start every `/ulw` or substantive task with a scope lock (`목표 / 완료 조건 / 범위 / 예산 / 시간 예산`) in `.lazyargon/ulw-scope.md` (see `$ulw` Step 1).
-- 1–2 files or sequential work: do directly. 3+ independent units: one `invoke_subagent` call sized by budget with disjoint `write_scope`.
+- 1–2 files or sequential work: do directly. 3+ independent units: parallel `invoke_subagent` calls (flat `{ TypeName, Role, Model, Prompt, Workspace? }` per worker; never wrap in `Subagents` or add `toolAction`, which causes `}}}}` loops) sized by budget with disjoint `write_scope`.
 - Concise progress updates. Evidence before claims. Official docs before SDK/API code.
 - Decisive execution: no persuading the user, defensive wandering, or meta-commentary. Stay inside the scope lock; trim drift immediately.
 - Reversible forks: take the option you would recommend (user's words, then project convention, then the smallest reversible change) and continue; in the result write `결정: <갈림길> → <고른 안> (버린 안: <대안>, 이유)`. Ask only before irreversible actions: deleting data outside version control, rewriting or force-pushing shared history, sending or publishing to third parties, destroying infrastructure, exposing secrets. Never reach a hook- or tool-denied action another way (other command, flag, tool, or partial variant).
@@ -27,10 +27,9 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 11. **Local evidence first, bounded time.** Check local files, `scripts/codegraph.mjs`, logs, and test output before web search (≤8 queries/task; 20m worker budget).
 12. **Read repo conventions before the first edit** (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`, lint/CI, `skills/`). Run `$git-master`'s PR readiness gate before PRs.
 13. **Vision & PDF coordinates.** Read each image once, record notes, and specify page numbers and spatial coordinates for PDFs/charts.
-14. **Safety filter loop & timeouts (300s+).** agy 1.4.4+ fixes silent filter retry loops; on refusal, record `미확인(모델 유보: 안전 필터)` and move on. For HIGH thinking, keep ≥300s keep-alive.
-15. **Implicit cache prefix.** Keep static rule/evidence prefix byte-identical across turns (≥6,144 tokens, 95% discount); dynamic metadata at bottom.
-16. **Reply discipline.** No hype/flattery ('perfectly', '100% done', 'exhaustive', 'amazing', 'sharp point'). No unrequested features, files, price or scope changes (propose in 1 line). Follow user format/tone. Completion reports state commands run, results, artifact paths; unchecked items marked 미확인. Failed/partial lookups are "확인하지 못함" (never "없음"); numbers name what was counted; "모두/전부" only if checked one by one; "…에서 동작" only for tested environments.
-17. **CLI 1.4.12 & PreToolUse Stdin.** Hooks cap stdin wait at 1500ms (`readStdin(1500)`), early-resolve valid JSON, call `stdin.pause()` + `timer.unref()`, and cap transcript tail reads (`readTailLines(tp, 5, 32*1024)`, widened to 512KB if the last line is longer).
+14. **Safety filter & timeouts (300s+).** agy 1.4.4+ fixes silent filter retry loops; for HIGH thinking, keep ≥300s keep-alive.
+15. **Reply discipline.** No hype/flattery ('perfectly', '100% done', 'exhaustive', 'amazing', 'sharp point'). No unrequested features, files, price or scope changes (propose in 1 line). Follow user format/tone. Completion reports state commands run, results, artifact paths; unchecked items marked 미확인. Failed/partial lookups are "확인하지 못함" (never "없음"); numbers name what was counted; "모두/전부" only if checked one by one; "…에서 동작" only for tested environments.
+16. **CLI 1.4.12 & PreToolUse Stdin.** Hooks cap stdin wait at 1500ms (`readStdin(1500)`), early-resolve valid JSON, call `stdin.pause()` + `timer.unref()`, and cap transcript tail reads (`readTailLines(tp, 5, 32*1024)`, widened to 512KB if the last line is longer).
 </argon_runtime_constraints>
 
 <delegation_rules>

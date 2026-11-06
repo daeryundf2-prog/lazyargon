@@ -31,39 +31,33 @@ flowchart TD
 각 가설을 거짓으로 증명하기 위한 독립적 반증 테스트를 `Model: "inherit"` 서브에이전트 3인에게 병렬 디스패치합니다.
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Hypothesis A Falsifier",
-      Model: "inherit",
-      Prompt: """TASK: Probe and falsify Hypothesis A (State/Data Boundary mutation).
+invoke_subagent({
+  TypeName: "self",
+  Role: "Hypothesis A Falsifier",
+  Model: "inherit",
+  Prompt: """TASK: Probe and falsify Hypothesis A (State/Data Boundary mutation).
 ACTION: Write and execute a deterministic failing test targeting Hypothesis A.
 DELIVERABLE: reproduction test command and observable pass/fail receipt.
 SCOPE: targeted data transformations."""
-    },
-    {
-      TypeName: "self",
-      Role: "Hypothesis B Falsifier",
-      Model: "inherit",
-      Prompt: """TASK: Probe and falsify Hypothesis B (Concurrency/Race condition).
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Hypothesis B Falsifier",
+  Model: "inherit",
+  Prompt: """TASK: Probe and falsify Hypothesis B (Concurrency/Race condition).
 ACTION: Write a high-load or out-of-order reproduction script targeting Hypothesis B.
 DELIVERABLE: concurrency trace and execution receipt.
 SCOPE: async control flow."""
-    },
-    {
-      TypeName: "self",
-      Role: "Hypothesis C Falsifier",
-      Model: "inherit",
-      Prompt: """TASK: Probe and falsify Hypothesis C (Environment/Contract mismatch).
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Hypothesis C Falsifier",
+  Model: "inherit",
+  Prompt: """TASK: Probe and falsify Hypothesis C (Environment/Contract mismatch).
 ACTION: Inspect environment variables, OS permissions, and external payload contracts.
 DELIVERABLE: environment audit receipt.
 SCOPE: configuration and external boundaries."""
-    }
-  ],
-  toolAction: "Executing parallel hypothesis falsification",
-  toolSummary: "Parallel hypothesis falsification"
-)
+})
 ```
 
 ### Step 3: Falsification & Pruning (소거법 검증)
@@ -73,20 +67,14 @@ SCOPE: configuration and external boundaries."""
 `Model: "inherit"`(Gemini 4 Argon)를 호출하여 생존한 가설의 근본 원인을 비판적으로 재검증하고 불변식(Invariant) 회귀 테스트를 고정합니다.
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Root-Cause Oracle",
-      Model: "inherit",
-      Prompt: """TASK: Critically confirm the isolated root cause and verify that the proposed invariant test fully prevents regression.
+invoke_subagent({
+  TypeName: "self",
+  Role: "Root-Cause Oracle",
+  Model: "inherit",
+  Prompt: """TASK: Critically confirm the isolated root cause and verify that the proposed invariant test fully prevents regression.
 DELIVERABLE: confirmation verdict and invariant test contract.
 SCOPE: workspace defect boundary."""
-    }
-  ],
-  toolAction: "Confirming root cause via Oracle",
-  toolSummary: "Root-cause verification"
-)
+})
 ```
 
 ### Step 5: Minimal Fix & Verification (최소 수정 & 종결)

@@ -13,7 +13,7 @@ description: "Unified autonomous execution workflow for Antigravity (/ulw, ultra
 
 ## Step 1. 3줄 범위 잠금 + 예산 (Scope Lock)
 
-모든 `/ulw` 작업은 첫 도구 호출 직전에 아래를 선언하고, **같은 내용을 `.lazyargon/ulw-scope.md`에 쓴다**:
+모든 `/ulw` 작업은 첫 도구 호출로 **`.lazyargon/ulw-scope.md`에 아래 범위 잠금을 먼저 쓴 뒤** 짧게 선언한다(긴 본문 텍스트와 파일 쓰기 툴콜을 한 턴에 섞어 출력하면 JSON 닫기 괄호 `}}}}` 스트리밍 루프가 발생할 수 있으므로, 툴 호출 시에는 부연 설명을 생략하고 바로 도구를 호출한다):
 
 ```text
 목표: <한 문장>
@@ -40,36 +40,33 @@ description: "Unified autonomous execution workflow for Antigravity (/ulw, ultra
 
 | 작업 형태 | 실행 경로 | 모델 및 규칙 |
 |---|---|---|
-| **단일~2개 파일 / 순차 의존 작업** | 메인 에이전트 직접 수행 (`replace_file_content`, `write_to_file`, `run_command`) | 서브에이전트 위임 오버헤드 금지 |
-| **3개 이상 독립 모듈·파일·검증 레인** | 단일 `invoke_subagent` 호출로 병렬 팬아웃 (`Subagents` 배열), 레인 수 ≤ 예산 | 탐색·초안·포맷 레인 `flash`, 구현·검증 레인 `inherit` |
+| **단일~2개 파일 / 순차 의존 작업** | 메인 에이전트 직접 수행 (`edit_file`, `write_file`, `run_command`) | 서브에이전트 위임 오버헤드 금지 |
+| **3개 이상 독립 모듈·파일·검증 레인** | 레인별 개별 `invoke_subagent` 병렬 호출 (한 턴에 워커당 1호출, 레인 수 ≤ 예산) | 탐색·초안·포맷 레인 `flash`, 구현·검증 레인 `inherit` |
 | **고위험 코드(스키마·동시성·보안·인증)** | 구현 후 `references/dual-verify.md`의 교차 가족 판정 레인 | 세션을 Claude 5.5로 전환해 판정 1레인 |
 | **쿼터 비상시 단순 반복/포맷팅** | `invoke_subagent` 폴백 | `Model: "flash_lite"` |
 
-### 병렬 서브에이전트 프롬프트 규약
+### 병렬 서브에이전트 프롬프트 규약 (평면 스키마 엄수 — `Subagents` 배열 래퍼 금지)
 
-병렬 워커를 띄울 때는 파일 소유권이 겹치지 않도록 분할(`references/swarm-sync.md`)하고, 각 워커 프롬프트에 아래 계약을 그대로 전달한다:
+> **경고 (`}}}}` 디코더 루프 방지)**: Antigravity의 `invoke_subagent` 스키마는 최상위 `{ TypeName, Role, Prompt, Model, Workspace }` 평면(flat) 객체다. 구버전 `Subagents: [...]` 중첩 배열이나 존재하지 않는 `toolAction` / `toolSummary` 키를 넣으면 JSON 스키마 제약 디코더가 닫는 괄호(`}}}}...`) 무한 루프에 빠진다. 또한 텍스트 출력 직후 같은 턴에서 거대한 툴콜을 동시에 생성하지 말고, 툴 호출 턴에는 본문 텍스트를 최소화(1~2문장 이내 또는 생략)하고 곧바로 도구를 호출한다.
+
+병렬 워커를 띄울 때는 파일 소유권이 겹치지 않도록 분할(`references/swarm-sync.md`)하고, 한 턴에 워커별로 `invoke_subagent`를 각각 호출한다:
 
 ```javascript
 invoke_subagent({
-  Subagents: [
-    {
-      TypeName: "self",
-      Role: "Module A Implementation",
-      Model: "inherit",
-      Prompt: [
-        "목표: <구체적 목표>",
-        "완료 조건: <실행할 테스트 명령과 통과 기준>",
-        "범위: <담당 파일 전수 — 외부 파일 수정 금지, 동일 기능 중복 구현 금지>",
-        "종료 조건: 같은 도구 호출 3회 반복 / 도구 호출 40회 초과 / 진척 없는 턴 2회 / 시간 예산 초과 → 즉시 UNKNOWN 반환",
-        "시간 예산: 20분",
-        "근거 순서: 로컬 파일·로그·테스트 출력 → 저장소 문서 → 웹(검색 ≤8회). 로컬에서 답이 나오면 웹을 열지 않는다",
-        "반환 형식: ≤40줄 — 결과·실행 명령·관찰 출력·미해결 항목만. 계획 재진술 금지",
-        "쓰기 규칙: 100줄 이하 청크로 쓰고, 쓴 뒤 해당 구간을 다시 읽어 확인"
-      ].join("\n")
-    }
-  ],
-  toolAction: "Module A 구현 서브에이전트 호출",
-  toolSummary: "Module A 구현"
+  TypeName: "self",
+  Role: "Module A Implementation",
+  Model: "inherit",
+  Prompt: [
+    "목표: <구체적 목표>",
+    "완료 조건: <실행할 테스트 명령과 통과 기준>",
+    "범위: <담당 파일 전수 — 외부 파일 수정 금지, 동일 기능 중복 구현 금지>",
+    "종료 조건: 같은 도구 호출 3회 반복 / 도구 호출 40회 초과 / 진척 없는 턴 2회 / 시간 예산 초과 → 즉시 UNKNOWN 반환",
+    "시간 예산: 20분",
+    "근거 순서: 로컬 파일·로그·테스트 출력 → 저장소 문서 → 웹(검색 ≤8회). 로컬에서 답이 나오면 웹을 열지 않는다",
+    "도구 규칙: 승인이 필요한 도구(run_command 등)는 한 턴에 하나만, 다른 도구와 섞지 않는다 (#1249)",
+    "반환 형식: ≤40줄 — 결과·실행 명령·관찰 출력·미해결 항목만. 계획 재진술 금지",
+    "쓰기 규칙: 100줄 이하 청크로 쓰고, 쓴 뒤 해당 구간을 다시 읽어 확인"
+  ].join("\n")
 })
 ```
 

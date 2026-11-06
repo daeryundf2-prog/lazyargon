@@ -11,7 +11,7 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 | --- | --- |
 | Explore / research / plan / implement / QA / review | `invoke_subagent` + TASK/DELIVERABLE/SCOPE/VERIFY + role envelope |
 | Wait / poll children | Stay in parent; re-invoke incomplete lanes |
-| Child model hint | Pass `Subagents[].Model: "inherit"` (or `"flash_lite"` only for emergency quota fallback) |
+| Child model hint | Pass top-level `Model: "inherit"` (or `"flash_lite"` only for emergency quota fallback) |
 
 Use Antigravity tools only (`invoke_subagent`). Do **not** invent foreign spawn/wait/goal APIs or OpenCode kwargs.
 
@@ -87,12 +87,11 @@ Paste evidence directly into each prompt, because the oracle works only from the
 ### Pass A - Design-system and functional integrity (deeper, strict)
 
 ```
-invoke_subagent(
-  Subagents=[{
-    TypeName: "self",
-    Role: "Design System & Functional Integrity Reviewer",
-    Model: "inherit",
-    Prompt: """
+invoke_subagent({
+  TypeName: "self",
+  Role: "Design System & Functional Integrity Reviewer",
+  Model: "inherit",
+  Prompt: """
 REVIEW TYPE: DESIGN-SYSTEM AND FUNCTIONAL INTEGRITY (read-only)
 TIER INTENT: Treat this as the deeper, stricter pass. Reason exhaustively before concluding. Assume a plausible-looking surface may be faked until the source proves otherwise.
 
@@ -129,21 +128,17 @@ FINDINGS: for each, [dimension] [severity] what is wrong, where (file/line or ca
 WHAT IS GOOD: correct aspects that must not regress
 BLOCKING: items that must be fixed; empty if PASS
 """
-  }],
-  toolAction: "Reviewing design system and functional integrity",
-  toolSummary: "Pass A visual review"
-)
+})
 ```
 
 ### Pass B - Visual fidelity and CJK precision (focused)
 
 ```
-invoke_subagent(
-  Subagents=[{
-    TypeName: "self",
-    Role: "Visual Fidelity & CJK Precision Reviewer",
-    Model: "inherit",
-    Prompt: """
+invoke_subagent({
+  TypeName: "self",
+  Role: "Visual Fidelity & CJK Precision Reviewer",
+  Model: "inherit",
+  Prompt: """
 REVIEW TYPE: VISUAL FIDELITY AND CJK PRECISION (read-only)
 TIER INTENT: Treat this as the focused visual pass. Anchor every claim to the script evidence and the captures.
 
@@ -177,10 +172,7 @@ EVIDENCE TRACE: each hotspot or overflow line mapped to its visual cause
 FINDINGS: for each, [severity] what is wrong, where (hotspot grid or capture line:col), and the concrete fix
 BLOCKING: items that must be fixed; empty if PASS
 """
-  }],
-  toolAction: "Reviewing visual fidelity and CJK precision",
-  toolSummary: "Pass B visual review"
-)
+})
 ```
 
 ### Pass C - Gemini 4 Argon vision pre-screen (fast, optional)
@@ -188,12 +180,11 @@ BLOCKING: items that must be fixed; empty if PASS
 When running a multimodal vision pre-screen before the oracle passes, dispatch a `Model: "inherit"` (Gemini 4 Argon) subagent. This pass uses Argon's multimodal image input capability to directly analyze the screenshot pixels, complementing the text-based oracle passes.
 
 ```
-invoke_subagent(
-  Subagents=[{
-    TypeName: "self",
-    Role: "Vision Pre-Screen Reviewer",
-    Model: "inherit",
-    Prompt: """
+invoke_subagent({
+  TypeName: "self",
+  Role: "Vision Pre-Screen Reviewer",
+  Model: "inherit",
+  Prompt: """
 REVIEW TYPE: FAST VISION PRE-SCREEN (read-only, advisory)
 MODEL: Gemini 4 Argon — use your multimodal image input capability.
 
@@ -216,10 +207,7 @@ FLASH VERDICT: CLEAR | SUSPECT | FAIL
 FLASH SUMMARY: 1-2 sentences
 FLASH FLAGS: list each visual anomaly with approximate location/bounding grid (e.g. top-left, center, bottom-right nav) and CJK glyph state
 """
-  }],
-  toolAction: "Running vision pre-screen",
-  toolSummary: "Pass C fast vision check"
-)
+})
 ```
 
 Flash results are advisory. If Flash flags SUSPECT or FAIL, prioritize those regions in Pass A and Pass B. If Flash says CLEAR but Pass A/B find issues, the Pass A/B verdict wins.

@@ -16,7 +16,7 @@ Gemini 4 Argon의 코드 구문 구조(AST) 이해력과 `sg` (`ast-grep` CLI)�
 | **원자적 AST 치환** | `run_command` → `sg run -p '<pattern>' -r '<rewrite>' -l <lang> --update-all <paths>` |
 | **단일/소규모 정밀 편집** | `replace_file_content` |
 | **타입 무결성 진단** | `run_command` → 프로젝트 타입체커 (`tsc --noEmit`, `basedpyright`, `cargo check`, `go vet ./...`) |
-| **병렬 영향도 분석** | `invoke_subagent` (`Model: "inherit"`, `toolAction`, `toolSummary`) |
+| **병렬 영향도 분석** | `invoke_subagent` (`Model: "inherit"`) |
 
 ---
 
@@ -66,18 +66,12 @@ tsc --noEmit && bun test
 
 ```javascript
 invoke_subagent({
-  Subagents: [
-    {
-      TypeName: "self",
-      Role: "AST Pattern Analyzer",
-      Model: "inherit",
-      Prompt: `TASK: Analyze AST refactoring candidates for target pattern in scope.
+  TypeName: "self",
+  Role: "AST Pattern Analyzer",
+  Model: "inherit",
+  Prompt: `TASK: Analyze AST refactoring candidates for target pattern in scope.
 DELIVERABLE: matched AST nodes, potential edge-cases, and variable scope conflicts.
 SCOPE: repository read-only
 VERIFY: parent verifies dry-run diff against cited files.`
-    }
-  ],
-  toolAction: "Analyzing AST refactoring patterns",
-  toolSummary: "AST pattern analysis"
 })
 ```

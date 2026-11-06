@@ -25,29 +25,23 @@ flowchart TD
 서브에이전트 디스패치 전, 각 워커가 수정할 수 있는 파일/디렉터리 경계를 겹치지 않게 분할합니다.
 
 ### Step 2: 병렬 서브에이전트 실행 (`Model: "inherit"`, `Workspace: "share"`)
-독립된 워크스페이스 공유 모드(`Workspace: "share"`) 또는 명확히 분리된 `범위`를 지정하여 서브에이전트를 단일 `invoke_subagent` 호출로 병렬 실행합니다.
+독립된 워크스페이스 공유 모드(`Workspace: "share"`) 또는 명확히 분리된 `범위`를 지정하여 서브에이전트를 워커별 개별 `invoke_subagent` 호출로 한 턴에 병렬 실행합니다.
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Auth Module Worker",
-      Model: "inherit",
-      Workspace: "share",
-      Prompt: "목표: 인증 토큰 검증 모듈을 구현하라.\n완료 조건: 단위 테스트 통과.\n범위: src/auth/ 내부 파일만 수정."
-    },
-    {
-      TypeName: "self",
-      Role: "Billing Module Worker",
-      Model: "inherit",
-      Workspace: "share",
-      Prompt: "목표: 과금 정산 모듈을 구현하라.\n완료 조건: 단위 테스트 통과.\n범위: src/billing/ 내부 파일만 수정."
-    }
-  ],
-  toolAction: "Running isolated swarm workers",
-  toolSummary: "Parallel swarm worker execution"
-)
+invoke_subagent({
+  TypeName: "self",
+  Role: "Auth Module Worker",
+  Model: "inherit",
+  Workspace: "share",
+  Prompt: "목표: 인증 토큰 검증 모듈을 구현하라.\n완료 조건: 단위 테스트 통과.\n범위: src/auth/ 내부 파일만 수정."
+})
+invoke_subagent({
+  TypeName: "self",
+  Role: "Billing Module Worker",
+  Model: "inherit",
+  Workspace: "share",
+  Prompt: "목표: 과금 정산 모듈을 구현하라.\n완료 조건: 단위 테스트 통과.\n범위: src/billing/ 내부 파일만 수정."
+})
 ```
 
 ### Step 3: 변경 사항 통합 및 교차 검증

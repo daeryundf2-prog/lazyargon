@@ -9,9 +9,9 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 
 | Intent | Antigravity action |
 | --- | --- |
-| Explore / research / plan / implement / QA / review | `invoke_subagent` + TASK/DELIVERABLE/SCOPE/VERIFY + `toolAction` & `toolSummary` |
+| Explore / research / plan / implement / QA / review | `invoke_subagent` + TASK/DELIVERABLE/SCOPE/VERIFY |
 | Wait / poll children | Stay in parent; wait for `send_message` completion notifications |
-| Child model hint | Pass `Subagents[].Model: "inherit"` (or `"flash_lite"` only for emergency quota fallback) |
+| Child model hint | Pass top-level `Model: "inherit"` (or `"flash_lite"` only for emergency quota fallback) |
 
 Use Antigravity tools only (`invoke_subagent`, `replace_file_content`, `write_to_file`, `run_command`). Do **not** invent foreign spawn/wait/goal APIs or OpenCode kwargs.
 
@@ -164,7 +164,7 @@ Files are processed by subagents (`Model: "inherit"`) with the `remove-ai-slops`
 **Batching protocol** (strict):
 
 1. Slice the in-scope file list into chunks of up to 3–5 files.
-2. For each chunk, launch `invoke_subagent` with the `Subagents` array, `toolAction`, and `toolSummary`.
+2. For each chunk, launch parallel flat `invoke_subagent` calls (one per file) in the same turn.
 3. End your turn. The system automatically resumes execution when subagent `send_message` notifications arrive.
 4. Process deliverables from the subagents and synthesize results.
 5. Launch the next batch if more files remain. Repeat until every file is processed.
@@ -172,15 +172,14 @@ Files are processed by subagents (`Model: "inherit"`) with the `remove-ai-slops`
 
 **Never** launch all files at once when there are more than 5; **never** launch them serially when more than one remains in the current batch.
 
-**Per-file invocation** (inside `Subagents` array):
+**Per-file invocation** (flat top-level object):
 
 ```javascript
 invoke_subagent({
-  Subagents: [{
-    TypeName: "self",
-    Role: "Slop Cleanup Worker",
-    Model: "inherit",
-    Prompt: `Remove AI slops from: {file_path}
+  TypeName: "self",
+  Role: "Slop Cleanup Worker",
+  Model: "inherit",
+  Prompt: `Remove AI slops from: {file_path}
 
 Evaluate all 10 categories:
 - Obvious comments & over-defensive code
@@ -203,9 +202,6 @@ Hard constraints:
 
 Report changes grouped by category via send_message. For each change, give before/after, why-slop, why-safe.
 For each skipped issue, give reason.`
-  }],
-  toolAction: "Removing AI slop from target files",
-  toolSummary: "AI slop cleanup"
 })
 ```
 

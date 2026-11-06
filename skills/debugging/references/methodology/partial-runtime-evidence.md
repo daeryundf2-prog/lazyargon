@@ -158,13 +158,11 @@ For tasks where the deliverable is an **artifact, not a bug fix** (reverse engin
 ### Pattern
 
 ```
-invoke_subagent(
-  Subagents=[
-    {
-      TypeName: "self",
-      Role: "Skeptical Final Verifier",
-      Model: "inherit",
-      Prompt: """SKEPTICAL FINAL VERIFICATION — be critical, look for reasons the task is incomplete or wrong.
+invoke_subagent({
+  TypeName: "self",
+  Role: "Skeptical Final Verifier",
+  Model: "inherit",
+  Prompt: """SKEPTICAL FINAL VERIFICATION — be critical, look for reasons the task is incomplete or wrong.
 
 ## Original task
 <verbatim user request>
@@ -184,11 +182,7 @@ invoke_subagent(
 3. Identify any unsubstantiated claims, missing pieces, or factual errors.
 4. End with PASS / FAIL / PARTIAL with specific gaps.
 Be skeptical. Don't rubber-stamp."""
-    }
-  ],
-  toolAction: "Executing skeptical final verification",
-  toolSummary: "Final verification oracle"
-)
+})
 ```
 
 ### Why this differs from the Oracle Triple
