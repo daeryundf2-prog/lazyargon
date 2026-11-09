@@ -1,7 +1,7 @@
 {
   "schema": "skill_source_closure_audit/v1",
   "version": "1.1.0",
-  "updated_at": "2026-10-30T13:38:39.643Z",
+  "updated_at": "2026-11-09T14:15:28.000Z",
   "sources": [
     {
       "repo": "rlaope/oh-my-hermes",
@@ -426,6 +426,23 @@
       "claimed_pin": "1f8e34c",
       "observed_head_sha": "397b0eb28ca9d5a5eadc552d0a81b45540611d79",
       "observed_at": "2026-10-30T13:46:46.993Z"
+    },
+    {
+      "repo": "LilMGenius/paperthin",
+      "url": "https://github.com/LilMGenius/paperthin",
+      "pinned_sha": "1306ea4a2c038b5dee508db23197b3a19ccfbdfc",
+      "keyword": "paperthin (MIT): hate, shower, factchk, mandela, dedot",
+      "mapped_targets": [
+        "skills/hate/SKILL.md",
+        "skills/shower/SKILL.md",
+        "skills/factchk/SKILL.md",
+        "skills/mandela/SKILL.md",
+        "skills/dedot/SKILL.md",
+        "NOTICE"
+      ],
+      "status": "verified",
+      "observed_head_sha": "1306ea4a2c038b5dee508db23197b3a19ccfbdfc",
+      "observed_at": "2026-11-09T14:07:41.000Z"
     }
   ]
 }
