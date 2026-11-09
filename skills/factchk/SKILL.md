@@ -1,6 +1,6 @@
 ---
 name: factchk
-description: "Verify reality-grounded claims against external sources in both directions before they ship: could the absurd be real, could the obvious be false. Use when prose, a design rationale, or a plan calls something plausible, absurd, novel, or impossible from intuition. Triggers: factchk, fact check, 사실 확인, 진짜 맞아, 근거 확인."
+description: "Verify reality-grounded claims against external sources in both directions before they ship: could the absurd be real, could the obvious be false. Use when prose, a design rationale, or a plan calls something plausible, absurd, novel, or impossible from intuition. Not for forensic or legal report verification against local evidence (use the workspace report-guard for that). Triggers: factchk, 통념 반증, 양방향 근거, 진짜 맞아."
 ---
 
 ## Antigravity Tool Mapping (default)
@@ -11,7 +11,7 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 | --- | --- |
 | Look up a source | `search_web`, `read_url_content` |
 | Find the claim in local files | `grep_search`, `view_file` |
-| Apply a clear correction | `replace_file_content` |
+| Apply a clear correction (only when the user asked for fixes) | `replace_file_content`, then `view_file` on the edited range |
 
 > Adapted from [LilMGenius/paperthin](https://github.com/LilMGenius/paperthin) `skills/depth/factchk` (MIT). See `NOTICE`.
 
@@ -22,9 +22,9 @@ The author's sense of what is plausible, absurd, or new is the least reliable li
 ## Steps
 
 1. Scan for claims asserted as true about the world, including sentences you are about to write.
-2. Check each against an external source, in both directions: could the "absurd" be real? Could the "obvious" or "novel" be false or long established?
+2. Check each in both directions: could the "absurd" be real? Could the "obvious" or "novel" be false or long established? Look at local evidence first (repo files, logs, test output), then the web; at most 8 web searches per task (`rules/AGENTS.md`). Claims left over after the cap are 미확인.
 3. If no source can be reached, flag the claim as 미확인. Never assert it from intuition.
-4. Fix mechanically clear errors (wrong date, misattributed source, wrong number) with the cited source. Surface contested or interpretive claims as judgment calls; do not silently rewrite them.
+4. Default is report-only. Edit a file only when the user asked for fixes: then correct mechanically clear errors (wrong date, misattributed source, wrong number) with the cited source, in chunked writes per `rules/AGENTS.md`, and re-read the edited range. Contested or interpretive claims stay judgment calls; never rewrite them silently.
 5. Report per claim: verdict, source, and which direction the claim failed.
 
 ## Rules

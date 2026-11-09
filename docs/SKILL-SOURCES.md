@@ -1,6 +1,6 @@
 # LazyArgon v2.0 Upstream Harness & Skill Sources (`SKILL-SOURCES.md`)
 
-`@rlaope` 원문 키워드와 참고한 업스트림 33개의 매핑 원장이다. `verified`는 GitHub에서 확인된 40자 커밋 SHA이고, `unverified`는 핀이 확인되지 않아 `pinned_sha: null`로 둔 항목이다(예전 값은 `claimed_pin`에 보존). 매핑은 "참고한 아이디어"이지 원본 구현 이식이 아니다. 정형 영수증은 `docs/skill-source-receipts.json`(`skill_source_closure_audit/v1`)에서 관리하며 `scripts/upstream_radar.mjs`로 상시 감사한다.
+`@rlaope` 원문 키워드와 참고한 업스트림 33개의 매핑 원장이다. `verified`는 GitHub에서 확인된 40자 커밋 SHA이고, `unverified`는 핀이 확인되지 않아 `pinned_sha: null`로 둔 항목이다(예전 값은 `claimed_pin`에 보존). 매핑은 "참고한 아이디어"이지 원본 구현 이식이 아니다(예외: 33번 `LilMGenius/paperthin`은 MIT 라이선스로 스킬 문서를 개작해 넣었으며 `NOTICE`에 고지한다). 정형 영수증은 `docs/skill-source-receipts.json`(`skill_source_closure_audit/v1`)에서 관리하며 `scripts/upstream_radar.mjs`로 상시 감사한다.
 
 ## 1. 33대 글로벌 1위 업스트림 하네스 매핑 원장
 
