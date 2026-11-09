@@ -15,7 +15,7 @@ async function listMarkdown(dir) {
 	}
 }
 
-test("#given diagram-design skill and all 18 skills #when SKILL.md is inspected #then frontmatter is valid YAML", async () => {
+test("#given diagram-design skill and all 23 skills #when SKILL.md is inspected #then frontmatter is valid YAML", async () => {
 	const skillPath = join(root, "skills", "diagram-design", "SKILL.md");
 	const content = await readFile(skillPath, "utf8");
 	assert.match(content, /^---\r?\n/m);
@@ -26,7 +26,7 @@ test("#given diagram-design skill and all 18 skills #when SKILL.md is inspected 
 	const skillsRoot = join(root, "skills");
 	const entries = await readdir(skillsRoot, { withFileTypes: true });
 	const skillDirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
-	assert.equal(skillDirs.length, 18, `expected 18 skill directories, got ${skillDirs.length}`);
+	assert.equal(skillDirs.length, 23, `expected 23 skill directories, got ${skillDirs.length}`);
 
 	for (const dirName of skillDirs) {
 		const md = await readFile(join(skillsRoot, dirName, "SKILL.md"), "utf8");

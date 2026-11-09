@@ -26,6 +26,11 @@
 | "ast-refactor", "ast grep", "ast-grep", "codemod", "sg" | `$ast-grep` | AST-shape search/rewrite across 25 languages via sg CLI |
 | "git commit", "git master", "커밋" | `$git-master` | Atomic commits, history analysis, rebase/bisect |
 | "remove slop", "clean ai code", "코드 슬롭 제거" | `$remove-ai-slops` | Parallel AI code smell elimination across 10 categories |
+| "hate", "hate this plan", "이 계획 공격", "반대 의견 하나" | `$hate` | User-invoked: single strongest objection + cheapest falsifying test |
+| "shower", "cold read", "fresh eyes", "콜드 리드" | `$shower` | Zero-context subagent cold read of an artifact (diagnose only; pairs with `gf-qa-behavioral-verification`) |
+| "factchk", "fact check", "사실 확인", "근거 확인" | `$factchk` | Two-direction external-source check of reality claims (unsourced numbers are 미확인) |
+| "mandela", "leakage audit", "자기 채점", "검증 누수" | `$mandela` | Eval/metric leakage audit, 8 patterns, read-only (complements `gf-qa-computed-outputs`) |
+| "dedot", "가운뎃점", "middle dot" | `$dedot` | Korean middle-dot (·) review, suggestion-only |
 | "coding sessions", "past session", "세션 복구" | `$coding-agent-sessions` | Cross-platform coding-agent session finder |
 | "data analysis", "csv", "parquet", "duckdb", "polars" | `$data-scientist` | DuckDB/Polars resident-kernel data processing |
 | "frontend", "ui-ux", "design system" | `$frontend` | Senior designer-grade UI/UX design systems & motion rules |
