@@ -11,13 +11,13 @@ const radarScript = join(root, "scripts", "upstream_radar.mjs");
 const tuiScript = join(root, "experimental", "scripts", "lazy_tui.mjs");
 const binEntry = join(root, "bin", "lazyargon");
 
-test("upstream_radar.mjs audit --json verifies all 32 sources and closure targets", () => {
+test("upstream_radar.mjs audit --json verifies all 33 sources and closure targets", () => {
 	const res = spawnSync(process.execPath, [radarScript, "audit", "--json"], { encoding: "utf8" });
 	assert.equal(res.status, 0, `stderr: ${res.stderr}`);
 	const data = JSON.parse(res.stdout);
 	assert.equal(data.schema, "skill_source_closure_audit/v1");
 	assert.equal(data.ok, true);
-	assert.equal(data.source_count, 32);
+	assert.equal(data.source_count, 33);
 	assert.equal(data.missing_targets.length, 0);
 	assert.ok(data.verified_targets >= 15);
 });
@@ -64,12 +64,12 @@ test("upstream_radar.mjs audit negative path detects missing target and fabricat
 	}
 });
 
-test("upstream_radar.mjs poll --offline --json returns 32 pinned sources", () => {
+test("upstream_radar.mjs poll --offline --json returns 33 pinned sources", () => {
 	const res = spawnSync(process.execPath, [radarScript, "poll", "--offline", "--json"], { encoding: "utf8" });
 	assert.equal(res.status, 0);
 	const data = JSON.parse(res.stdout);
 	assert.equal(data.mode, "offline");
-	assert.equal(data.source_count, 32);
+	assert.equal(data.source_count, 33);
 	assert.equal(data.drift_count, 0);
 });
 
@@ -107,7 +107,7 @@ test("lazy_tui.mjs --once and --json render 4 panels with real memory.db stats, 
 		assert.match(onceRes.stdout, /Active: 1 \| Superseded: 1 \| Edges: 1 \| Dreams: 0 \| Pins: 2개/);
 		assert.match(onceRes.stdout, /\[4\] AUTORESEARCH & UPSTREAM RADAR/);
 		assert.match(onceRes.stdout, /Runs: 2 \(KEEP: 1 \/ DISCARD: 1\)/);
-		assert.match(onceRes.stdout, /32 sources tracked/);
+		assert.match(onceRes.stdout, /33 sources tracked/);
 
 		const jsonRes = spawnSync(process.execPath, [tuiScript, "--json", "--cwd", tmp], { encoding: "utf8" });
 		assert.equal(jsonRes.status, 0);
@@ -123,7 +123,7 @@ test("lazy_tui.mjs --once and --json render 4 panels with real memory.db stats, 
 		assert.equal(state.panels.autoresearch_radar.keep_count, 1);
 		assert.equal(state.panels.autoresearch_radar.discard_count, 1);
 		assert.equal(state.panels.autoresearch_radar.best_metric, 0.72);
-		assert.equal(state.panels.autoresearch_radar.tracked_sources, 32);
+		assert.equal(state.panels.autoresearch_radar.tracked_sources, 33);
 	} finally {
 		rmSync(tmp, { recursive: true, force: true });
 	}
