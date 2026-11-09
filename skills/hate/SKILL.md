@@ -9,7 +9,7 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 
 | Intent | Antigravity action |
 | --- | --- |
-| Read the plan or design under attack | `view_file` |
+| Read the plan or design under attack | host `Read` |
 | Run the cheapest test (the first nail) | `run_command` only after the user agrees to run it |
 
 > Adapted from [LilMGenius/paperthin](https://github.com/LilMGenius/paperthin) `skills/depth/hate` (MIT). See `NOTICE`.

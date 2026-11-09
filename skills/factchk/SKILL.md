@@ -9,9 +9,9 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 
 | Intent | Antigravity action |
 | --- | --- |
-| Look up a source | `search_web`, `read_url_content` |
-| Find the claim in local files | `grep_search`, `view_file` |
-| Apply a clear correction (only when the user asked for fixes) | `replace_file_content`, then `view_file` on the edited range |
+| Look up a source | `search_web` (≤8 per task) |
+| Find the claim in local files | `run_command` with `rg -n '<claim text>' <path>` (one approval tool per turn), then host `Read` |
+| Apply a clear correction (only when the user asked for fixes) | host `Edit` in ≤100-line / <20KB chunks, then host `Read` of the edited range |
 
 > Adapted from [LilMGenius/paperthin](https://github.com/LilMGenius/paperthin) `skills/depth/factchk` (MIT). See `NOTICE`.
 
@@ -22,8 +22,8 @@ The author's sense of what is plausible, absurd, or new is the least reliable li
 ## Steps
 
 1. Scan for claims asserted as true about the world, including sentences you are about to write.
-2. Check each in both directions: could the "absurd" be real? Could the "obvious" or "novel" be false or long established? Look at local evidence first (repo files, logs, test output), then the web; at most 8 web searches per task (`rules/AGENTS.md`). Claims left over after the cap are 미확인.
-3. If no source can be reached, flag the claim as 미확인. Never assert it from intuition.
+2. Check each in both directions: could the "absurd" be real? Could the "obvious" or "novel" be false or long established? Look at local evidence first (repo files, logs, test output), then the web; at most 8 web searches per task (`rules/AGENTS.md`). Claims not checked because of the cap are 미확인.
+3. If a lookup fails or no source can be reached, mark the claim 확인하지 못함 (never "없음"). Never assert it from intuition.
 4. Default is report-only. Edit a file only when the user asked for fixes: then correct mechanically clear errors (wrong date, misattributed source, wrong number) with the cited source, in chunked writes per `rules/AGENTS.md`, and re-read the edited range. Contested or interpretive claims stay judgment calls; never rewrite them silently.
 5. Report per claim: verdict, source, and which direction the claim failed.
 

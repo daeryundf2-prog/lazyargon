@@ -9,8 +9,8 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 
 | Intent | Antigravity action |
 | --- | --- |
-| Fresh zero-context reader | `invoke_subagent` with `Model: "inherit"`; pass the artifact contents inline, no intent or history |
-| Read the artifact | `view_file` |
+| Fresh zero-context reader | `invoke_subagent` as one flat call `{ TypeName: "self", Role, Model: "inherit", Prompt }` (no `Subagents` array); the `Prompt` follows the worker prompt contract in `rules/AGENTS.md` (목표 / 완료 조건 / 범위 / 종료 조건 / 반환 형식 ≤40줄); state `예산: 1 레인 / 1 웨이브` first; pass the artifact contents inline in `Prompt`, no intent or history |
+| Read the artifact | host `Read` |
 
 > Adapted from [LilMGenius/paperthin](https://github.com/LilMGenius/paperthin) `skills/depth/shower` (MIT). See `NOTICE`.
 
@@ -21,7 +21,7 @@ A long session hides what the artifact leaves unsaid. A subagent that never saw 
 ## Steps
 
 1. Pin the artifact. If the scope is unclear, ask, or take the artifact just produced. Note its purpose and audience in one private line; the reader never sees it.
-2. Launch one fresh `invoke_subagent`. Give it the artifact **contents** (inline or a copy), never a repo path, and tell it not to open README, docs, or neighbor files.
+2. Launch one fresh `invoke_subagent`. Give it the artifact **contents** inline in the prompt (create no copy file), never a repo path, and tell it not to open README, docs, or neighbor files.
 3. Ask it to report, from the artifact alone:
    - what it thinks the artifact is, does, and expects;
    - what is unclear, ambiguous, or assumed but unstated;

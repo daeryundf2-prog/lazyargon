@@ -9,8 +9,8 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 
 | Intent | Antigravity action |
 | --- | --- |
-| Read the eval, test, or metric definition | `view_file`, `grep_search` |
-| Optional blind auditor for high-stakes designs | `invoke_subagent` with `Model: "inherit"`; pass only the validation design |
+| Read the eval, test, or metric definition | host `Read`; `run_command` with `rg -n` to locate it (one approval tool per turn) |
+| Optional blind auditor for high-stakes designs | `invoke_subagent` as one flat call `{ TypeName: "self", Role, Model: "inherit", Prompt }` (no `Subagents` array); the `Prompt` follows the worker prompt contract in `rules/AGENTS.md` (목표 / 완료 조건 / 범위 / 종료 조건 / 반환 형식 ≤40줄); state `예산: 1 레인 / 1 웨이브` first; pass only the validation design |
 
 > Adapted from [LilMGenius/paperthin](https://github.com/LilMGenius/paperthin) `skills/depth/mandela` (MIT). See `NOTICE`.
 

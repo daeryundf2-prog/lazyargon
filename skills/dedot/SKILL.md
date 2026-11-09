@@ -9,9 +9,9 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 
 | Intent | Antigravity action |
 | --- | --- |
-| Find every U+00B7 in scope | `grep_search` for `·`, or `run_command` with `rg -n -F '·' <path>` |
-| Read the full sentence around a dot | `view_file` with a line range |
-| Apply a fix (only if the user asked) | `replace_file_content` |
+| Find every U+00B7 in scope | `run_command` with `rg -n -F '·' <path>` (one approval tool per turn) |
+| Read the full sentence around a dot | host `Read` with a line range |
+| Apply a fix (only if the user asked) | host `Edit` in ≤100-line / <20KB chunks, then host `Read` of the edited range |
 
 > Adapted from [LilMGenius/paperthin](https://github.com/LilMGenius/paperthin) `skills/depth/dedot` (MIT). See `NOTICE`. Upstream's `find.mjs` is not ported; use the search above.
 
@@ -50,5 +50,5 @@ Quoted text, a proper name containing a dot, formulas, dotted dates and digit gr
 
 ## Rules
 
-- Suggestion-only. Never rewrite silently. If the writer asks for a direct fix, change only the dots, leave each legitimate dot, and say which spans changed.
+- Suggestion-only. Never rewrite silently. If the writer asks for a direct fix, change only the dots, leave each legitimate dot, write in ≤100-line / <20KB chunks, re-read each edited range (`rules/AGENTS.md`), and say which spans changed.
 - Read files as UTF-8.
