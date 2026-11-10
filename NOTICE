@@ -42,6 +42,12 @@ tool names and for Node (.mjs) instead of bash+jq or omp:
   (scripts/measure-skill-trigger.mjs)
 - the stage handoff section of skills/ulw/SKILL.md
   (hyper: rules/stage-handoff.md, rules/workflow-routing.md)
+- scripts/write_gate.mjs and its use in scripts/session_start.mjs
+  (hyper-documentation: rules/memory/safety.md)
+- the answer report shape in skills/data-scientist/SKILL.md
+  (hyper-data: rules/query-evidence.md)
+- the preflight sections of skills/image-prompt/SKILL.md and skills/logo-design/SKILL.md
+  (hyper-imagegen: rules/capability-and-output.md)
 
 hypercore is used under the MIT License:
 

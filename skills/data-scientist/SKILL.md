@@ -102,6 +102,22 @@ charts, no extra exploration passes beyond what the question needed. Chart when 
 when the answer is a shape (trend, distribution, comparison) that prose cannot carry — then
 follow `references/visualization.md` including its visual QA step.
 
+## Answer report shape (data questions)
+
+Source note: adapted from alpoxdev/hypercore (MIT) hyper-data `rules/query-evidence.md` (pinned commit 2d305cb); see `NOTICE`.
+
+A data question gets the answer first and the evidence after it, in this order:
+
+1. **Answer** — the number or table, in the first lines, for exactly the question asked: one metric, grain, population, filter set, time window. A cause the data cannot show is a labelled, unverified hypothesis after the computed change.
+2. **Question** — metric, grain (per day / region / order), population, filters, window, in one line. If an ambiguous definition changes the number, ask once instead of choosing silently.
+3. **Engine** — which engine and version ran, and why that placement.
+4. **Query** — the exact text that ran (copied from the run, not rebuilt from memory), input rows read, result rows.
+5. **Handling** — null and duplicate handling for each column the answer uses.
+6. **Input digest and timing** — file, bytes, rows, SHA-256 as read, wall-clock ms. Unmeasured items are marked `not measured`.
+7. **Cross-check** — the headline figure by a second route (other table, raw count, second engine) with agreement or the quantified gap; if no second route exists, say `unverified`.
+
+End with one status: `answered`, `prerequisite_missing` (name the missing engine and install command; do not install), `awaiting_input` (one question that changes the number), or `blocked` (the exact unreadable file, size, or denied access). Rewrite a failing query at most twice; the third failure is `blocked` with the query and the error.
+
 ## References
 
 | Read | When |

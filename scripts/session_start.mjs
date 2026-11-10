@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { stdin } from "node:process";
 import { fileURLToPath } from "node:url";
 import { compareStamp } from "./handoff_check.mjs";
+import { gateNote } from "./write_gate.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCOPE_MAX_LINES = 12;
@@ -89,6 +90,9 @@ function stamped(file, cwd, maxLines, { requireStamp }) {
 	if (!existsSync(file)) return "없음";
 	try {
 		const text = readFileSync(file, "utf8");
+		// 재주입 전 쓰기 게이트: 비밀값·은닉문자·에이전트 명령 표지가 있으면 본문을 싣지 않는다(write_gate.mjs).
+		const blocked = gateNote(text);
+		if (blocked) return blocked;
 		if (!requireStamp && !/^HEAD:/m.test(text)) return headOf(file, maxLines);
 		const r = compareStamp(text, cwd);
 		const verdict = `지문 판정: ${r.state} — ${r.note}`;

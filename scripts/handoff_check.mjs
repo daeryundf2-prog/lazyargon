@@ -14,7 +14,7 @@ import { fingerprint } from "./tree_fingerprint.mjs";
 
 export const MEMO_REL = join(".lazyargon", "handoff.md");
 const SECTIONS = ["Original request", "Now", "Done", "Next", "Done-when", "Where", "Dead ends"];
-const SECRET_RE = /\b(?:sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{30,}|AKIA[0-9A-Z]{16}|xox[abprs]-[A-Za-z0-9-]{10,})\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:api[_-]?key|token|secret|password|cookie)\s*[:=]\s*["']?[A-Za-z0-9/+_-]{16,}/i;
+export const SECRET_RE = /\b(?:sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{30,}|AKIA[0-9A-Z]{16}|xox[abprs]-[A-Za-z0-9-]{10,})\b|-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:api[_-]?key|token|secret|password|cookie)\s*[:=]\s*["']?[A-Za-z0-9/+_-]{16,}/i;
 const EMPTY_DIFF = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 /** Dirty 는 변경 없음이면 `clean`, 아니면 diff 해시 앞 12자와 미추적 파일 수. */
