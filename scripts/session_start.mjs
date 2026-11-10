@@ -7,10 +7,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { stdin } from "node:process";
 import { fileURLToPath } from "node:url";
+import { compareStamp } from "./handoff_check.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCOPE_MAX_LINES = 12;
 const PINS_MAX_LINES = 20;
+const HANDOFF_MAX_LINES = 16;
 
 function readStdin(limitMs = 200) {
 	return new Promise((resolve) => {
@@ -81,7 +83,24 @@ function headOf(file, maxLines) {
 }
 
 const scopeLock = (cwd = process.cwd()) => headOf(join(cwd, ".lazyargon", "ulw-scope.md"), SCOPE_MAX_LINES);
-const pins = (cwd = process.cwd()) => headOf(join(cwd, ".lazyargon", "pins.md"), PINS_MAX_LINES);
+// HEAD:/Dirty: 지문이 적힌 파일은 지금 저장소와 비교한 판정을 앞에 붙인다.
+// 출처: alpoxdev/hypercore (MIT) hyper-handoff/rules/cold-read-and-resume.md §5 (commit 2d305cbf5db72e337189aa584b363bb9ced2d9bc), NOTICE 참고.
+function stamped(file, cwd, maxLines, { requireStamp }) {
+	if (!existsSync(file)) return "없음";
+	try {
+		const text = readFileSync(file, "utf8");
+		if (!requireStamp && !/^HEAD:/m.test(text)) return headOf(file, maxLines);
+		const r = compareStamp(text, cwd);
+		const verdict = `지문 판정: ${r.state} — ${r.note}`;
+		// 낡았거나 지문 없는 메모는 본문을 주입하지 않는다: 저장소가 진실이고, 반박된 주장으로 이어가면 안 된다.
+		return r.state === "stale" || r.state === "no_stamp" ? verdict : `${verdict}\n${headOf(file, maxLines)}`;
+	} catch {
+		return "읽기 실패";
+	}
+}
+
+const handoffMemo = (cwd = process.cwd()) => stamped(join(cwd, ".lazyargon", "handoff.md"), cwd, HANDOFF_MAX_LINES, { requireStamp: true });
+const pins = (cwd = process.cwd()) => stamped(join(cwd, ".lazyargon", "pins.md"), cwd, PINS_MAX_LINES, { requireStamp: false });
 
 function guardPackVersion() {
 	try {
@@ -115,6 +134,10 @@ export function runtimeContext(payload = {}) {
 		"### 범위 잠금 (.lazyargon/ulw-scope.md)",
 		"",
 		scopeLock(cwd),
+		"",
+		"### 이어받기 메모 (.lazyargon/handoff.md — 판정이 match 가 아니면 저장소를 먼저 확인하고 메모를 고친다)",
+		"",
+		handoffMemo(cwd),
 		"",
 		"### 고정 식별자 (.lazyargon/pins.md — 컴팩션 뒤 기억 대신 이 값과 원본을 쓴다)",
 		"",

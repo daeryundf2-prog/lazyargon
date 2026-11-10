@@ -66,7 +66,7 @@ def main():
         lib = sorted(f for f in os.listdir(LIB) if f.endswith(".svg"))[:3]
         S = lambda f: os.path.join(SCRIPTS, f)
 
-        # manifest / frontmatter sanity (root plugin.json, hooks.json, and all 23 skills)
+        # manifest / frontmatter sanity (root plugin.json, hooks.json, and all 24 skills)
         text = open(os.path.join(SKILL, "SKILL.md"), encoding="utf-8").read()
         m = re.match(r"---\nname: (.+)\ndescription: (.+?)\n", text)
         ok = bool(m) and m.group(1).strip() == "logo-design" and len(m.group(2)) <= 1024
@@ -75,7 +75,7 @@ def main():
         versions = {plugin_data.get("version", "")}
         skills_root = os.path.join(ROOT, "skills")
         skill_dirs = sorted(d for d in os.listdir(skills_root) if os.path.isdir(os.path.join(skills_root, d)))
-        skills_ok = len(skill_dirs) == 23
+        skills_ok = len(skill_dirs) == 24
         for sd in skill_dirs:
             sk_path = os.path.join(skills_root, sd, "SKILL.md")
             if not os.path.isfile(sk_path):

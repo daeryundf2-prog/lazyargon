@@ -28,6 +28,7 @@
 | "remove slop", "clean ai code", "코드 슬롭 제거" | `$remove-ai-slops` | Parallel AI code smell elimination across 10 categories |
 | "hate", "hate this plan", "이 계획 공격", "반대 의견 하나" | `$hate` | User-invoked: single strongest objection + cheapest falsifying test |
 | "shower", "cold read", "fresh eyes", "처음 보는 눈", "콜드 리드" | `$shower` | Zero-context subagent cold read of an artifact (diagnose only; pairs with `gf-qa-behavioral-verification`) |
+| "handoff", "핸드오프", "이어받기 메모", "세션 넘기기", "메모 읽고 이어서" | `$handoff` | One state memo (`.lazyargon/handoff.md`) + 6-question cold read + HEAD/Dirty fingerprint check on resume |
 | "factchk", "통념 반증", "양방향 근거", "진짜 맞아" | `$factchk` | Two-direction source check of reality claims, local evidence first, ≤8 web searches, report-only by default (forensic/legal report verification stays with workspace `report-guard`) |
 | "mandela", "leakage audit", "self-grading test", "자기 채점", "검증 누수" | `$mandela` | Eval/metric leakage audit, 8 patterns, read-only (complements `gf-qa-computed-outputs`) |
 | "dedot", "가운뎃점", "middle dot", "점 정리" | `$dedot` | Korean middle-dot (·) review, suggestion-only |

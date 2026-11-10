@@ -1,0 +1,6 @@
+{"id":"handoff-pos-ko","expect":"trigger","prompt":"컨텍스트가 거의 찼어. 다음 세션이 이어받을 수 있게 핸드오프 메모 써줘"}
+{"id":"handoff-pos-en","expect":"trigger","prompt":"Write a handoff memo so another agent can pick this work up after compaction"}
+{"id":"handoff-pos-resume","expect":"trigger","prompt":"메모 읽고 이어서 해줘 (.lazyargon/handoff.md)"}
+{"id":"handoff-neg-plain","expect":"no_trigger","prompt":"이어서 해줘"}
+{"id":"handoff-neg-summary","expect":"no_trigger","prompt":"지금까지 대화를 사용자가 읽을 세 줄 요약으로 정리해줘"}
+{"id":"handoff-neg-code","expect":"no_trigger","prompt":"이 테스트가 왜 실패하는지 원인을 찾아줘"}

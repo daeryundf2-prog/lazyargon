@@ -1,0 +1,6 @@
+{"id":"ulw-pos-ko","expect":"trigger","prompt":"/ulw 로그인 모듈 리팩토링하고 테스트까지 전부 돌려서 끝내줘"}
+{"id":"ulw-pos-en","expect":"trigger","prompt":"ultrawork: migrate the config loader to the new schema across all packages and verify with the test suite"}
+{"id":"ulw-pos-parallel","expect":"trigger","prompt":"독립된 모듈 5개를 병렬 서브에이전트로 나눠서 /ulw 로 한 번에 끝내줘"}
+{"id":"ulw-neg-typo","expect":"no_trigger","prompt":"README 첫 줄 오타 'recieve' 하나만 고쳐줘"}
+{"id":"ulw-neg-explain","expect":"no_trigger","prompt":"이 정규식이 무슨 뜻인지 한 줄로 설명해줘: ^\\d{3}-\\d{4}$"}
+{"id":"ulw-neg-diagram","expect":"no_trigger","prompt":"결제 흐름을 시퀀스 다이어그램으로 그려줘"}
