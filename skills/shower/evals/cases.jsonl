@@ -1,0 +1,6 @@
+{"id":"shower-pos-ko","expect":"trigger","prompt":"이 README를 처음 보는 사람 눈으로 콜드 리드해서 막히는 곳을 알려줘"}
+{"id":"shower-pos-en","expect":"trigger","prompt":"Cold read this design doc with fresh eyes before I publish it and tell me where a newcomer stalls"}
+{"id":"shower-pos-handoff","expect":"trigger","prompt":"핸드오프 문서가 맥락 없이도 읽히는지 shower 해줘"}
+{"id":"shower-neg-fix","expect":"no_trigger","prompt":"이 함수의 off-by-one 버그를 고쳐줘"}
+{"id":"shower-neg-commit","expect":"no_trigger","prompt":"변경분을 커밋 메시지 컨벤션에 맞춰 커밋해줘"}
+{"id":"shower-neg-search","expect":"no_trigger","prompt":"최신 Node LTS 버전이 뭐야?"}
