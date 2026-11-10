@@ -14,6 +14,7 @@ test("#given host model ids #when modeFor #then 3.8 Flash and Argon are told apa
 	assert.equal(modeFor("gemini-3.8-flash-low"), "flash");
 	assert.equal(modeFor("gemini-3.8-flash-high"), "flash");
 	assert.equal(modeFor("gemini-4-argon-medium"), "argon");
+	assert.equal(modeFor("gemini-4-carbon-medium"), "argon");
 	assert.equal(modeFor("gemini-3.8-flash-lite"), "other");
 	assert.equal(modeFor("claude-sonnet-5-5-high"), "other");
 	assert.equal(modeFor("unknown"), "other");
@@ -45,6 +46,8 @@ test("#given session_start #when run with each model #then the mode block follow
 	};
 	assert.match(run("gemini-3.8-flash-low"), /효율 모드: Flash/);
 	assert.match(run("gemini-4-argon-low"), /효율 모드: Argon/);
+	assert.match(run("gemini-4-carbon-medium"), /효율 모드: Argon \(Carbon 공유\)/);
+	assert.match(run("gemini-4-carbon-medium"), /세션 모델: gemini-4-carbon-medium/);
 	assert.doesNotMatch(run("claude-sonnet-5-5-low"), /효율 모드/);
 });
 
