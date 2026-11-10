@@ -23,7 +23,7 @@ Google Antigravity용 자율 실행(`/ulw`)·소프트웨어 엔지니어링·�
 | 한 번 차단된 대화는 계속 막힘, 보안 디버깅 차단 | 새 대화에서 범위 잠금으로 재개, 해당 레인만 Claude 5.5 |
 | API 키 모드 무음 폴백, 구버전 description 콜론 로딩 실패 | `doctor.mjs` `antigravity.model_provider`·`frontmatter.description_colon` |
 
-## 포함 스킬 (23종)
+## 포함 스킬 (24종)
 
 | 스킬 | 설명 |
 |---|---|
@@ -47,6 +47,7 @@ Google Antigravity용 자율 실행(`/ulw`)·소프트웨어 엔지니어링·�
 | `gf-qa-artifact-consistency` | 산출물·미러 트리·매니페스트 일관성 검증 |
 | `hate` | 사용자 호출 전용. 계획의 치명적 반론 하나와 가장 싼 반증 실험 하나만 반환 |
 | `shower` | 맥락 없는 새 서브에이전트로 산출물을 콜드 리드해 혼자 읽히는지 점검 (진단만) |
+| `handoff` | 긴 대화 대신 `.lazyargon/handoff.md` 메모 하나로 일을 넘기고, 콜드 리드 6문항과 HEAD/Dirty 지문 비교로 이어받기 |
 | `factchk` | 그럴듯함·황당함 판단을 외부 출처로 양방향 검증, 출처 없는 수치 단정 금지와 연결 |
 | `mandela` | 평가·지표·벤치마크의 자기 채점·누수 8패턴 감사 (읽기 전용) |
 | `dedot` | 한국어 가운뎃점(·) 검토, 열린 나열만 쉼표 제안 (제안만, 무단 수정 없음) |

@@ -53,7 +53,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 // 도구 하나가 실패하고 바로 답하며 끝난 턴은 PostToolUse 시점에 그 출력이 transcript 에 없어 조회 실패가
 // 기록되지 않았다(Windows 실기 2026-11-03). 턴이 끝난 이 시점에 lookup_guard 를 한 번 더 돌린다.
@@ -538,6 +538,25 @@ async function main() {
 			} catch {
 				// ignore malformed dag file
 			}
+		}
+
+		// 증거 장부(.lazyargon/evidence.jsonl)의 pass 행은 캡처 때의 작업 트리 지문에 묶인다. 코드가 그 뒤 바뀌었으면 stale 이다.
+		// 출처: alpoxdev/hypercore (MIT) hyper-loop/rules/evidence-binding.md (commit 2d305cbf5db72e337189aa584b363bb9ced2d9bc), NOTICE 참고.
+		// 모듈이 없는 동기화 사본에서는 조용히 건너뛴다(캐노니컬 가드 팩과 어긋나도 세션을 막지 않는다).
+		try {
+			const fpPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'tree_fingerprint.mjs');
+			if (fs.existsSync(fpPath)) {
+				const { evidenceStatus } = await import(pathToFileURL(fpPath).href);
+				const ev2 = evidenceStatus(baseCwd);
+				if (ev2.stale.length > 0) {
+					emitBlock(
+						payload,
+						`[STOP CLAIM GUARD v${GUARD_PACK_VERSION}] 낡은 증거(stale): .lazyargon/evidence.jsonl 의 [${ev2.stale.join(', ')}] 는 코드가 바뀌기 전에 캡처한 증거다. 검증 명령을 다시 실행하고 node scripts/tree_fingerprint.mjs record --criterion <id> --command "<명령>" 로 새 증거를 남긴 뒤 완료를 선언하라.`,
+					);
+				}
+			}
+		} catch (err) {
+			process.stderr.write(`stop_claim_guard: stale-evidence check failed: ${err.message}\n`);
 		}
 
 		const claimedFileMatches = message.matchAll(/(?:(?:생성|작성|수정|추가|산출물)(?:은|는|이|가|로|으로)?|(?:created|written|generated|file|path))\s*[:=]?\s*[`"']?([a-zA-Z0-9_.:/\\가-힣-]+\.(?:ts|js|mjs|py|go|rs|json|md))[`"']?/gi);
