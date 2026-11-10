@@ -196,6 +196,12 @@ Deeper reasoning: `references/principles.md`.
 ```
 Keep it short: the image does the work. Don't attach variants, boards or icon sets yet.
 
+## Preflight before any image generation
+
+Source note: idea adapted from alpoxdev/hypercore (MIT) hyper-imagegen `rules/capability-and-output.md` (pinned commit 2d305cb); see `NOTICE`.
+
+When a concept is rendered with an image-generation tool instead of hand-written SVG, write observable checks first ("the wordmark reads exactly once", "the background is a real alpha channel, not a drawn checkerboard") and judge the returned file only against them; a returned file proves delivery, not that the brief was met. Retry once, and only after a transient failure (timeout, rate limit, server error); quota, invalid-request, refusal, and safety failures are reported, not retried. Never switch to a paid API route on your own; offer it as a choice.
+
 ## Honesty and limits
 
 - You can't guarantee trademark clearance; recommend a professional search (trademark databases, reverse image search).
