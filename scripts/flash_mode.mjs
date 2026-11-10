@@ -1,11 +1,11 @@
 // flash_mode.mjs — 세션 모델에 따른 모드 선택과 효율 계층 안내문 (lazyargon).
 // 정적 규칙(rules/AGENTS.md, 12KB 예산)은 건드리지 않고 SessionStart 의 동적 블록으로만 주입한다.
-// 모델명은 호스트가 보고한 값만 쓴다(추정 금지): gemini-3.8-flash-* 는 flash, gemini-4-argon-* 는 argon, 그 외는 other.
+// 모델명은 호스트가 보고한 값만 쓴다(추정 금지): gemini-3.8-flash-* 는 flash, gemini-4-argon-* 와 gemini-4-carbon-* 는 argon(Argon 모드 규칙 공유), 그 외는 other.
 
 export function modeFor(model) {
 	const m = String(model ?? "").toLowerCase();
 	if (/^gemini-3\.8-flash(?!-lite)/.test(m)) return "flash";
-	if (/^gemini-4-argon/.test(m)) return "argon";
+	if (/^gemini-4-(argon|carbon)/.test(m)) return "argon";
 	return "other";
 }
 
@@ -27,12 +27,12 @@ const THINKING = [
 	"- 막히면 먼저 근거(로그·테스트 출력)를 더 모으고, 같은 시도를 반복하지 않는다.",
 ];
 
-const ARGON_NOTE = ["- Argon 은 사고 수준이 세션 단위이므로 작업별 조절을 시도하지 않는다."];
+const ARGON_NOTE = ["- Argon·Carbon 은 사고 수준이 세션 단위이므로 작업별 조절을 시도하지 않는다."];
 
 export function flashModeContext(model) {
 	const mode = modeFor(model);
 	if (mode === "other") return "";
-	const head = mode === "flash" ? "## 효율 모드: Flash (gemini-3.8-flash)" : "## 효율 모드: Argon";
+	const head = mode === "flash" ? "## 효율 모드: Flash (gemini-3.8-flash)" : /^gemini-4-carbon/i.test(String(model)) ? "## 효율 모드: Argon (Carbon 공유)" : "## 효율 모드: Argon";
 	const parts = [head, "", ...ROUTING, "", ...SKELETON];
 	parts.push("", ...(mode === "flash" ? THINKING : ARGON_NOTE));
 	return parts.join("\n");

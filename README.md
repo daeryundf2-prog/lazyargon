@@ -1,6 +1,6 @@
 # LazyArgon (`v1.1.0`)
 
-Google Antigravity용 자율 실행(`/ulw`)·소프트웨어 엔지니어링·디자인 통합 플러그인. 주 대상은 Gemini 4 Argon이지만, 세션 모델은 호스트가 보고한 값을 따른다(Ultra·Enterprise는 Argon, 그 외 플랜은 Gemini 3.8 Flash 또는 Claude 5.5).
+Google Antigravity용 자율 실행(`/ulw`)·소프트웨어 엔지니어링·디자인 통합 플러그인. 주 대상은 Gemini 4 Argon이지만, 세션 모델은 호스트가 보고한 값을 따른다(Ultra·Enterprise는 Argon, 그 외 플랜은 Gemini 3.8 Flash 또는 Claude 5.5). Gemini 4 Carbon(`gemini-4-carbon-*`)은 Argon 모드 규칙을 그대로 쓴다.
 
 ## v1.1.0 — Argon 실사용 보고 반영 (2026-10)
 
