@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { stdin } from "node:process";
 import { fileURLToPath } from "node:url";
+import { flashModeContext } from "./flash_mode.mjs";
 import { compareStamp } from "./handoff_check.mjs";
 import { gateNote } from "./write_gate.mjs";
 
@@ -135,6 +136,7 @@ export function runtimeContext(payload = {}) {
 		`세션 모델: ${model}${model === "unknown" ? " (호스트 미보고 — Argon이라고 가정하지 말 것; 사고 수준은 세션 설정에서만 바뀜)" : ""}`,
 		"기본 예산: 4 레인 / 2 웨이브 (사용자 지정 전까지)",
 		"",
+		...(flashModeContext(model) ? [flashModeContext(model), ""] : []),
 		"### 범위 잠금 (.lazyargon/ulw-scope.md)",
 		"",
 		scopeLock(cwd),
