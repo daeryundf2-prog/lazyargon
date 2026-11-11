@@ -34,6 +34,7 @@
 | "coding sessions", "past session", "세션 복구" | `$coding-agent-sessions` | Cross-platform coding-agent session finder |
 | "data analysis", "csv", "parquet", "duckdb", "polars" | `$data-scientist` | DuckDB/Polars resident-kernel data processing |
 | "frontend", "ui-ux", "design system" | `$frontend` | Senior designer-grade UI/UX design systems & motion rules |
+| "hallmark", "new landing page", "새 페이지 디자인", "AI 티 안나는 디자인" | `$hallmark` | Optional (MIT, Nutlope/hallmark): NEW sites/pages only; floor + dealt direction + `scripts/sloplint.mjs` gate. Existing designs stay with `$frontend` unless the user names Hallmark |
 | "visual-qa", "pixel diff", "ui check", "시각적 검증" | `$visual-qa` | Multimodal UI verification & CJK precision review |
 | "image-prompt", "공냥 프롬프트", "이미지 프롬프트" | `$image-prompt` | Image generation prompt compiler & playbook |
 | "logo design", "로고 디자인", "로고 제작", "logo-design" | `$logo-design` | Professional SVG logo & brand identity design |
