@@ -1,16 +1,20 @@
 # /ulw model routing by role
 
-Source: orch-pilot lane (2026-11-12/13). Numbers are small-sample; treat them as a starting policy and re-measure.
+Numbers come from our own tests (small samples; re-measure before tightening). Vendor benchmark tables are not used: the Hydrogen column in the table the owner shared contains unofficial cells, so no Hydrogen number here comes from it.
 
-| Role | Model | Why | Fallback |
+| Role | Model | Evidence | Fallback |
 |---|---|---|---|
-| Plan, final review | Carbon medium | Best at catching errors (slip 4-9% on the dummy verdict benchmark); triage and logic checks | Argon high when the hard timeout (set ~300s, not the 10-min default) fires |
-| Implementation, workers | Argon high | Most accurate and fastest on the same benchmark (exact 85% on 30 shared cases, median 32-39 s); only 13% timeouts | Argon medium |
-| Long or flaky steps where finishing beats precision | Hydrogen high | 0% timeouts over 933 cases, median 78 s | none |
-| pii, inject, docfmt checks | never Hydrogen | pii 61% slips, inject 19% exact, docfmt 31% exact, 34% false positives on clean files | Carbon or Argon |
+| Default | Argon high | Common 78 verdict cases: 63% effective accuracy (first of the six models), median 44 s, 1 failure | Argon medium |
+| Plan, design, long context (~250k+ tokens), security audit | Carbon, cap 10 min | Fewest misses when it answers (9%); but 14 of 78 failed or timed out, median 288 s | Argon high on timeout |
+| Verdict, review, verification | Argon high | As above | Carbon only for a split verdict, once |
+| Implementation, edits, test runs, long or flaky execution | Hydrogen high | 0 failures in 78 and 0 in 939 (xhigh), median 24 s; same accuracy as xhigh at about a third of the time | Argon high |
+| PII, prompt-injection, docfmt checks | Argon high | Hydrogen weak: pii 61% missed, inject 19% exact, docfmt 31% exact, 34% false positives on clean files | Carbon for a suspect |
+| Orchestrator | no role yet | Verdict tasks are answered by Carbon alone (250 s, 10 of 67 failed); implementation comparison pending | - |
 
-Carbon high hit the 10-minute print timeout on 24-37% of cases (median 170-260 s), so Carbon is for short plan and review turns, not long execution.
+Quota rule: Carbon only twice per task (plan and final review); execution runs on Hydrogen or Argon.
 
-Measured in the orch-pilot style comparison (8 cases, F06/F12/F13/F10): a split pipeline (Carbon plan, Argon medium implement, Carbon review) passed 6/8 against 4/8 for Flash worker plus Argon verifier. The gap was all F13 code fixes, where Flash made no edits (0/2). The split pipeline was about 2-3x slower. Neither style passed the long Korean report family (F12, 0/2).
+Pilot, orchestration style (8 cases F06/F12/F13/F10, n too small to conclude): a split pipeline (Carbon plan, Argon medium implement, Carbon review) passed 6/8 against 4/8 for Flash worker plus Argon verifier. The gap was all F13 code fixes (Flash made no edits, 0/2). The split pipeline took about 2-3x longer. Neither style passed the long Korean report family (F12, 0/2). Four-arm numbers (Swarm, Orchestrator, native, Lazy) follow in the PR discussion.
 
-Caveat: `invoke_subagent.Model` documents only `inherit`, `flash` and `flash_lite`. This table sets the session model. Whether explicit ids such as `gemini-4-argon-high` are accepted as the subagent `Model` is unverified.
+Caveats:
+- `invoke_subagent.Model` documents only `inherit`, `flash` and `flash_lite`. This table sets the session model; explicit model ids as the subagent `Model` are unverified.
+- PII/inject placement is provisional until the v2-prompt retest.

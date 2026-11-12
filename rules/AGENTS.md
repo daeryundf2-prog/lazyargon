@@ -37,7 +37,7 @@ Delegate for 3+ independent modules/files/verification lanes, broad research (`$
 
 **Budget line before every fan-out:** `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Default 4 lanes × 2 waves; ask before exceeding. Routing: `flash` for explore/parse/draft/UI scaffold, `inherit` for implementation/refactor/verification/architecture, `flash_lite` for emergency quota fallback.
 
-**Model by role** (`docs/model-routing.md`; sets the session model, not `invoke_subagent.Model`, whose accepted ids are only `inherit`/`flash`/`flash_lite` until probed): plan and final review → Carbon medium with a hard timeout and Argon fallback (Carbon high times out 24–37%); implementation and workers → Argon high; long or flaky steps where finishing matters more than precision → Hydrogen high. Never Hydrogen for pii, inject or docfmt checks.
+**Model by role** (`docs/model-routing.md`; sets the session model, not `invoke_subagent.Model`, whose accepted ids stay `inherit`/`flash`/`flash_lite` until probed). Default Argon high. Plan, design, long context (~250k+ tokens) and security audits → Carbon (cap 10 min, Argon fallback; Carbon only for plan and final review, twice per task). Verdict, review, verification → Argon high. Implementation, edits, test runs and long or flaky execution → Hydrogen high (never xhigh). PII, prompt-injection and docfmt checks → Argon, never Hydrogen until the v2-prompt retest decides. Orchestrator: no role yet.
 
 **Worker prompt contract** (every `Prompt`):
 
