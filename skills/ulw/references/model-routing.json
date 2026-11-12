@@ -1,0 +1,91 @@
+{
+	"version": "2026-11-13",
+	"status": "measured on 5 F13 implementation cases per arm (3 for swarm, 2 for boost); all arms passed, so cost decides; harder multi-file cases still unmeasured",
+	"selection_rule": "Maximize pass rate first. Among arms tied for the best pass rate within sampling noise, pick the fewest tokens and quota, then the fastest. Never trade pass rate for savings.",
+	"how_to_revise": "Edit this file only. /ulw reads it at the start of a task; no code or rules change needed. Record the evidence in docs/model-routing.md.",
+	"subagent_tiers": {
+		"pro": "gemini-4-argon",
+		"flash": "gemini-3.8-flash",
+		"inherit": "session model",
+		"flash_lite": "emergency quota fallback"
+	},
+	"roles": {
+		"default": {
+			"model": "gemini-4-argon-high"
+		},
+		"plan": {
+			"model": "gemini-4-carbon-medium",
+			"timeout_min": 10,
+			"fallback": "gemini-4-argon-high"
+		},
+		"final_review": {
+			"model": "gemini-4-carbon-medium",
+			"timeout_min": 10,
+			"fallback": "gemini-4-argon-high"
+		},
+		"long_context": {
+			"model": "gemini-4-carbon-high",
+			"min_context_tokens": 250000,
+			"timeout_min": 10,
+			"fallback": "gemini-4-argon-high"
+		},
+		"security_audit": {
+			"model": "gemini-4-carbon-high",
+			"timeout_min": 10,
+			"fallback": "gemini-4-argon-high"
+		},
+		"verdict_review": {
+			"model": "gemini-4-argon-high"
+		},
+		"implementation": {
+			"model": "gemini-4-argon-high",
+			"note": "single session; pass 5/5 at ~17.5k tokens, ~32 s, ~0.01 weekly pts per 5 cases. Hydrogen high is the same pass rate (~22.8k tokens, ~28 s)."
+		},
+		"long_execution": {
+			"model": "gemini-4-hydrogen-high",
+			"note": "session model only; never xhigh"
+		},
+		"pii_inject_docfmt": {
+			"model": "gemini-4-argon-high",
+			"never": [
+				"gemini-4-hydrogen-high",
+				"gemini-4-hydrogen-xhigh"
+			]
+		}
+	},
+	"modes": {
+		"single": {
+			"use_when": "1-2 files, sequential work, or any task where one session can finish it",
+			"status": "default (measured best on cost: 5/5 at ~17.5k tokens)"
+		},
+		"subagents": {
+			"use_when": "3+ truly independent lanes with disjoint files",
+			"status": "measured 5/5 at ~33k tokens, ~131 s (about 2x tokens, 4x time vs single); use only when lanes are independent"
+		},
+		"swarm": {
+			"use_when": "wide parallel work that needs verifiers; propose first, quota heavy",
+			"status": "measured 3/3 at ~87k tokens, ~250 s, ~0.27 weekly pts per case (about 25x single); not a default"
+		},
+		"boost": {
+			"use_when": "one hard problem where a single attempt failed",
+			"status": "measured 2/2 at ~27.5k tokens, ~100 s on easy cases; keep for hard single problems, unmeasured on hard ones"
+		},
+		"teamwork": {
+			"use_when": "multi-day work that needs an interview first; propose it, do not start it silently",
+			"status": "proposal only"
+		},
+		"orchestrator_builtin": {
+			"use_when": "not a default",
+			"status": "measured 5/5 at ~47k tokens, ~110 s (about 2.7x tokens, 3.4x time vs single)"
+		},
+		"lazy_pipeline": {
+			"use_when": "not a default; the 3-stage plan/work/review pipeline",
+			"status": "measured 5/5 at ~109k tokens, ~182 s (about 6x tokens); lazyorch variant 5/5 at ~79k tokens"
+		}
+	},
+	"quota_guard": {
+		"min_weekly_percent": 8,
+		"min_five_hour_percent": 10,
+		"note": "below these, drop to the cheapest mode that still meets the pass-rate rule and say so"
+	}
+}

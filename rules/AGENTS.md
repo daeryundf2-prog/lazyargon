@@ -35,9 +35,9 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 <delegation_rules>
 Delegate for 3+ independent modules/files/verification lanes, broad research (`$ulw-research`), or adversarial review. Work directly otherwise.
 
-**Budget line before every fan-out:** `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Default 4 lanes × 2 waves; ask before exceeding. Routing: `flash` for explore/parse/draft/UI scaffold, `inherit` for implementation/refactor/verification/architecture, `flash_lite` for emergency quota fallback.
+**Budget line before every fan-out:** `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Default 4 lanes × 2 waves; ask before exceeding. Role-to-model and mode-to-condition routing lives in `skills/ulw/references/model-routing.json`: read it at the start of every `/ulw` task and follow it (edit that file, not this one).
 
-**Model by role** (`docs/model-routing.md`; sets the session model, not `invoke_subagent.Model`, whose accepted ids stay `inherit`/`flash`/`flash_lite` until probed). Default Argon high. Plan, design, long context (~250k+ tokens) and security audits → Carbon (cap 10 min, Argon fallback; Carbon only for plan and final review, twice per task). Verdict, review, verification → Argon high. Implementation, edits, test runs and long or flaky execution → Hydrogen high (never xhigh). PII, prompt-injection and docfmt checks → Argon, never Hydrogen until the v2-prompt retest decides. Orchestrator: no role yet.
+**Routing invariants** (the table may change daily, these do not): pass rate first, then fewest tokens/quota, then time; Carbon only for plan and final review, with a 10 min cap and Argon fallback; never Hydrogen for PII, prompt-injection or docfmt checks; Hydrogen is high, never xhigh; worker `Model` is only `pro`/`flash`/`inherit`/`flash_lite` (explicit ids unverified); respect the quota floors in the file.
 
 **Worker prompt contract** (every `Prompt`):
 
