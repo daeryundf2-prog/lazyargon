@@ -48,7 +48,7 @@ description: "Unified autonomous execution workflow for Antigravity (/ulw, ultra
 ### 기본 오케스트레이션 (역할·모드 표는 `references/model-routing.json`)
 
 - 작업을 시작할 때 `references/model-routing.json`을 읽고, 역할(계획·검토·구현·긴 실행 등)과 모드(단독·서브에이전트·swarm·boost)를 그 표대로 고른다. 표는 매일 고칠 수 있는 설정이므로 이 문서에 모델 이름을 적지 않는다. 선택 규칙: 통과율이 먼저, 같은 통과율이면 토큰·쿼터가 적은 쪽, 그다음 시간.
-- 세션 모델은 사용자가 고른 그대로 둔다(`/ulw`는 세션 도중에 모델을 바꾸지 못한다). 표의 시간 예산(`timeout_min`)을 넘기면 추론을 멈추고 표의 `fallback` 등급 워커에게 넘긴다.
+- 세션 모델은 사용자가 고른 그대로 둔다(`/ulw`는 세션 도중에 모델을 바꾸지 못한다). 표의 시간 예산(`timeout_sec`)을 넘기면 추론을 멈추고 표의 `fallback` 등급 워커에게 넘긴다.
 - 워커 `Model`은 `pro` / `flash` / `inherit` / `flash_lite`만 쓴다(명시 모델 ID는 미검증). `teamwork`는 여러 날 걸리는 작업이면 제안만 하고 조용히 시작하지 않는다. 근거: `docs/model-routing.md`.
 
 ### 병렬 서브에이전트 프롬프트 규약 (평면 스키마 엄수 — `Subagents` 배열 래퍼 금지)

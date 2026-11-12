@@ -5,10 +5,10 @@ Numbers come from our own tests (small samples; re-measure before tightening). V
 | Role | Model | Evidence | Fallback |
 |---|---|---|---|
 | Default | Argon high | Common 78 verdict cases: 63% effective accuracy (first of the six models), median 44 s, 1 failure | Argon medium |
-| Plan, design, long context (~250k+ tokens), security audit | Carbon, cap 10 min | Fewest misses when it answers (9%); but 14 of 78 failed or timed out, median 288 s | Argon high on timeout |
+| Plan, design, long context (~250k+ tokens), security audit | Carbon, cap 180 s | Fewest misses when it answers (9%); but 14 of 78 failed or timed out, median 288 s | Argon high on timeout |
 | Verdict, review, verification | Argon high | As above | Carbon only for a split verdict, once |
-| Implementation, edits, test runs, long or flaky execution | Hydrogen high | 0 failures in 78 and 0 in 939 (xhigh), median 24 s; same accuracy as xhigh at about a third of the time | Argon high |
-| PII, prompt-injection, docfmt checks | Argon high | Hydrogen weak: pii 61% missed, inject 19% exact, docfmt 31% exact, 34% false positives on clean files | Carbon for a suspect |
+| Implementation, edits, test runs | Argon high (default); Hydrogen high for long or flaky test-verified execution | All implementation arms passed 5/5 on F13; Argon high was cheapest (see below) | Argon high |
+| PII, prompt-injection, docfmt and judgment checks | Argon high or Hydrogen xhigh | omp-dori v2 retest: xhigh inject 32/32, pii 38/38, clean false positives 0/24; Hydrogen high had 36% (8/22), so high is never a gate | Carbon for a suspect |
 | Orchestrator | no role yet | Verdict tasks are answered by Carbon alone (250 s, 10 of 67 failed); implementation comparison pending | - |
 
 Quota rule: Carbon only twice per task (plan and final review); execution runs on Hydrogen or Argon.
@@ -35,3 +35,7 @@ Five F13 code-fix cases (edit a Python file until hidden tests pass), run sequen
 | boost | 2 | 2 | ~100 | ~27.5k | n/a |
 
 Every arm passed every case, so these cases cannot separate quality; the default is chosen on cost. They are easy single-file fixes. Orchestration modes are unmeasured on large multi-file tasks, where they may pay for themselves. Revisit when harder cases are added.
+
+## Limit of this evidence: F13 is at ceiling
+
+Every arm passed every F13 case, so F13 separates cost but not performance. The default (single-session Argon high) is chosen on cost only. Next step: at least 10 harder multi-file implementation cases with Carbon-only and Argon-only arms added, timeouts counted as failures, before any orchestration mode is adopted or rejected on quality.

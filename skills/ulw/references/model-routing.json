@@ -1,6 +1,6 @@
 {
 	"version": "2026-11-13",
-	"status": "measured on 5 F13 implementation cases per arm (3 for swarm, 2 for boost); all arms passed, so cost decides; harder multi-file cases still unmeasured",
+	"status": "measured on easy F13 implementation cases only (every arm 5/5, so the default is chosen on cost); harder multi-file cases unmeasured",
 	"selection_rule": "Maximize pass rate first. Among arms tied for the best pass rate within sampling noise, pick the fewest tokens and quota, then the fastest. Never trade pass rate for savings.",
 	"how_to_revise": "Edit this file only. /ulw reads it at the start of a task; no code or rules change needed. Record the evidence in docs/model-routing.md.",
 	"subagent_tiers": {
@@ -15,27 +15,31 @@
 		},
 		"plan": {
 			"model": "gemini-4-carbon-medium",
-			"timeout_min": 10,
-			"fallback": "gemini-4-argon-high"
+			"fallback": "gemini-4-argon-high",
+			"timeout_sec": 180
 		},
 		"final_review": {
 			"model": "gemini-4-carbon-medium",
-			"timeout_min": 10,
-			"fallback": "gemini-4-argon-high"
+			"fallback": "gemini-4-argon-high",
+			"timeout_sec": 180
 		},
 		"long_context": {
 			"model": "gemini-4-carbon-high",
 			"min_context_tokens": 250000,
-			"timeout_min": 10,
-			"fallback": "gemini-4-argon-high"
+			"fallback": "gemini-4-argon-high",
+			"timeout_sec": 180
 		},
 		"security_audit": {
 			"model": "gemini-4-carbon-high",
-			"timeout_min": 10,
-			"fallback": "gemini-4-argon-high"
+			"fallback": "gemini-4-argon-high",
+			"timeout_sec": 180
 		},
 		"verdict_review": {
-			"model": "gemini-4-argon-high"
+			"model": "gemini-4-argon-high",
+			"alternative": "gemini-4-hydrogen-xhigh",
+			"never": [
+				"gemini-4-hydrogen-high"
+			]
 		},
 		"implementation": {
 			"model": "gemini-4-argon-high",
@@ -43,14 +47,15 @@
 		},
 		"long_execution": {
 			"model": "gemini-4-hydrogen-high",
-			"note": "session model only; never xhigh"
+			"note": "test-verified execution only (long or flaky steps); never a gate: clean false positives 36% on the v2 retest"
 		},
 		"pii_inject_docfmt": {
 			"model": "gemini-4-argon-high",
+			"alternative": "gemini-4-hydrogen-xhigh",
 			"never": [
-				"gemini-4-hydrogen-high",
-				"gemini-4-hydrogen-xhigh"
-			]
+				"gemini-4-hydrogen-high"
+			],
+			"note": "omp-dori v2 retest: xhigh inject 32/32, pii 38/38, clean false positives 0/24"
 		}
 	},
 	"modes": {
