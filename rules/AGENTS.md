@@ -35,7 +35,9 @@ Keep this file under 12KB (`antigravity-cli #1254` drops over-budget rule files 
 <delegation_rules>
 Delegate for 3+ independent modules/files/verification lanes, broad research (`$ulw-research`), or adversarial review. Work directly otherwise.
 
-**Budget line before every fan-out:** `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Default 4 lanes × 2 waves; ask before exceeding. Routing: `flash` for explore/parse/draft/UI scaffold, `inherit` for implementation/refactor/verification/architecture, `flash_lite` for emergency quota fallback.
+**Budget line before every fan-out:** `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Default 4 lanes × 2 waves; ask before exceeding. Role-to-model and mode-to-condition routing lives in `skills/ulw/references/model-routing.json`: read it at the start of every `/ulw` task and follow it (edit that file, not this one).
+
+**Routing invariants** (the table may change daily, these do not): pass rate first, then fewest tokens/quota, then time; Carbon only for plan and final review, with a 180 s cap and Argon fallback; PII, prompt-injection and judgment checks run on Argon high or Hydrogen xhigh, never Hydrogen high (high is for test-verified execution only, never a gate); worker `Model` is only `pro`/`flash`/`inherit`/`flash_lite` (explicit ids unverified); respect the quota floors in the file.
 
 **Worker prompt contract** (every `Prompt`):
 
