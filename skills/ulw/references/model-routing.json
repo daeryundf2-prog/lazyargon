@@ -1,6 +1,6 @@
 {
-	"version": "2026-11-13",
-	"status": "measured on easy F13 implementation cases only (every arm 5/5, so the default is chosen on cost); harder multi-file cases unmeasured",
+	"version": "2026-11-13b",
+	"status": "verdict roles measured on 100 common cases (original bench prompt); implementation measured on easy F13 cases only (every arm 5/5, so the default is chosen on cost); harder multi-file cases unmeasured",
 	"selection_rule": "Maximize pass rate first. Among arms tied for the best pass rate within sampling noise, pick the fewest tokens and quota, then the fastest. Never trade pass rate for savings.",
 	"how_to_revise": "Edit this file only. /ulw reads it at the start of a task; no code or rules change needed. Record the evidence in docs/model-routing.md.",
 	"subagent_tiers": {
@@ -14,32 +14,31 @@
 			"model": "gemini-4-argon-high"
 		},
 		"plan": {
-			"model": "gemini-4-carbon-medium",
-			"fallback": "gemini-4-argon-high",
-			"timeout_sec": 180
+			"model": "gemini-4-argon-high",
+			"note": "Carbon dropped: Carbon high matched Argon high when it answered (72.1% vs 72.7% on 100 cases) but its median was 212 s, so a 180 s cap cut off more than half its calls and they fell back to Argon anyway"
 		},
 		"final_review": {
-			"model": "gemini-4-carbon-medium",
-			"fallback": "gemini-4-argon-high",
-			"timeout_sec": 180
+			"model": "gemini-4-argon-high",
+			"note": "same evidence as plan"
 		},
 		"long_context": {
 			"model": "gemini-4-carbon-high",
 			"min_context_tokens": 250000,
 			"fallback": "gemini-4-argon-high",
-			"timeout_sec": 180
+			"timeout_sec": 180,
+			"note": "only role left for Carbon: documents beyond ~250k tokens"
 		},
 		"security_audit": {
-			"model": "gemini-4-carbon-high",
-			"fallback": "gemini-4-argon-high",
-			"timeout_sec": 180
+			"model": "gemini-4-argon-high",
+			"note": "Carbon high missed fewer bad cases (4/67 vs 7/67) but 14/100 failed or timed out; Argon high is the audit model"
 		},
 		"verdict_review": {
 			"model": "gemini-4-argon-high",
 			"alternative": "gemini-4-hydrogen-xhigh",
 			"never": [
 				"gemini-4-hydrogen-high"
-			]
+			],
+			"note": "100 common cases: Argon high 72/100 exact, 1 error, 38 s median; Hydrogen high 65/100 with the most clean false alarms (10/33)"
 		},
 		"implementation": {
 			"model": "gemini-4-argon-high",
@@ -47,7 +46,7 @@
 		},
 		"long_execution": {
 			"model": "gemini-4-hydrogen-high",
-			"note": "test-verified execution only (long or flaky steps); never a gate: clean false positives 36% on the v2 retest"
+			"note": "test-verified execution only (long or flaky steps); never a gate: most clean false alarms on 100 cases (10/33) and 36% on the v2 retest"
 		},
 		"pii_inject_docfmt": {
 			"model": "gemini-4-argon-high",
@@ -55,7 +54,8 @@
 			"never": [
 				"gemini-4-hydrogen-high"
 			],
-			"note": "omp-dori v2 retest: xhigh inject 32/32, pii 38/38, clean false positives 0/24"
+			"note": "with the original prompt PII was weak for every model (best 3/6 on the 100-case set); with the v2 prompt Hydrogen xhigh/Argon/Carbon reached inject 32/32 and pii 38/38 (clean false positives 0/24 for xhigh)",
+			"prompt": "v2 flag/fail rule required"
 		}
 	},
 	"modes": {
