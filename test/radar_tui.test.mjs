@@ -85,8 +85,9 @@ test("lazy_tui.mjs --once and --json render 4 panels with real memory.db stats, 
 		const dbPath = join(stateDir, "memory.db");
 		const memScript = join(root, "experimental", "scripts", "lazy_memory.py");
 		const pyBin = process.platform === "win32" ? "python" : "python3";
-		spawnSync(pyBin, [memScript, "resolve", "--db", dbPath, "--op", "ADD", "--subject", "lazyargon", "--predicate", "uses", "--object", "argon4"], { encoding: "utf8" });
-		spawnSync(pyBin, [memScript, "resolve", "--db", dbPath, "--op", "UPDATE", "--subject", "lazyargon", "--predicate", "uses", "--object", "argon4-high"], { encoding: "utf8" });
+		const pyEnv = { ...process.env, PYTHONDONTWRITEBYTECODE: "1" };
+		spawnSync(pyBin, ["-B", memScript, "resolve", "--db", dbPath, "--op", "ADD", "--subject", "lazyargon", "--predicate", "uses", "--object", "argon4"], { encoding: "utf8", env: pyEnv });
+		spawnSync(pyBin, ["-B", memScript, "resolve", "--db", dbPath, "--op", "UPDATE", "--subject", "lazyargon", "--predicate", "uses", "--object", "argon4-high"], { encoding: "utf8", env: pyEnv });
 
 		writeFileSync(
 			join(stateDir, "ulw-dag.json"),

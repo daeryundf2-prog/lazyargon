@@ -13,17 +13,22 @@ export const MODEL_PRESETS = {
 	"gemini-4-argon": {
 		aliases: ["argon", "gemini-4", "inherit"],
 		guidance:
-			"100줄·20KB 이하 청크로 분할 기록(#1255)하고 규칙 파일 합계 24KB 상한(#1254)을 준수하라. 승인 필요 도구(run_command 등)는 한 턴에 단독 호출(#1249)하며, 상단 정적 컨텍스트를 고정해 6,144토큰 프리픽스 캐시(95% 할인)를 유지하라. 모든 쓰기 직후 파일을 재열람해 무결성을 검증하라.",
+			"범용 기본 주력으로서 코딩·디버깅·UI·포렌식·법률·한국어 윤문을 수행하라. 200줄·18KB 이하는 원샷 작성 후 재열람하고 초과 시에만 100줄 이하 청크(#1255)·규칙 24KB(#1254)·run_command 단독 호출(#1249)을 준수하라. 다중 파일 워커는 Edit-Only로 두고 부모가 통합 검증하라.",
+	},
+	"gemini-4-carbon": {
+		aliases: ["carbon", "gemini-4-carbon-medium", "gemini-4-carbon-high"],
+		guidance:
+			"사이버방어·바이너리 리버싱·익스플로잇 전문가 레인으로서 Argon 안전 필터 오탐 우려 보안 작업을 네이티브로 수행하라(반복 차단 시에만 Claude 5.5 폴백). 다중 파일 워커는 Edit-Only 후 부모가 통합 검증하라.",
 	},
 	"gemini-3.8-flash": {
 		aliases: ["flash", "flash_lite", "gemini-3.8"],
 		guidance:
-			"파싱·표 정리·초안 스캐폴딩 작업에 집중하고 위임된 write_scope 외부 파일은 절대 수정하지 마라. 추측성 조기 완료 선언을 금지하며 실행 명령과 실제 관찰 출력을 함께 반환하라.",
+			"오케스트레이션에서 전면 폐기됨(browser 포함 전 레인 inherit 일원화). 주력 쿼터 0% 고갈 비상 폴백(flash_lite) 외 호출을 금지하며 비상 시에도 실제 관찰 출력만 반환하라.",
 	},
 	"claude-5.5": {
 		aliases: ["opus", "sonnet", "claude-opus-5.5", "claude-sonnet-5.5", "claude"],
 		guidance:
-			"교차 가족 최종 판정(dual-verify) 및 보안·메모리 안전 필터 폴백 레인 전용으로 동작하라. 요청 범위 밖의 주변 코드 과잉 리팩터링과 방어적 추상화 도입을 억제하라.",
+			"swarm 핀 고정(claude-opus-5-5-medium) 읽기 전용 교차 가족 감사관(dual-verify Pass 3) 및 안전 필터 폴백 전용으로 동작하라. 파일 직접 수정·커밋과 요청 범위 밖 코드 비대화(+79%)를 금지하라.",
 	},
 	"gpt-6": {
 		aliases: ["astra", "codex", "gpt-6-codex"],

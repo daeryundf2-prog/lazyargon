@@ -38,7 +38,9 @@ export const DEFECT_CODES = deepFreeze({
 	layout_image_distorted: { severity: "major", integrity: false, hint: "Preserve the image aspect ratio (object-fit: contain inside a fixed container)." },
 	layout_sibling_overlap: { severity: "major", integrity: false, hint: "Separate the overlapping elements (margins, grid, or a slide split)." },
 	layout_page_underfill: { severity: "major", integrity: false, hint: "Eliminate >40% floating bottom page void: use .a4-sheet flex shell with .sheet-footer { margin-top: auto }, relax forced break-before: page, or split oversized atomic tables." },
-	layout_cell_void_imbalance: { severity: "minor", integrity: false, hint: "Eliminate >70% vertical empty void in table rows: move 64-char hashes, paths, or multi-line quotes into a full-width <tr class=\"row-sub\"><td colspan=\"N\"> sub-row wrapped in <tbody class=\"row-group\">." },
+	layout_cell_void_imbalance: { severity: "major", integrity: false, hint: "Eliminate >70% vertical empty void in table rows: move 64-char hashes, paths, or multi-line quotes into a full-width <tr class=\"row-sub\"><td colspan=\"N\"> sub-row wrapped in <tbody class=\"row-group\">." },
+	layout_print_shrink_risk: { severity: "major", integrity: false, hint: "Eliminate Chromium Print Shrink-to-Fit downscaling: constrain tables/rows to <=672px (178mm A4 inner width), keep 8.5pt mono sub-rows <=95ch, and use word-break: break-all instead of white-space: nowrap on wide cells." },
+	layout_heading_spacing_inversion: { severity: "minor", integrity: false, hint: "Fix Gestalt heading proximity inversion: set h2/h3 margin-top >= 1.5x margin-bottom (e.g. margin: 11pt 0 4pt 0) so the heading detaches from the preceding block and binds to the content below." },
 })
 
 const LAYOUT_PREFIX = "layout_"

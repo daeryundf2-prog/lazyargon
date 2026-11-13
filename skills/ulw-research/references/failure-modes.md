@@ -4,7 +4,7 @@
 |---|---|
 | Standing up the wave before the Phase 0 brief exists | Scope solo first; the brief defines the roster — never improvise a wave and invent axes afterwards |
 | Skipping the wave for a solo research pass | The parallel wave is the DEFAULT composition; shrink it only when `invoke_subagent` rejects the call size, and say why in the journal |
-| Sequential spawning, or trimming the first wave | All first-wave members and lanes in one `invoke_subagent` call, scaling floor respected |
+| Sequential spawning, or trimming the first wave | All first-wave members and lanes via parallel flat `invoke_subagent` calls in the same turn, scaling floor respected |
 | A member hoards leads for one final dump | Raise law — every lead, finding, and dead end returns in the `## EXPAND` reply tail |
 | Worker reply without the EXPAND tail | Axis not covered — respawn the lane in the next wave with the tail requirement restated |
 | No skeptic pass on a "supported" claim | Every supported claim survives a debate round first; log it in `debate-log.md` |
@@ -19,7 +19,7 @@
 | Guessing the deliverable format | Derive it from the request and destination; ask the empty-info interview only for what is still missing, and record `answered_by` for every field |
 | Blocking the collection wave on the format question | Ask once and start collecting; skipped/unanswered fields run on the shown defaults |
 | A roster smaller than the runtime maximum | Fill every slot; split the broadest axis until the wave is full |
-| Wrong model routing on subagents | Use `Model: "inherit"` across research, expansion, and skeptic lanes (`flash_lite` only for emergency quota fallback) |
+| Wrong model routing on subagents | Use `Model: "inherit"` for all lanes including `browser` (`"flash"` retired), and `"flash_lite"` only for 0% primary quota emergency fallback |
 | Silently re-routing a "quick"/"fast" roster to another tier | Routing words are literal; journal requested -> spawned -> fallback for every slot |
 | A member that starts its own research wave or loads this skill | Members research one axis and report; orchestration is yours alone |
 | Expanding on an entity the first wave never disambiguated | Settle canonical identity and first-party source before any later prompt asserts it |

@@ -4,7 +4,7 @@
 // 범위 잠금 파일, 매니페스트 버전 일치. `--json` 은 기계 판독 출력, `--strict` 는 warn 도 실패로 센다.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -123,7 +123,7 @@ function guardParity() {
 		return;
 	}
 	const drift = [];
-	for (const g of ["markdown_structure_guard.mjs", "json_schema_guard.mjs", "stop_claim_guard.mjs", "lookup_guard.mjs", "selfcheck_stats.mjs"]) {
+	for (const g of ["markdown_structure_guard.mjs", "json_schema_guard.mjs", "stop_claim_guard.mjs", "lookup_guard.mjs", "selfcheck_stats.mjs", "post_tool_feedback.mjs"]) {
 		const a = join(root, "scripts", g);
 		const b = join(sibling, g);
 		if (!existsSync(a) || !existsSync(b)) {
@@ -194,11 +194,11 @@ function modelProvider() {
 		}
 		const provider = findKey(data, "modelProvider");
 		if (provider === undefined) continue;
-		if (provider === "gemini" && !text.includes("gemini-4-argon")) {
-			add("antigravity.model_provider", "warn", `${file}: modelProvider=gemini(API 키 모드)인데 gemini-4-argon 매핑이 없다 — agy 가 Gemini 3.8 Flash(High)로 폴백한다. customModelsConfig 에 gemini-api://gemini-4-argon 항목을 넣거나 구독 로그인으로 쓸 것`);
+		if (provider === "gemini" && !/gemini-4-(?:argon|carbon)/i.test(text)) {
+			add("antigravity.model_provider", "warn", `${file}: modelProvider=gemini(API 키 모드)인데 gemini-4-argon/carbon 매핑이 없다 — agy 가 Gemini 3.8 Flash(High)로 폴백한다. customModelsConfig 에 gemini-api://gemini-4-argon 또는 gemini-4-carbon 항목을 넣거나 구독 로그인으로 쓸 것`);
 			return;
 		}
-		add("antigravity.model_provider", "ok", `${file}: modelProvider=${typeof provider === "string" ? provider : "set"}${provider === "gemini" ? " (Argon 매핑 있음)" : ""}`);
+		add("antigravity.model_provider", "ok", `${file}: modelProvider=${typeof provider === "string" ? provider : "set"}${provider === "gemini" ? " (Argon/Carbon 매핑 있음)" : ""}`);
 		return;
 	}
 	add("antigravity.model_provider", "ok", "API 키 모드 설정 없음 (구독 로그인 기준)");
@@ -216,11 +216,20 @@ function rulesFiles(pluginRoot) {
 }
 
 function rulesBudget() {
-	const files = [...rulesFiles(root), ...rulesFiles(join(root, "..", "lazyargon-workspace"))];
+	const wsPluginRoot = join(root, "..", "lazyargon-workspace");
+	const files = [...rulesFiles(root), ...rulesFiles(wsPluginRoot)];
 	const sizes = files.map((f) => ({ f, bytes: Buffer.byteLength(readFileSync(f, "utf8"), "utf8") }));
 	const total = sizes.reduce((n, s) => n + s.bytes, 0);
 	const big = sizes.filter((s) => s.bytes > RULES_FILE_WARN_BYTES).map((s) => `${s.f} ${s.bytes}B`);
-	const detail = `${sizes.length}개 규칙 파일 합계 ${total}B (파일당 ≤${RULES_FILE_WARN_BYTES}B, 합계 ≤${RULES_TOTAL_WARN_BYTES}B)`;
+	const cwd = resolve(process.cwd());
+	let wsBytes = 0;
+	if (cwd !== resolve(root) && cwd !== resolve(wsPluginRoot)) {
+		for (const wf of [join(cwd, "AGENTS.md"), join(cwd, "GEMINI.md")]) {
+			if (existsSync(wf)) wsBytes += Buffer.byteLength(readFileSync(wf, "utf8"), "utf8");
+		}
+	}
+	const wsNote = wsBytes > 0 ? ` + 워크스페이스 ${wsBytes}B` : "";
+	const detail = `${sizes.length}개 규칙 파일 합계 ${total}B (파일당 ≤${RULES_FILE_WARN_BYTES}B, 합계 ≤${RULES_TOTAL_WARN_BYTES}B)${wsNote}`;
 	if (big.length || total > RULES_TOTAL_WARN_BYTES) {
 		add("rules.budget", "warn", `${detail} — 초과: ${big.join(", ") || "합계"}. 예산을 넘은 규칙 파일은 통째로 빠진다(#1254)`);
 		return;
@@ -289,24 +298,12 @@ function liveRpcCheck() {
 			return;
 		}
 	} else {
+		const safeToken = String(info.token).replace(/["\\]/g, "\\$&");
 		for (const port of info.ports) {
 			const res = spawnSync(
 				"curl",
-				[
-					"-sS",
-					"-m",
-					"2",
-					"-X",
-					"POST",
-					`http://127.0.0.1:${port}/exa.language_server_pb.LanguageServerService/GetCustomizationStates`,
-					"-H",
-					`x-codeium-csrf-token: ${info.token}`,
-					"-H",
-					"Content-Type: application/json",
-					"-d",
-					"{}",
-				],
-				{ encoding: "utf8", timeout: 2500 },
+				["-sS", "-m", "2", "-X", "POST", `http://127.0.0.1:${port}/exa.language_server_pb.LanguageServerService/GetCustomizationStates`, "-K", "-", "-H", "Content-Type: application/json", "-d", "{}"],
+				{ input: `header = "x-codeium-csrf-token: ${safeToken}"\n`, encoding: "utf8", timeout: 2500 },
 			);
 			if (!res.error && res.status === 0 && res.stdout && res.stdout.trim().startsWith("{")) {
 				try {

@@ -25,7 +25,7 @@ This skill is authored against the Antigravity `invoke_subagent` tool surface. Y
 | Send a lead / a debate round onward | next-wave `Prompt` | subagents cannot receive follow-up messages mid-run — fold the lead into the next wave's prompt text |
 | Collect member replies | returned results | results arrive on completion; act on each as it lands |
 | Track shared research state | `$SESSION_DIR` files | `expansion-log.md`, `claim-graph.md`, `sources-ledger.md` are the shared board — workers report in reply text, you journal |
-| Spawn a bounded recon / expansion / verification lane | `invoke_subagent` entry | `Role` names the territory, `Model: "inherit"` for recon, `Model: "inherit"` for attack/verification, `Prompt` carries the full brief |
+| Spawn a bounded recon / expansion / verification lane | `invoke_subagent` entry | `Role` names the territory, `Model: "inherit"` for all lanes including `browser` (`"flash"` retired; `"flash_lite"` only for 0% primary quota emergency fallback), `Prompt` carries the full brief |
 | End a lane | — | subagents terminate when their prompt is complete; no explicit teardown tool exists |
 | Disband the wave at the end | — | no team object persists; "done" = every spawned subagent accounted for before the final answer |
 
@@ -75,14 +75,14 @@ Debate need: <which claims will be contested, and which member perspectives atta
 Then create the session directory and write the brief:
 
 ```bash
-mkdir -p .omo/ulw-research/$(date +%Y%m%d-%H%M%S)
+mkdir -p .lazyargon/ulw-research/$(date +%Y%m%d-%H%M%S)
 ```
 
 This is `$SESSION_DIR`. Write `brief.md` into it: the analysis block, the axis list with one named owner per axis, the expected truths seeding `intent-diff.md`, and the team roster you are about to create. The brief is what the team is built FROM — a team stood up before the brief exists is a failure mode (see the table at the end).
 
 ### Coordinate via native `invoke_subagent` waves and journal to the Markdown Claim Ledger in real time
 
-Coordinate research waves natively via Antigravity `invoke_subagent` (`Model: "inherit"`) and persist all durable state in the Markdown Claim Ledger (`$SESSION_DIR/claim-graph.md`, `$SESSION_DIR/expansion-log.md`, and `$SESSION_DIR/sources-ledger.md`) so the run survives context compaction without external CLI wrappers. The session directory's timestamp is the run's start clock — the closing briefing is computed from it, so create it once and never rename it. From that point every finding, source, quote, number, and lead is written into `$SESSION_DIR` **the instant it lands** — never held in the conversation for an end-of-run dump. After any context loss, re-read `brief.md`, `expansion-log.md`, and `claim-graph.md` before doing anything else, then resume from the open wave.
+Coordinate research waves natively via Antigravity `invoke_subagent` (`Model: "inherit"` for all collection, skeptic, verification, and synthesis lanes; `"flash_lite"` only for emergency quota fallback) and persist all durable state in the Markdown Claim Ledger (`$SESSION_DIR/claim-graph.md`, `$SESSION_DIR/expansion-log.md`, and `$SESSION_DIR/sources-ledger.md`) so the run survives context compaction without external CLI wrappers. The session directory's timestamp is the run's start clock — the closing briefing is computed from it, so create it once and never rename it. From that point every finding, source, quote, number, and lead is written into `$SESSION_DIR` **the instant it lands** — never held in the conversation for an end-of-run dump. After any context loss, re-read `brief.md`, `expansion-log.md`, and `claim-graph.md` before doing anything else, then resume from the open wave.
 
 ### Deliverable lane, format, and the empty-info interview
 
@@ -90,32 +90,32 @@ Never block collection on the shape of the deliverable, and never guess it eithe
 
 1. **Derive first.** Name the lane (`template-strict`, `template-vibe`, `no-format`, `edit-existing`) and the promised formats from the request and its destination (the reference's section 3). When the request refers to an existing deliverable, decide its state with `node "$SKILL_DIR/scripts/report-tools.mjs" outcome state --deliverable <path> --session-dir "$SESSION_DIR"`: `partial` resumes the skeleton on disk, `complete` means edit-existing and never a regenerated report. `$SKILL_DIR` is this skill's own directory, the folder containing this SKILL.md.
 2. **Read the requester's format memory** when the memory tool exists: `read` the projected pointer `system/human/report-style.md`, then `reference/human-report-style.md`, and take the choice recorded for the most similar context (same destination kind and audience) as the first option.
-3. **Ask only what is still missing**: at most the reference's three questions (destination and format, audience and length, template lineage) in one `ask_user_question` call, each with its default first, a free-text "describe the format" path, and "don't care, you decide". Collection starts without waiting — a skipped or late answer is folded in until the assembly lane starts, and after that it becomes a re-render request.
+3. **Ask only what is still missing**: at most the reference's three questions (destination and format, audience and length, template lineage) in one `ask_question` call, each with its default first, a free-text "describe the format" path, and "don't care, you decide". Collection starts without waiting — a skipped or late answer is folded in until the assembly lane starts, and after that it becomes a re-render request.
 4. **Record it.** Write `## Deliverable` into `brief.md` (lane, state, formats, destination, audience, template, format description, each with `answered_by: user|default|request`) and open the manifest in the same step: `node "$SKILL_DIR/scripts/report-tools.mjs" outcome init --promised <formats> --lane <lane> --session-dir "$SESSION_DIR"`.
 
 Phase 6 opens by turning the recorded fields into `design-spec.md`.
 
 ## Phase 1 — Stand up the team (DEFAULT composition)
 
-**When the user asked for MASS research, scale the waves, not the roster.** "mass ulw research", "mulw research", "ulw mass research" — in any language — order over-collection that a single wave cannot produce. Run collection as chained `invoke_subagent` waves at mass scale: an opening wave at the runtime's parallel ceiling covering every angle the topic has, each wave's EXPAND leads defining the next wave's `invoke_subagent` calls until convergence, and a synthesis that reduces through several parallel `Model: "inherit"` lanes into one `pro` reducer. Everything else in this skill still binds: the deliverable interview, the journal, the claim graph, the convergence rules, and the delivery gates. Keep a dedicated attack wave for the debate rounds of Phase 3 — attack is a prompt role, and collection lanes do not critique themselves.
+**When the user asked for MASS research, scale the waves, not the roster.** "mass ulw research", "mulw research", "ulw mass research" — in any language — order over-collection that a single wave cannot produce. Run collection as chained `invoke_subagent` waves at mass scale: an opening `Model: "inherit"` wave at the runtime's parallel ceiling covering every angle the topic has, each wave's EXPAND leads defining the next wave's `invoke_subagent` calls until convergence, and a synthesis that reduces through several parallel `Model: "inherit"` lanes into one final `Model: "inherit"` reducer. Everything else in this skill still binds: the deliverable interview, the journal, the claim graph, the convergence rules, and the delivery gates. Keep a dedicated `Model: "inherit"` attack wave for the debate rounds of Phase 3 — attack is a prompt role, and collection lanes do not critique themselves.
 
 Otherwise a parallel wave is the DEFAULT for ulw-research, not an option: a lead one member surfaces almost always reshapes what another should search next, and debate needs cooperating members, not fire-and-forget workers. Launch it immediately after the brief — emit parallel flat `invoke_subagent` calls in the same turn for the whole first wave:
 
 ```
-invoke_subagent({ TypeName: "self", Role: "axis-owner-1", Model: "flash", Prompt: "<member brief for axis 1 — see below>" })
-invoke_subagent({ TypeName: "self", Role: "axis-owner-2", Model: "flash", Prompt: "<member brief for axis 2>" })
+invoke_subagent({ TypeName: "self", Role: "axis-owner-1", Model: "inherit", Prompt: "<member brief for axis 1 — see below>" })
+invoke_subagent({ TypeName: "self", Role: "axis-owner-2", Model: "inherit", Prompt: "<member brief for axis 2>" })
 invoke_subagent({ TypeName: "self", Role: "skeptic", Model: "inherit", Prompt: "<debate brief — see below>" })
 ```
 
-Collection members run on `flash`; the skeptic, every attack/verification lane, and the final synthesis run on `inherit`. The total number of entries never exceeds the budget line in `brief.md`.
+All research, skeptic, attack/verification, synthesis, and `browser` lanes run on `inherit` (`flash` retired; `flash_lite` only for 0% primary quota emergency fallback). The total number of entries never exceeds the budget line in `brief.md`.
 
-The binding rules, in short — one member per axis (ownership, never a job title); the maximum roster the runtime allows; mixed `Model` tiers by design; user's routing words are literal; at least one `pro` skeptic; every lead returns in the `## EXPAND` reply tail; shared state lives in `$SESSION_DIR` files. Full roster rules, the wave lifecycle table (research → refinement wave), and the member brief contract (including the mandatory `## EXPAND` reply tail): [references/wave-composition.md](references/wave-composition.md).
+The binding rules, in short — one member per axis (ownership, never a job title); the maximum roster the runtime allows; unified `Model: "inherit"` routing across waves (`flash_lite` emergency fallback only); user's routing words are literal; at least one `inherit` skeptic; every lead returns in the `## EXPAND` reply tail; shared state lives in `$SESSION_DIR` files. Full roster rules, the wave lifecycle table (research → refinement wave), and the member brief contract (including the mandatory `## EXPAND` reply tail): [references/wave-composition.md](references/wave-composition.md).
 
 ## Phase 2 — Saturation wave
 
 Launch the entire first wave in a single turn via parallel `invoke_subagent` calls — every member briefed in its own flat `invoke_subagent` call starts in parallel; include bounded lanes in the same turn for the territories the axis owners cannot reach (read-only sweeps, blocked pages). Sequential launches and "start with one and see" defeat the mode.
 
-**Budget first.** Before sizing the wave, write one line into `brief.md`: `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Without a user-stated budget the default is **4 lanes per wave, 2 waves**; exceeding it needs the user's yes. On Gemini 4 Argon one worker spends roughly 20× the output tokens of a Flash worker and a few heavy lanes exhaust a 5-hour Ultra window, so lane counts are a cost, not a quality knob. Fill the budget with `flash` lanes for collection and reserve `inherit` for the skeptic, verification, and synthesis lanes.
+**Budget first.** Before sizing the wave, write one line into `brief.md`: `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Without a user-stated budget the default is **4 lanes per wave, 2 waves**; exceeding it needs the user's yes. Because `Gemini 3.8 Flash` shares the same host quota pool as `Gemini 4` while consuming `4.86x` more tokens per task, unify collection, skeptic, verification, and synthesis lanes on `Model: "inherit"` (`flash_lite` only for emergency quota fallback).
 
 Recommended composition (not a floor — the budget line caps it; when the budget is smaller, drop lanes from the right-hand columns first and keep one browsing lane whenever `Browsing: yes`):
 

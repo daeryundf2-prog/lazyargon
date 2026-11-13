@@ -1,5 +1,7 @@
 Third-party notices for LazyArgon
 
+1. paperthin skills (`hate`, `shower`, `factchk`, `mandela`, `dedot`)
+
 The skills hate, shower, factchk, mandela, and dedot (skills/<name>/SKILL.md)
 are adapted from LilMGenius/paperthin (https://github.com/LilMGenius/paperthin),
 skills/depth/<name>, rewritten for Google Antigravity tool names.
@@ -26,3 +28,26 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+-------------------------------------------------------------------------------
+
+2. diagram-design (`skills/diagram-design/`)
+
+Bundled editorial diagram design skill (39 diagram types, style-guide onboarding,
+and draw.io / Mermaid structural extractors), distributed under the MIT License
+(see `skills/diagram-design/SKILL.md`, `license: MIT`). Adapted for Google
+Antigravity tool surfaces and workspace conventions.
+
+-------------------------------------------------------------------------------
+
+3. logo-design (`skills/logo-design/`)
+
+Bundled SVG logo and brand-identity design workflow, Python audit/preview/export
+scripts (`skills/logo-design/scripts/`), and classified reference catalog
+(`skills/logo-design/assets/library/`). Skill documentation and helper scripts
+are distributed under the MIT License; public vector reference files (derived
+from open SVG logo collections such as gilbarbara/logos under CC0-1.0) are
+included strictly for visual study and geometric benchmarking. All brand names,
+wordmarks, and symbols in `assets/library/svg/` remain trademarks of their
+respective owners and must never be copied, traced, or redistributed as client
+deliverables.

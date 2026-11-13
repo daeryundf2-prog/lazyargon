@@ -1,4 +1,4 @@
-// gates-layout.mjs - L1-L5 geometric gates over the layout probe output (boxes.json).
+// gates-layout.mjs - L1-L5 geometric gates over the layout probe output (boxes.json), plus L6-L9 paged gates.
 //
 // Pure functions over the object layout-probe.mjs returns: no browser, no DOM, and selectors are
 // taken verbatim from the probe (the probe already built them with the html-lite rule). Severities
@@ -7,6 +7,18 @@
 // 2.000000000000001 never crosses a 2px limit.
 
 import { DEFECT_CODES } from "./contracts.mjs"
+import {
+	A4_PRINT_INNER_MAX_PX,
+	CELL_CONTENT_RATIO_MAX,
+	CELL_VOID_MIN_PX,
+	CELL_VOID_ROW_MIN_PX,
+	HEADING_RATIO_MIN,
+	PAGE_FILL_MIN,
+	checkCellVoidImbalance,
+	checkHeadingSpacingInversion,
+	checkPageUnderfill,
+	checkPrintShrinkRisk,
+} from "./gates-layout-paged.mjs"
 import { PROBE_VERSION, ProbeError } from "./layout-probe.mjs"
 
 /** Thresholds (draft D10): rounding tolerances, not taste. */
@@ -14,10 +26,14 @@ export const OVERFLOW_PX = 2
 export const SCROLL_SLACK_PX = 2
 export const ASPECT_DRIFT = 0.03
 export const OVERLAP_PX = 12
-export const PAGE_FILL_MIN = 0.6
-export const CELL_VOID_ROW_MIN_PX = 84
-export const CELL_CONTENT_RATIO_MAX = 0.3
-export const CELL_VOID_MIN_PX = 52
+export {
+	PAGE_FILL_MIN,
+	CELL_VOID_ROW_MIN_PX,
+	CELL_CONTENT_RATIO_MAX,
+	CELL_VOID_MIN_PX,
+	A4_PRINT_INNER_MAX_PX,
+	HEADING_RATIO_MIN,
+}
 
 const OUT_OF_FLOW = new Set(["absolute", "fixed"])
 const IN_FLOW = new Set(["static", "relative"])
@@ -90,14 +106,11 @@ function checkAspect(box) {
 	if (ASPECT_SAFE_FITS.has(fit)) return null
 	const drift = Math.abs(w / h / (nw / nh) - 1)
 	if (drift <= ASPECT_DRIFT) return null
-	const percent = (drift * 100).toFixed(1)
-	return defect("layout_image_distorted", box.selector, `img rendered ${w}x${h} from natural ${nw}x${nh} distorts the aspect ratio by ${percent}% (object-fit: ${fit})`)
+	return defect("layout_image_distorted", box.selector, `img rendered ${w}x${h} from natural ${nw}x${nh} distorts the aspect ratio by ${(drift * 100).toFixed(1)}% (object-fit: ${fit})`)
 }
 
 function intersection(a, b) {
-	const ix = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
-	const iy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
-	return { ix: r1(ix), iy: r1(iy) }
+	return { ix: r1(Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)), iy: r1(Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)) }
 }
 
 // L5: in-flow siblings (same parentSelector) whose rects intersect by more than 12px on both axes.
@@ -122,71 +135,13 @@ function checkSiblings(boxes) {
 	return defects
 }
 
-// L6: non-cover, non-final page containers whose in-flow body children fill less than 60% of inner height (>40% bottom void).
-function checkPageUnderfill(boxes) {
-	const pages = boxes.filter((b) => b.isPage && b.rect && b.rect.h >= 400)
-	if (pages.length < 2) return []
-	const defects = []
-	for (let i = 0; i < pages.length - 1; i += 1) {
-		const page = pages[i]
-		if (page.isCover || (page.flowCount !== undefined && page.flowCount <= 2) || page.flowBottom === null || page.flowBottom === undefined) continue
-		const pt = page.spacing?.pt ?? 0
-		const pb = page.spacing?.pb ?? 0
-		const innerH = r1(page.rect.h - pt - pb)
-		if (innerH <= 0) continue
-		const usedH = r1(page.flowBottom - (page.rect.y + pt))
-		const fillRatio = usedH / innerH
-		if (fillRatio < PAGE_FILL_MIN) {
-			const voidPct = ((1 - fillRatio) * 100).toFixed(1)
-			defects.push(defect("layout_page_underfill", page.selector, `${page.selector} leaves ${voidPct}% vertical bottom void (used ${usedH}px of ${innerH}px inner height)`))
-		}
-	}
-	return defects
-}
-
-// L7: table rows >= 84px tall where >= 50% of 1x1 text cells use <= 30% of the row's inner height (>= 52px vertical void).
-function checkCellVoidImbalance(boxes) {
-	const rows = new Map()
-	for (const box of boxes) {
-		if ((box.tag !== "td" && box.tag !== "th") || !box.parentSelector) continue
-		if (box.span && (box.span.row > 1 || box.span.col > 1 || box.span.hasMedia)) continue
-		if (typeof box.contentH !== "number") continue
-		const list = rows.get(box.parentSelector) ?? []
-		list.push(box)
-		rows.set(box.parentSelector, list)
-	}
-	const trBySelector = new Map(boxes.filter((b) => b.tag === "tr").map((b) => [b.selector, b]))
-	const defects = []
-	for (const [rowSelector, cells] of rows.entries()) {
-		if (cells.length < 2) continue
-		const tr = trBySelector.get(rowSelector)
-		if (tr?.isSubRow) continue
-		const rowH = tr ? tr.rect.h : Math.max(...cells.map((c) => c.rect.h))
-		if (rowH < CELL_VOID_ROW_MIN_PX) continue
-		const sparseCells = cells.filter((c) => {
-			const availH = r1(c.rect.h - (c.spacing?.pt ?? 0) - (c.spacing?.pb ?? 0))
-			return availH > 0 && c.contentH / availH <= CELL_CONTENT_RATIO_MAX && r1(availH - c.contentH) >= CELL_VOID_MIN_PX
-		})
-		if (sparseCells.length >= Math.ceil(cells.length * 0.5)) {
-			const voidPx = r1(rowH - Math.min(...sparseCells.map((c) => c.contentH)))
-			defects.push(defect("layout_cell_void_imbalance", rowSelector, `${rowSelector} is ${rowH}px tall while ${sparseCells.length}/${cells.length} cells leave up to ${voidPx}px of vertical empty void`))
-		}
-	}
-	return defects
-}
-
 function validateProbe(probe) {
 	if (probe === null || typeof probe !== "object") throw new ProbeError("invalid_probe", "layout probe must be an object")
-	if (probe.probe_version !== PROBE_VERSION) {
-		throw new ProbeError("unsupported_probe_version", `layout probe_version must be ${PROBE_VERSION}, got ${probe.probe_version}`)
-	}
+	if (probe.probe_version !== PROBE_VERSION) throw new ProbeError("unsupported_probe_version", `layout probe_version must be ${PROBE_VERSION}, got ${probe.probe_version}`)
 	if (!Array.isArray(probe.boxes)) throw new ProbeError("invalid_probe", "layout probe boxes must be an array")
 }
 
-/**
- * @param {{ probe_version: number, count?: number, truncated?: boolean, boxes: object[] }} probe
- * @returns {{ defects: Defect[], summary: string }}
- */
+/** @returns {{ defects: Defect[], summary: string }} */
 export function checkLayout(probe) {
 	validateProbe(probe)
 	const defects = []
@@ -196,10 +151,7 @@ export function checkLayout(probe) {
 			if (found) defects.push(found)
 		}
 	}
-	defects.push(...checkSiblings(probe.boxes))
-	defects.push(...checkPageUnderfill(probe.boxes))
-	defects.push(...checkCellVoidImbalance(probe.boxes))
-	let summary = `layout: ${probe.boxes.length} boxes checked, ${defects.length} defects`
-	if (probe.truncated) summary += `; layout sample truncated`
+	defects.push(...checkSiblings(probe.boxes), ...checkPageUnderfill(probe.boxes), ...checkCellVoidImbalance(probe.boxes), ...checkPrintShrinkRisk(probe.boxes), ...checkHeadingSpacingInversion(probe.boxes))
+	const summary = `layout: ${probe.boxes.length} boxes checked, ${defects.length} defects${probe.truncated ? "; layout sample truncated" : ""}`
 	return { defects, summary }
 }

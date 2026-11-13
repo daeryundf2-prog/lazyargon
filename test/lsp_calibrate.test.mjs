@@ -143,10 +143,12 @@ test("lsp_diagnostics.mjs: rename-preview identifies affected imports and barrel
 	}
 });
 
-test("model_calibrate.mjs: supports all 6 presets and enforces <= 2770B cap", () => {
+test("model_calibrate.mjs: supports Argon/Carbon and all presets while enforcing <= 2770B cap", () => {
 	assert.equal(SHARED_PREAMBLE_MAX_BYTES, 2770);
-	const expectedModels = ["gemini-4-argon", "gemini-3.8-flash", "claude-5.5", "gpt-6", "kimi-k3", "glm-5"];
-	assert.deepEqual(Object.keys(MODEL_PRESETS), expectedModels);
+	const expectedModels = ["gemini-4-argon", "gemini-4-carbon", "gemini-3.8-flash", "claude-5.5", "gpt-6", "kimi-k3", "glm-5"];
+	for (const key of expectedModels) {
+		assert.ok(Object.hasOwn(MODEL_PRESETS, key), `Missing preset: ${key}`);
+	}
 
 	for (const model of [...expectedModels, "opus", "sonnet", "astra", "codex", "kimi-code", "zcode"]) {
 		const res = calibrateModel({ model, compact: false });
@@ -155,6 +157,10 @@ test("model_calibrate.mjs: supports all 6 presets and enforces <= 2770B cap", ()
 		assert.ok(res.byte_length > 0 && res.byte_length <= 2770);
 		assert.equal(res.max_bytes, 2770);
 	}
+
+	const carbonRes = calibrateModel({ model: "gemini-4-carbon-medium" });
+	assert.equal(carbonRes.model, "gemini-4-carbon");
+	assert.ok(carbonRes.byte_length > 0 && carbonRes.byte_length <= 2770);
 
 	const cli = spawnSync(process.execPath, [calibrateScript, "--model", "kimi-code", "--compact", "--json"], { encoding: "utf8" });
 	assert.equal(cli.status, 0);

@@ -46,7 +46,7 @@ Performs intelligent, deterministic refactoring with full codebase awareness. Un
 2. **Maps the codebase** — Builds a definitive codemap before touching anything
 3. **Assesses risk** — Evaluates test coverage and determines verification strategy
 4. **Plans meticulously** — Creates an atomic step-by-step refactoring plan
-5. **Executes precisely** — Step-by-step refactoring with `replace_file_content` and `sg` (`ast-grep` CLI)
+5. **Executes precisely** — Step-by-step refactoring with `edit_file` and `sg` (`ast-grep` CLI)
 6. **Verifies constantly** — Runs tests and typecheckers after each change to ensure zero regression
 
 ---
@@ -143,7 +143,7 @@ VERIFY: parent runs discovered test files`
 
 For 1–2 file refactors or while subagents are running, use Antigravity native tools directly:
 
-### Code Navigation & Diagnostics (`grep_search`, `view_file`, `run_command`):
+### Code Navigation & Diagnostics (`read_file`, `run_command` with `rg`/`sg`):
 
 ```bash
 # Check baseline typecheck / compiler diagnostics before starting
@@ -164,7 +164,7 @@ sg run -p '[old_pattern]' -r '[new_pattern]' -l ts src/
 ```
 
 ### Exact Symbol & Text Search:
-Use `grep_search` (ripgrep) and `find_by_name` to locate symbol definitions, imports, and references across `src/`.
+Use `run_command` with `rg` (`rg -n` for symbol/import search and `rg --files` for file discovery) across `src/`.
 
 ## 1.3: Collect Subagent Results
 
@@ -224,7 +224,7 @@ Based on codemap:
 
 ## 3.1: Detect Test Infrastructure
 
-Inspect `package.json`, `pyproject.toml`, `Cargo.toml`, or `go.mod` via `view_file` or `find_by_name` to identify the project's test runner and typechecker.
+Inspect `package.json`, `pyproject.toml`, `Cargo.toml`, or `go.mod` via `read_file` or `run_command` (`rg --files`) to identify the project's test runner and typechecker.
 
 ## 3.2: Analyze Test Coverage
 
@@ -347,7 +347,7 @@ After generating the plan:
 For EACH refactoring step:
 
 ### Pre-Step
-1. Read current file state via `view_file`
+1. Read current file state via `read_file`
 2. Confirm baseline tests and typecheck are green
 
 ### Execute Step
@@ -363,7 +363,7 @@ sg run -p '[old_pattern]' -r '[new_pattern]' -l ts --update-all src/
 ```
 
 **For Precise File Edits:**
-Use `replace_file_content` (or `write_to_file` when extracting a new module) with exact line ranges and target content.
+Use `edit_file` (or `write_file` when extracting a new module) in ≤100-line / <20KB chunks with exact target content, then re-read with `read_file`.
 
 ### Post-Step Verification (MANDATORY via `run_command`)
 
@@ -384,7 +384,7 @@ bun test       # or npm test / pytest / cargo test / go test ./...
 If ANY verification fails:
 
 1. **STOP** immediately
-2. **REVERT** the failed change (`git checkout -- <file>` or `replace_file_content`)
+2. **REVERT** the failed change (`git checkout -- <file>` or `edit_file`)
 3. **DIAGNOSE** what went wrong
 4. **OPTIONS**:
    - Fix the issue and retry
@@ -469,7 +469,7 @@ All existing tests pass. No new errors introduced.
 - Refactor without understanding existing patterns
 
 ## ALWAYS DO
-- Understand before changing (`view_file`, `grep_search`)
+- Understand before changing (`read_file`, `run_command` `rg`/`sg`)
 - Preview AST rewrites before applying (`sg run -p ... -r ...` without `--update-all` first)
 - Verify after every change (`run_command` tests + typecheck)
 - Follow existing codebase patterns
@@ -487,9 +487,9 @@ If any of these occur, **STOP and consult user**:
 
 # Tool Usage Philosophy
 
-## Search & Navigation (`grep_search`, `find_by_name`, `view_file`)
-- **Understand before changing**: Read definition and surrounding context with `view_file`.
-- **Impact analysis**: Map all usages and imports across the workspace with `grep_search`.
+## Search & Navigation (`read_file`, `run_command` with `rg`/`sg`)
+- **Understand before changing**: Read definition and surrounding context with `read_file`.
+- **Impact analysis**: Map all usages, files, and imports across the workspace with `run_command` (`rg -n`, `rg --files`, `sg`).
 - **Continuous verification**: Run the project's typechecker and test runner via `run_command` after every change.
 
 ## AST-Grep (`sg` CLI via `run_command`)

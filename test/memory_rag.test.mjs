@@ -14,7 +14,7 @@ const sessionStartMjs = join(root, "scripts", "session_start.mjs");
 const pyBin = process.platform === "win32" ? "python" : "python3";
 
 function runPy(script, args) {
-	const res = spawnSync(pyBin, [script, ...args], { encoding: "utf8" });
+	const res = spawnSync(pyBin, ["-B", script, ...args], { encoding: "utf8", env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" } });
 	let json = null;
 	try {
 		json = JSON.parse((res.stdout || "").trim());
@@ -217,7 +217,7 @@ test("Adversarial Auditor 3 regression suite (8 fixes)", () => {
 
 function runPyAsync(script, args) {
 	return new Promise((resolve) => {
-		const p = spawn(pyBin, [script, ...args], { stdio: ["ignore", "pipe", "pipe"] });
+		const p = spawn(pyBin, ["-B", script, ...args], { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" } });
 		let out = "", err = "";
 		p.stdout.on("data", (d) => { out += d; });
 		p.stderr.on("data", (d) => { err += d; });

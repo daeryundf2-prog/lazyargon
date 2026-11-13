@@ -14,25 +14,37 @@ const SCOPE_MAX_LINES = 12;
 const PINS_MAX_LINES = 20;
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
-function readStdin(limitMs = 200) {
+const STDIN_WAIT_MS = 1500;
+
+function readStdin(limitMs = STDIN_WAIT_MS) {
 	return new Promise((resolve) => {
-		if (stdin.isTTY) {
-			resolve("");
-			return;
-		}
+		if (stdin.isTTY) return resolve("");
 		const chunks = [];
-		const finish = () => {
+		let settled = false;
+		const finish = (val) => {
+			if (settled) return;
+			settled = true;
 			clearTimeout(timer);
+			try {
+				stdin.pause();
+			} catch {}
 			stdin.removeAllListeners();
-			resolve(Buffer.concat(chunks).toString("utf8"));
+			resolve(val);
 		};
-		const timer = setTimeout(finish, limitMs);
-		stdin.on("data", (chunk) => chunks.push(chunk));
-		stdin.on("end", finish);
-		stdin.on("error", () => {
-			clearTimeout(timer);
-			resolve("");
+		const timer = setTimeout(() => finish(Buffer.concat(chunks).toString("utf8")), limitMs);
+		if (typeof timer.unref === "function") timer.unref();
+		stdin.on("data", (chunk) => {
+			chunks.push(chunk);
+			const acc = Buffer.concat(chunks).toString("utf8").trim();
+			if ((acc.startsWith("{") && acc.endsWith("}")) || (acc.startsWith("[") && acc.endsWith("]"))) {
+				try {
+					JSON.parse(acc);
+					finish(acc);
+				} catch {}
+			}
 		});
+		stdin.on("end", () => finish(Buffer.concat(chunks).toString("utf8")));
+		stdin.on("error", () => finish(""));
 	});
 }
 
@@ -71,19 +83,22 @@ export function sessionModel(payload, env = process.env) {
 	return "unknown";
 }
 
-function headOf(file, maxLines) {
+function sliceLines(file, maxLines, fromTail = false) {
 	try {
 		if (!existsSync(file)) return "없음";
 		const lines = readFileSync(file, "utf8").replace(/\r\n/g, "\n").split("\n").filter((l) => l.trim());
-		const head = lines.slice(0, maxLines).join("\n");
-		return lines.length > maxLines ? `${head}\n…(${lines.length - maxLines}줄 생략 — 파일을 직접 읽을 것)` : head;
+		const picked = (fromTail ? lines.slice(-maxLines) : lines.slice(0, maxLines)).join("\n");
+		return lines.length > maxLines ? `${picked}\n…(${lines.length - maxLines}줄 생략 — 파일을 직접 읽을 것)` : picked;
 	} catch {
 		return "읽기 실패";
 	}
 }
 
+const headOf = (file, maxLines) => sliceLines(file, maxLines, false);
+const tailOf = (file, maxLines) => sliceLines(file, maxLines, true);
+
 const scopeLock = (cwd = process.cwd()) => headOf(join(cwd, ".lazyargon", "ulw-scope.md"), SCOPE_MAX_LINES);
-const pins = (cwd = process.cwd()) => headOf(join(cwd, ".lazyargon", "pins.md"), PINS_MAX_LINES);
+const pins = (cwd = process.cwd()) => tailOf(join(cwd, ".lazyargon", "pins.md"), PINS_MAX_LINES);
 
 function guardPackVersion() {
 	try {
@@ -233,7 +248,7 @@ export function autoUpdate(pluginRoot = root, env = process.env, errOut = proces
 
 const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) {
-	const payload = parsePayload(await readStdin(200));
+	const payload = parsePayload(await readStdin(STDIN_WAIT_MS));
 	autoUpdate(root);
 	const context = runtimeContext(payload);
 	// Antigravity drops the whole SessionStart output when it carries keys beyond injectSteps
