@@ -19,7 +19,7 @@ Use Antigravity tools only (`invoke_subagent`). Do **not** invent foreign spawn/
 
 - Use after you build or change any UI, before calling it done. Covers web/page UIs and TUI/terminal UIs.
 - Use when output must match a mock, a baseline, or a stated design intent; when you suspect a regression; when CJK (Korean/Japanese/Chinese) text may clip or misalign; when a claimed design system might actually be a flat image; when a terminal layout may overflow or its borders may break.
-- Skip when there is no rendered surface (pure backend or library logic with no visual or terminal output). For broad post-implementation review use review-work; this skill is the visual specialist.
+- Skip when there is no rendered surface (pure backend or library logic with no visual or terminal output). For broad post-implementation review use `gf-qa-behavioral-verification`; this skill is the visual specialist.
 
 In the commands below, `$SKILL_DIR` is this skill's own directory (the folder containing this SKILL.md). The bundled script lives at `scripts/cli.ts` inside it.
 
@@ -43,11 +43,11 @@ If the change touches both, run both capture tracks and feed both into the passe
 Drive a REAL browser at the same viewport size as the reference using Playwright or the active browser capture tooling, then compare the reference and actual screenshots via `scripts/image-diff.ts` (`scripts/cli.ts`).
 
 1. Capture a REFERENCE image: the user's mock/target, or a known-good baseline. Save as PNG.
-2. Capture the ACTUAL rendered screenshot with Playwright MCP, using the accessibility-tree tools (do not guess selectors):
-   - `browser_navigate` to the page URL.
-   - `browser_resize` to the same width/height as the reference viewport.
-   - `browser_snapshot` to get the accessibility tree and element refs; reach every state (hover, open menu, active tab) with `browser_click` / `browser_type` / `browser_wait_for` before screenshotting. Interact the way a user would.
-   - `browser_take_screenshot` (fullPage when the reference covers the whole page) and save to a PNG. Confirm rendering with `browser_console_messages` for page errors.
+2. Capture the ACTUAL rendered screenshot via Playwright Lazy MCP (`call_mcp_tool` after reading the Playwright MCP tool schemas — these are lazy-loaded MCP tools, not bare native tools) **or** delegate interactive browser capture to the `browser` subagent (`invoke_subagent({ TypeName: "browser", ... })`):
+   - `browser_navigate` (via `call_mcp_tool`) to the page URL.
+   - `browser_resize` (via `call_mcp_tool`) to the same width/height as the reference viewport.
+   - `browser_snapshot` to get the accessibility tree and element refs (do not guess selectors); reach every state (hover, open menu, active tab) with `browser_click` / `browser_type` / `browser_wait_for` before screenshotting. Interact the way a user would.
+   - `browser_take_screenshot` (`fullPage` when the reference covers the whole page) and save to a PNG. Confirm rendering with `browser_console_messages` for page errors.
    - Tear the context down afterwards (`browser_close`) so no QA browser is left running.
 3. Run the diff and keep the JSON:
 
@@ -175,9 +175,9 @@ BLOCKING: items that must be fixed; empty if PASS
 })
 ```
 
-### Pass C - Gemini 4 Argon vision pre-screen (fast, optional)
+### Pass C - Gemini 4 Argon / Carbon vision pre-screen (fast, optional)
 
-When running a multimodal vision pre-screen before the oracle passes, dispatch a `Model: "inherit"` (Gemini 4 Argon) subagent. This pass uses Argon's multimodal image input capability to directly analyze the screenshot pixels, complementing the text-based oracle passes.
+When running a multimodal vision pre-screen before the oracle passes, dispatch a `Model: "inherit"` (Gemini 4 Argon / Carbon) subagent. This pass uses multimodal image input capability to directly analyze the screenshot pixels, complementing the text-based oracle passes.
 
 ```
 invoke_subagent({
@@ -186,7 +186,7 @@ invoke_subagent({
   Model: "inherit",
   Prompt: """
 REVIEW TYPE: FAST VISION PRE-SCREEN (read-only, advisory)
-MODEL: Gemini 4 Argon — use your multimodal image input capability.
+MODEL: Gemini 4 Argon / Carbon — use your multimodal image input capability.
 
 INTENT:
 {What the user requested and the mock or baseline to match.}
@@ -284,7 +284,7 @@ Illustrative output (locked field names):
 
 When the deliverable is a printable HTML/PDF report, manual, or brochure (or contains annotated screenshots):
 
-1. **Per-page rendered PNG inspection**: Convert the generated PDF to per-page PNGs (`pdftoppm -png -r 150` or `pypdf`/`pymupdf`) in `os.tmpdir()` and inspect every page with `view_file` before declaring completion.
+1. **Per-page rendered PNG inspection**: Convert the generated PDF to per-page PNGs (`pdftoppm -png -r 150` or `pypdf`/`pymupdf`) in `os.tmpdir()` and inspect every page with `read_file` before declaring completion.
 2. **Annotation & bounding-box precision**: Verify that red highlight boxes, numbered callouts, and cropped regions accurately frame the target text/UI element without clipping characters or spilling outside the target row. Ensure cropped screenshots (`MD-RED`, mobile captures, logs) are magnified enough that detail text is legible when printed on A4.
 3. **Typography & table cell flow**: Enforce body text `>= 10pt`, table cells `>= 9pt`, `word-break: keep-all` on Korean prose, and `white-space: nowrap` on speaker/name/badge columns so 3-syllable Korean names never wrap mid-name. Keep a unified single-hue palette (e.g., navy/slate) unless semantic status requires color.
 4. **Page-break & whitespace hygiene (`print-paged-media.md` §8)**: Reject orphan headings, split callout cards, floating bottom voids (`> 30%` of page height; enforce `.a4-sheet` `min-height: 267mm` + `.sheet-footer { margin-top: auto }` or `@page` margin boxes, `layout_page_underfill`), intra-row cell vertical voids (`> 70%` empty height in sibling cells when 64-char hashes wrap in a narrow column; enforce 2-tier sub-rows `tbody.row-group > tr.row-main + tr.row-sub`, `layout_cell_void_imbalance`), and Chromium Print Shrink-to-Fit downscaling caused by `white-space: nowrap` lines exceeding `178mm` (`672px`, `>95ch` at `8.5pt` mono). Isolate headless browser `--user-data-dir` inside `os.tmpdir()` and delete temporary profiles and `verify_*.png` captures after verification.

@@ -45,6 +45,10 @@ test("#given API-key mode without an Argon mapping #when doctor runs #then model
 		fs.writeFileSync(path.join(home, ".gemini", "settings.json"), JSON.stringify({ modelProvider: "gemini", customModelsConfig: [{ id: "gemini-api://gemini-4-argon-high" }] }), "utf8");
 		const mapped = spawnSync("node", [path.join(ROOT, "scripts", "doctor.mjs"), "--json"], { cwd: ROOT, encoding: "utf8", env });
 		assert.equal(JSON.parse(mapped.stdout).checks.find((c) => c.id === "antigravity.model_provider").status, "ok");
+
+		fs.writeFileSync(path.join(home, ".gemini", "settings.json"), JSON.stringify({ modelProvider: "gemini", customModelsConfig: [{ id: "gemini-api://gemini-4-carbon-medium" }] }), "utf8");
+		const carbonMapped = spawnSync("node", [path.join(ROOT, "scripts", "doctor.mjs"), "--json"], { cwd: ROOT, encoding: "utf8", env });
+		assert.equal(JSON.parse(carbonMapped.stdout).checks.find((c) => c.id === "antigravity.model_provider").status, "ok");
 	} finally {
 		fs.rmSync(home, { recursive: true, force: true });
 	}
@@ -108,5 +112,43 @@ test("#given unrouted skill and missing script ref #when doctor runs #then harne
 		assert.match(byId["skills.script_refs"]?.detail, /scripts\/ghost_helper\.py/);
 	} finally {
 		fs.rmSync(fakeRoot, { recursive: true, force: true });
+	}
+});
+
+test("#given v2.1 orchestration rules and skills #when inspected #then flash is completely retired (including browser), Argon is universal primary, <=200-line single-shot guidance is active, and Opus 5.5 swarm critic is wired", () => {
+	const agentsMd = fs.readFileSync(path.join(ROOT, "rules", "AGENTS.md"), "utf8");
+	assert.doesNotMatch(agentsMd, /Routing:\s*`flash`/);
+	assert.doesNotMatch(agentsMd, /only for built-in `browser`/);
+	assert.match(agentsMd, /including built-in `browser`/);
+	assert.match(agentsMd, /Argon universal primary/);
+	assert.match(agentsMd, /≤200 lines \(<18KB\) single-shot/);
+	assert.match(agentsMd, /claude-opus-5-5-medium/);
+	assert.match(agentsMd, /run_command 생략/);
+
+	const ulwSkill = fs.readFileSync(path.join(ROOT, "skills", "ulw", "SKILL.md"), "utf8");
+	assert.doesNotMatch(ulwSkill, /탐색·초안·포맷 레인 `flash`/);
+	assert.doesNotMatch(ulwSkill, /내장 웹 UI 조작만 `browser`\(`flash`\)/);
+	assert.match(ulwSkill, /`browser` 포함 전 레인 `inherit` 일원화/);
+	assert.match(ulwSkill, /Edit-Only/);
+	assert.match(ulwSkill, /≤200줄\(<18KB\)은 원샷 작성/);
+
+	const ulwResearchSkill = fs.readFileSync(path.join(ROOT, "skills", "ulw-research", "SKILL.md"), "utf8");
+	assert.doesNotMatch(ulwResearchSkill, /built-in `browser` subagent uses/);
+	assert.match(ulwResearchSkill, /including `browser`/);
+
+	const dualVerify = fs.readFileSync(path.join(ROOT, "skills", "ulw", "references", "dual-verify.md"), "utf8");
+	assert.match(dualVerify, /claude-opus-5-5-medium/);
+	assert.match(dualVerify, /action:\s*"kill"/);
+
+	const wsRoot = path.resolve(ROOT, "..", "lazyargon-workspace");
+	if (fs.existsSync(path.join(wsRoot, "GEMINI.md"))) {
+		const wsGemini = fs.readFileSync(path.join(wsRoot, "GEMINI.md"), "utf8");
+		const wsRulesGemini = fs.readFileSync(path.join(wsRoot, "rules", "GEMINI.md"), "utf8");
+		assert.equal(wsGemini, wsRulesGemini, "lazyargon-workspace GEMINI.md and rules/GEMINI.md must stay byte-identical");
+		assert.doesNotMatch(wsGemini, /파싱·추출·표 정리·초안 골격·단순 편집 \(`Model: "flash"`\)/);
+		assert.doesNotMatch(wsGemini, /내장 `browser` 에이전트 전용/);
+		assert.match(wsGemini, /`browser` 포함 전 레인 `inherit` 일원화/);
+		assert.match(wsGemini, /Gemini 4 Argon.*범용 기본 주력/);
+		assert.match(wsGemini, /100줄 이하 청크/);
 	}
 });

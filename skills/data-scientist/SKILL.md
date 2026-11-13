@@ -1,6 +1,6 @@
 ---
 name: data-scientist
-description: "Processes and analyzes data with resident-kernel engines (DuckDB, Polars) and one-shot tools. Use for CSV/parquet/JSON analysis, group-by/join/aggregation, time series, distributions, cleaning, or plotting a dataset."
+description: "Processes and analyzes data with DuckDB, Polars, and one-shot CLI/script runs (plus resident-kernel lanes where available). Use for CSV/parquet/JSON analysis, group-by/join/aggregation, time series, distributions, cleaning, or plotting a dataset."
 ---
 
 # Data Scientist: Hybrid-Engine Data Processing
@@ -8,26 +8,23 @@ description: "Processes and analyzes data with resident-kernel engines (DuckDB, 
 Answer data questions through the cheapest engine and surface that can prove the answer, and
 decide where the computation should live before touching the data.
 
-## Execution surfaces: resident kernel first
+## Execution surfaces: one-shot `run_command` first on Antigravity
 
-A persistent REPL/eval kernel (many harnesses expose one for JavaScript and Python) is the
-default surface. Reason: each one-shot process pays roughly a second of spawn-plus-import
-overhead and re-scans the input file, while a resident connection amortizes both — after a
-one-time load, repeat queries return in milliseconds. Exploration is repeat queries, so this
-difference dominates the session.
+On Google Antigravity, each `run_command` executes in a fresh shell session (there is no
+persistent REPL/eval kernel tool). **One-shot batched execution via `run_command` is the
+primary default**: combine related profiling, filtering, and aggregation queries into a single
+script or CLI invocation (remember: one approval-gated `run_command` per turn) so input files
+are scanned once per step instead of spawning separate processes per question:
 
-1. **JavaScript kernel (Bun)**: run `scripts/ensure-js-deps.sh` once; it prints the absolute
-   import path for `@duckdb/node-api`. Dynamic-import it, connect once, query across cells.
-2. **Python kernel**: the default surface for Python work. duckdb/numpy/matplotlib are
-   typically resident; Polars and pyarrow come from `scripts/ensure-py-deps.sh`, which
-   installs them once into a user cache keyed to the kernel's interpreter —
-   `sys.path.insert` the printed directory and import. The interpreter itself is never
-   mutated.
-3. **uv lane** (`uv run --with ...`): isolation for a heavy or crash-prone one-shot that
-   should not take the kernel down.
-4. **No kernel** (plain-shell harness): the same engines as one-shots — `bun -e` for
-   DuckDB-js, `uv run python -c` for the Python stack — batching several questions per
-   process.
+1. **One-shot `run_command` (Antigravity host default)**: run `uv run scripts/quick-query.py <file> [SQL]`,
+   `duckdb` CLI, `uv run --with duckdb,polars python <scratch_script.py>`, or `bun -e` to batch
+   multiple analytical questions in one execution.
+2. **uv isolated lane** (`uv run --with ...`): clean dependency isolation for heavy one-shot
+   scripts, statistical tests, or chart generation without mutating user environments.
+3. **Resident Python / JS kernel (only when running inside an external notebook/REPL harness)**:
+   if an interactive kernel exists, `scripts/ensure-py-deps.sh` caches Polars/pyarrow for
+   `sys.path.insert` and `scripts/ensure-js-deps.sh` prints the `@duckdb/node-api` import path
+   so repeated exploration queries amortize file-load overhead.
 
 Per-surface patterns and pitfalls: read `references/execution-surfaces.md` before first use.
 
@@ -79,11 +76,11 @@ Sizing heuristics and recipes: `references/placement.md`.
 
 ## Large-Scale Text / Subtitle (VTT/STT) & Excel Corpus Pipeline
 
-When auditing thousands of subtitle files (`.vtt`, `.srt`, Whisper STT JSON/TXT), chat exports, or multi-sheet `.xlsx` logs:
+When auditing thousands of subtitle files (`.vtt`, `.srt`, server STT JSON/TXT — e.g. `yt-dlp` auto-captions or Google STT `recognize_google` parallel chunks; never local Whisper), chat exports, or multi-sheet `.xlsx` logs:
 
 1. **SQLite FTS5 Indexing (`sqlite3` stdlib)**:
    - Instead of re-scanning raw text/VTT/Excel files on every keyword query, parse once into a local SQLite database with an `fts5` virtual table (`CREATE VIRTUAL TABLE docs_fts USING fts5(source_file, timestamp_str, speaker, content)`).
-   - Normalize timestamps at ingest time to integer `MM분 SS초` or `HH:MM:SS` (strip fractional seconds like `384.94s` or `.0초`).
+   - Normalize timestamps at ingest time to integer `MM분 SS초` (`MM:SS`; or `HH:MM:SS` for multi-hour logs, stripping fractional seconds like `384.94s` or `.0초`).
    - Run Windows Python scripts with `$env:PYTHONUTF8="1"` via a temporary `.py` file (deleted right after execution) rather than complex nested-quote `python -c` one-liners in PowerShell.
 2. **STT Phonetic False-Positive Filtering & Server STT Verification (음차 오인식·위양성 대조)**:
    - Server/auto-caption STT transcripts frequently contain homophone or phonetic transliteration errors for domain terms, proper nouns, and foreign words.

@@ -25,12 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ./scripts/post_tool_feedback.mjs wrap node ./scripts/markdown_structure_guard.mjs",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "node ./scripts/post_tool_feedback.mjs wrap node ./scripts/json_schema_guard.mjs",
+            "command": "node ./scripts/post_tool_feedback.mjs batch ./scripts/markdown_structure_guard.mjs ./scripts/json_schema_guard.mjs",
             "timeout": 30
           }
         ]

@@ -1,6 +1,6 @@
 ---
 name: dedot
-description: "Korean text only, suggestion-only. Reviews middle dots (U+00B7) in a named passage, file, or folder and proposes a comma or connective only where a dot strings together an open list; keeps closed sets, pairs, shared elements, and protected dots. Never edits the text unless asked. Triggers: dedot, 가운뎃점, middle dot, 점 정리."
+description: "Korean text only, suggestion-only. Reviews middle dots (U+00B7) and proposes commas only for open lists while keeping closed sets, pairs, and protected dots. Triggers: dedot, 가운뎃점, middle dot, 점 정리."
 ---
 
 ## Antigravity Tool Mapping (default)
@@ -10,8 +10,8 @@ This plugin runs on **Google Antigravity** (`Model: "inherit"`).
 | Intent | Antigravity action |
 | --- | --- |
 | Find every U+00B7 in scope | `run_command` with `rg -n -F '·' <path>` (one approval tool per turn) |
-| Read the full sentence around a dot | host `Read` with a line range |
-| Apply a fix (only if the user asked) | host `Edit` in ≤100-line / <20KB chunks, then host `Read` of the edited range |
+| Read the full sentence around a dot | `read_file` with a line range |
+| Apply a fix (only if the user asked) | `edit_file` in ≤100-line / <20KB chunks, then `read_file` of the edited range |
 
 > Adapted from [LilMGenius/paperthin](https://github.com/LilMGenius/paperthin) `skills/depth/dedot` (MIT). See `NOTICE`. Upstream's `find.mjs` is not ported; use the search above.
 

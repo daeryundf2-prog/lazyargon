@@ -93,6 +93,37 @@ test("#given write_chunk_guard.mjs #when called with write_file({Path, Content})
 	const allowEdit = runShCommand(preCmd, JSON.stringify(okEdit));
 	assert.equal(allowEdit.status, 0);
 	assert.equal(JSON.parse(allowEdit.stdout).decision, "allow");
+
+	const edit135Payload = {
+		toolCall: {
+			name: "edit_file",
+			args: {
+				Path: "/tmp/test.mjs",
+				Target: Array.from({ length: 135 }, (_, i) => `const old_${i} = ${i};`).join("\n"),
+				Replacement: Array.from({ length: 135 }, (_, i) => `const next_${i} = ${i};`).join("\n"),
+			},
+		},
+	};
+	const allowEdit135 = runShCommand(preCmd, JSON.stringify(edit135Payload));
+	assert.equal(allowEdit135.status, 0, allowEdit135.stderr);
+	assert.equal(JSON.parse(allowEdit135.stdout).decision, "allow");
+
+	const patch260 = [
+		"*** Begin Patch",
+		"*** Update File: /tmp/test.mjs",
+		"@@",
+		...Array.from({ length: 256 }, (_, i) => `+const added_${i} = ${i};`),
+		"*** End Patch",
+	].join("\n");
+	const applyPatchPayload = {
+		toolCall: {
+			name: "apply_patch",
+			args: { patch: patch260 },
+		},
+	};
+	const denyPatch = runShCommand(preCmd, JSON.stringify(applyPatchPayload));
+	assert.equal(denyPatch.status, 1);
+	assert.equal(JSON.parse(denyPatch.stdout).decision, "deny");
 });
 
 test("#given PostToolUse guards #when transcript contains write_file({Path, Content}) or edit_file({Path, Replacement}) #then detects broken markdown and JSON", () => {
@@ -175,4 +206,41 @@ test("#given stop_claim_guard.mjs #when fullyIdle:false, executionNum:2, or USER
 	const blockRes = runShCommand(stopCmd, JSON.stringify(blockPayload), ROOT, { LAZYARGON_STOP_GUARD: "enforce" });
 	assert.equal(blockRes.status, 0);
 	assert.equal(JSON.parse(blockRes.stdout).decision, "continue");
+
+	const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "lazyargon-substop-"));
+	try {
+		const brainDir = path.join(tmpDir, "brain", "conv-substop");
+		const logsDir = path.join(brainDir, ".system_generated", "logs");
+		fs.mkdirSync(logsDir, { recursive: true });
+		const transcriptPath = path.join(logsDir, "transcript.jsonl");
+		const steps = [
+			{ step_index: 1, source: "SYSTEM", type: "USER_INPUT", status: "DONE", content: "파일을 수정하라" },
+			{
+				step_index: 2,
+				source: "MODEL",
+				type: "PLANNER_RESPONSE",
+				status: "DONE",
+				content: "",
+				tool_calls: [{ name: "send_message", args: { Recipient: "parent-agent", Message: "모든 수정을 100% 완벽히 완료했습니다." } }],
+			},
+			{ step_index: 3, source: "SYSTEM", type: "GENERIC", status: "DONE", content: "sent" },
+			{ step_index: 4, source: "MODEL", type: "PLANNER_RESPONSE", status: "DONE", content: "" },
+		];
+		fs.writeFileSync(transcriptPath, `${steps.map((s) => JSON.stringify(s)).join("\n")}\n`, "utf8");
+		const subPayload = {
+			hook_event_name: "Stop",
+			conversationId: "conv-substop",
+			cwd: tmpDir,
+			transcriptPath,
+			artifactDirectoryPath: brainDir,
+			fullyIdle: true,
+			executionNum: 0,
+			terminationReason: "NO_TOOL_CALL",
+		};
+		const subRes = runShCommand(stopCmd, JSON.stringify(subPayload), ROOT, { LAZYARGON_STOP_GUARD: "enforce" });
+		assert.equal(subRes.status, 0, subRes.stderr);
+		assert.equal(JSON.parse(subRes.stdout).decision, "continue");
+	} finally {
+		fs.rmSync(tmpDir, { recursive: true, force: true });
+	}
 });

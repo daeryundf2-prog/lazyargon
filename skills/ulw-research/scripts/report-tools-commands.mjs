@@ -64,7 +64,7 @@ export function runCheck(argv) {
 	const counts = { blocker: 0, major: 0, minor: 0, total: defects.length }
 	for (const defect of defects) counts[defect.severity] += 1
 	const max = args.int("max-defects", 200)
-	const status = counts.blocker > 0 ? "fail" : "pass"
+	const status = counts.blocker > 0 || layout === "fail" ? "fail" : "pass"
 	const exitCode = status === "fail" ? 1 : 0
 	return {
 		json: { command: "check", status, exitCode, layout, defects: defects.slice(0, max), counts, gatesRun, gatesSkipped: result.gatesSkipped },
@@ -75,7 +75,7 @@ export function runCheck(argv) {
 
 export function runLayoutProbe(argv) {
 	const args = parseArgs(argv, { booleans: ["json"] })
-	const source = buildProbeSource({ cap: args.int("cap", 400), root: args.flags.root ?? "main, article" })
+	const source = buildProbeSource({ cap: args.int("cap", 1600), root: args.flags.root ?? "main, article" })
 	return args.flags.json ? { json: { command: "layout-probe", source }, exitCode: 0 } : { text: source, exitCode: 0 }
 }
 

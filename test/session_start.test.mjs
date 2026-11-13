@@ -12,11 +12,11 @@ const WS_SCRIPT = path.join(ROOT, "..", "lazyargon-workspace", "scripts", "sessi
 
 const ctxOf = (out) => out.injectSteps[0].systemMessage.systemMessage;
 
-function run(payload, cwd, env = {}, scriptPath = SCRIPT) {
+function run(payload, cwd, env = {}, scriptPath = SCRIPT, extraArgs = []) {
 	const e = { ...process.env, ...env };
 	delete e.ANTIGRAVITY_MODEL_NAME;
 	delete e.ANTIGRAVITY_MODEL;
-	return spawnSync("node", [scriptPath], { cwd, input: payload, encoding: "utf8", env: e });
+	return spawnSync("node", [scriptPath, ...extraArgs], { cwd, input: payload, encoding: "utf8", env: e });
 }
 
 test("#given host modelName #when session starts #then runtime block quotes it and is valid JSON", () => {
@@ -79,9 +79,28 @@ test("#given .lazyargon/ulw-scope.md in cwd #when session starts #then scope loc
 		assert.match(ctxOf(out), /목표: 훅 테스트/);
 		assert.match(ctxOf(out), /예산: 4 레인/);
 		assert.match(ctxOf(out), /고정 식별자 \(\.lazyargon\/pins\.md/);
-		assert.match(ctxOf(out), /- id19: a{8}19/);
-		assert.doesNotMatch(ctxOf(out), /- id20:/);
+		assert.match(ctxOf(out), /- id24: a{8}24/);
+		assert.match(ctxOf(out), /- id5: a{8}5/);
+		assert.doesNotMatch(ctxOf(out), /- id4:/);
 		assert.match(ctxOf(out), /5줄 생략 — 파일을 직접 읽을 것/);
+	} finally {
+		fs.rmSync(tmp, { recursive: true, force: true });
+	}
+});
+
+test("#given WS_SCRIPT --minimal with adjacent lazyargon #when session starts #then includes korean_law: and omits duplicate scope 목표:", () => {
+	if (!fs.existsSync(WS_SCRIPT)) return;
+	const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "lazyargon-wsmin-"));
+	try {
+		fs.mkdirSync(path.join(tmp, ".lazyargon"), { recursive: true });
+		fs.writeFileSync(path.join(tmp, ".lazyargon", "ulw-scope.md"), "목표: 중복 범위 주입 생략 확인\n완료 조건: 테스트 통과\n", "utf8");
+		fs.writeFileSync(path.join(tmp, ".lazyargon", "pins.md"), "- ws_pin: deadbeef1234\n", "utf8");
+		const payload = JSON.stringify({ hook_event_name: "SessionStart", modelName: "gemini-4-carbon-medium", workspacePaths: [tmp] });
+		const wsRes = run(payload, os.tmpdir(), {}, WS_SCRIPT, ["--minimal"]);
+		assert.equal(wsRes.status, 0, wsRes.stderr);
+		const wsOut = JSON.parse(wsRes.stdout);
+		assert.match(ctxOf(wsOut), /korean_law:/);
+		assert.doesNotMatch(ctxOf(wsOut), /목표:/);
 	} finally {
 		fs.rmSync(tmp, { recursive: true, force: true });
 	}

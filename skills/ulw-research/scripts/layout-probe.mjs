@@ -39,12 +39,14 @@ export class ProbeError extends Error {
 }
 
 /** @param {{ cap?: number, root?: string }} [options] */
-export function buildProbeSource({ cap = 400, root = "main, article" } = {}) {
+export function buildProbeSource({ cap = 1600, root = "main, article" } = {}) {
 	if (!Number.isInteger(cap) || cap <= 0) throw new ProbeError("invalid_cap", `--cap requires a positive integer, got ${cap}`)
 	if (typeof root !== "string" || root.trim().length === 0) throw new ProbeError("invalid_root", "--root requires a non-empty CSS selector")
 	return `(async () => {
 	const CAP = ${cap};
 	const IMAGE_WAIT_MS = 5000;
+	const PAGE_SEL = ".page, .a4-page, .a4-sheet, .page-section, [data-page]";
+	const BODY_WRAP_SEL = ".sheet-body, .page-body, .page-content, [data-role='page-body']";
 	const ROOT = document.querySelector(${JSON.stringify(root)}) || document.body;
 	const EXCLUDED = ${JSON.stringify(EXCLUDED_ANCESTORS)};
 	const images = Array.from(document.images);
@@ -56,32 +58,64 @@ export function buildProbeSource({ cap = 400, root = "main, article" } = {}) {
 	const path = (el) => ulwSelectorPath(el, idCount);
 	const r1 = (n) => Math.round(n * 10) / 10;
 	const rect = (el) => { const b = el.getBoundingClientRect(); return { x: r1(b.left + scrollX), y: r1(b.top + scrollY), w: r1(b.width), h: r1(b.height) }; };
+	const textTightHeight = (el) => {
+		const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+			acceptNode: (n) => (n.nodeValue && n.nodeValue.trim().length > 0 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+		});
+		let minT = Infinity;
+		let maxB = -Infinity;
+		const range = document.createRange();
+		for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+			range.selectNodeContents(n);
+			const b = range.getBoundingClientRect();
+			if (b.height > 0) {
+				if (b.top < minT) minT = b.top;
+				if (b.bottom > maxB) maxB = b.bottom;
+			}
+		}
+		return maxB >= minT ? r1(maxB - minT) : 0;
+	};
 	const excluded = (el) => { for (let p = el.parentElement; p; p = p.parentElement) if (EXCLUDED.includes(p.tagName.toLowerCase())) return true; return false; };
-	const all = Array.from(ROOT.querySelectorAll(${JSON.stringify(SAMPLED_SELECTOR)})).filter((el) => {
+	const rawAll = Array.from(ROOT.querySelectorAll(${JSON.stringify(SAMPLED_SELECTOR)})).filter((el) => {
 		if (excluded(el)) return false;
 		const b = el.getBoundingClientRect();
 		return b.width > 0 || b.height > 0;
 	});
-	const boxes = all.slice(0, CAP).map((el) => {
+	const pageEls = rawAll.filter((el) => el.matches(PAGE_SEL));
+	const restEls = rawAll.filter((el) => !el.matches(PAGE_SEL));
+	const sampled = pageEls.concat(restEls.slice(0, Math.max(0, CAP - pageEls.length)));
+	const boxes = sampled.map((el, idx) => {
 		const cs = getComputedStyle(el);
 		const parent = el.parentElement;
 		const tag = el.tagName.toLowerCase();
 		const pt = r1(parseFloat(cs.paddingTop) || 0);
 		const pb = r1(parseFloat(cs.paddingBottom) || 0);
+		const mt = r1(parseFloat(cs.marginTop) || 0);
+		const mb = r1(parseFloat(cs.marginBottom) || 0);
 		let contentH = null;
 		if (tag === "td" || tag === "th") {
-			const range = document.createRange();
-			range.selectNodeContents(el);
-			contentH = r1(range.getBoundingClientRect().height);
+			contentH = textTightHeight(el);
 		}
-		const isPage = el.matches(".page, .a4-page, .a4-sheet, .page-section, [data-page]");
+		const isPage = el.matches(PAGE_SEL);
 		let flowBottom = null;
 		let flowCount = 0;
 		if (isPage) {
-			const flowKids = Array.from(el.children).filter((c) => {
+			const rawKids = Array.from(el.children).filter((c) => {
 				const ccs = getComputedStyle(c);
 				return ccs.position !== "absolute" && ccs.position !== "fixed" && !c.matches("footer, .page-footer, .sheet-footer, [data-role='footer']");
 			});
+			const flowKids = [];
+			for (const kid of rawKids) {
+				const kcs = getComputedStyle(kid);
+				if ((kid.matches(BODY_WRAP_SEL) || parseFloat(kcs.flexGrow) > 0) && kid.children.length > 0) {
+					for (const grand of Array.from(kid.children)) {
+						const gcs = getComputedStyle(grand);
+						if (gcs.position !== "absolute" && gcs.position !== "fixed") flowKids.push(grand);
+					}
+				} else {
+					flowKids.push(kid);
+				}
+			}
 			flowCount = flowKids.length;
 			if (flowKids.length > 0) {
 				flowBottom = Math.max(...flowKids.map((c) => { const cb = rect(c); return r1(cb.y + cb.h); }));
@@ -93,10 +127,13 @@ export function buildProbeSource({ cap = 400, root = "main, article" } = {}) {
 			parentOverflow: parent ? { x: getComputedStyle(parent).overflowX, y: getComputedStyle(parent).overflowY } : null,
 			scroll: { sw: el.scrollWidth, cw: el.clientWidth, sh: el.scrollHeight, ch: el.clientHeight },
 			overflow: { x: cs.overflowX, y: cs.overflowY }, position: cs.position,
+			whiteSpace: cs.whiteSpace,
 			textLen: (el.textContent || "").trim().length,
-			spacing: { pt, pb },
+			spacing: { pt, pb, mt, mb },
 			contentH,
 			isPage,
+			pageIndex: isPage ? pageEls.indexOf(el) : null,
+			pageTotal: isPage ? pageEls.length : null,
 			isCover: isPage && el.matches(".cover, .title-page, [data-page-role='cover']"),
 			flowBottom,
 			flowCount,
@@ -108,6 +145,6 @@ export function buildProbeSource({ cap = 400, root = "main, article" } = {}) {
 	});
 	return { probe_version: ${PROBE_VERSION}, viewport: { w: innerWidth, h: innerHeight },
 		document: { w: document.documentElement.scrollWidth, h: document.documentElement.scrollHeight },
-		count: all.length, truncated: all.length > CAP, boxes };
+		count: rawAll.length, truncated: rawAll.length > CAP, boxes };
 })()`
 }

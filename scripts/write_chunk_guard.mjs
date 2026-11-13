@@ -104,12 +104,14 @@ export function extractWriteBody(payload) {
 		"Replacement",
 		"ReplacementContent",
 		"replacement_content",
-		"Target",
 		"content",
 		"replacement",
 		"new_str",
 		"new_string",
 		"text",
+		"patch",
+		"diff",
+		"Patch",
 	]) {
 		if (typeof args[k] === "string" && args[k].length > 0) parts.push(args[k]);
 	}

@@ -12,6 +12,8 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
+    "test:prod": "node --test test/diagram_templates.test.mjs test/doctor.test.mjs test/gates_and_stats.test.mjs test/hooks-guards.test.mjs test/hooks.test.mjs test/session_start.test.mjs",
+    "test:experimental": "node --test test/apex_wave1_2.test.mjs test/lsp_calibrate.test.mjs test/memory_rag.test.mjs test/radar_tui.test.mjs",
     "doctor": "node scripts/doctor.mjs"
   }
 }

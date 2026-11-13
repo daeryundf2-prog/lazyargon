@@ -72,25 +72,25 @@ Launch parallel `invoke_subagent` calls in the same turn — one member per evid
 invoke_subagent({
   TypeName: "self",
   Role: "Runtime State Inspector",
-  Model: "flash",
+  Model: "inherit",
   Prompt: "You are the Runtime State Inspector. Your job: attach to the live process, hit breakpoints, read program state (variables, heap, goroutines, stack, registers depending on runtime), and report observed values verbatim. Never guess — if you don't see the value, say so. Report back with file:line / address references and captured values. Never edit source code. Never run git commands. If you need an instrumentation statement added (breakpoint(), debugger;, dbg!, etc.), say so in your reply — the Lead approves all edits."
 })
 invoke_subagent({
   TypeName: "self",
   Role: "Log Archaeologist",
-  Model: "flash",
+  Model: "inherit",
   Prompt: "You are the Log Archaeologist. Your job: grep server logs, stderr streams, SDK-internal debug output (DEBUG env, RUST_LOG, GODEBUG, PYTHONASYNCIODEBUG), and correlate timestamps. Produce a timeline of events with latencies. Flag anything that looks like a silent catch, a swallowed rejection, a panic recovered-and-ignored, a success response that contains failure signals (HTTP 200 with empty body, stopReason=error, exit 0 with error-in-stdout). Never edit source code."
 })
 invoke_subagent({
   TypeName: "self",
   Role: "Reproduction Engineer",
-  Model: "flash",
+  Model: "inherit",
   Prompt: "You are the Reproduction Engineer. Your job: build the smallest reliable repro — a curl command, a vitest/pytest/go test, a shell script, a Playwright script for browser bugs, a pwntools script for binary targets. It must reproduce on first try and be copy-pasteable by the Lead. Document exact input, expected output, observed output. Save repro artifacts under /tmp/ and report their paths so the Lead can journal them. If the bug is browser-based you MUST use Playwright CLI — do not simulate with curl."
 })
 invoke_subagent({
   TypeName: "self",
   Role: "Trace Correlator",
-  Model: "flash",
+  Model: "inherit",
   Prompt: "You are the Trace Correlator. Your job: take findings from the other members (quoted in this prompt) and cross-link them. Build a causal chain from symptom to suspected cause. Identify missing evidence. Propose the next single most-decisive runtime query. Never edit source code; only reason across already-captured evidence. If hypotheses diverge sharply after correlation, say so explicitly — that is the signal for the Oracle Triple."
 })
 ```

@@ -11,8 +11,8 @@ description: "2-Pass 구현 + 적대적 3대 영역(보안·동시성·경계 �
 flowchart TD
     Implement["Pass 1: Primary Implementation<br/>(Model: 'inherit')"] --> Audit["2. 정적/런타임 테스트 게이트<br/>(npm test / pytest / cargo test)"]
     Audit --> Critic["Pass 2: Adversarial Critic Subagent<br/>(invoke_subagent, Model: 'inherit')"]
-    Critic --> Risk{"고위험 변경?<br/>(스키마·동시성·보안·인증)"}
-    Risk -- "Yes" --> Cross["Pass 3: Cross-Family Verdict<br/>(세션을 Claude 5.5로 전환, inherit 1레인)"]
+    Critic --> Risk{"고위험 변경?<br/>(스키마·동시성·보안·인증·정산·WCAG)"}
+    Risk -- "Yes" --> Cross["Pass 3: Cross-Family Verdict<br/>(swarm 핀 고정 claude-opus-5-5-medium 읽기전용 1기)"]
     Risk -- "No" --> Consensus
     Cross --> Consensus{"만장일치 합의 도달?"}
     Consensus -- "No (결함 발견)" --> Heal["Tiered Blocking & Self-Healing<br/>(결정론적 수정 및 재검증)"]
@@ -25,7 +25,7 @@ flowchart TD
 ## 2-Pass Verification Protocol
 
 ### Pass 1: Primary Implementation (`Model: "inherit"`)
-핵심 비즈니스 로직과 단위 테스트를 작성하고 기본 테스트 스위트를 통과시킨다. 100줄 이하 청크로 쓰고, 쓴 파일은 다시 연다.
+핵심 비즈니스 로직과 단위 테스트를 작성하고 기본 테스트 스위트를 통과시킨다. `≤200줄(<18KB)`은 원샷 작성하고 200줄 초과 시에만 100줄 이하 청크로 분할하며 쓴 파일은 완료 전 다시 연다.
 
 ### Pass 2: Adversarial Critic (`invoke_subagent`, `Model: "inherit"`)
 독립된 서브에이전트가 코드의 잠재적 취약점을 공격적으로 감사한다. 감사 결과의 모든 항목은 `파일:라인`과 함께 돌아와야 하며, 근거 라인을 열어 보지 않은 판정은 무효다(코드베이스 "설명" 환각 방지).
@@ -48,15 +48,22 @@ invoke_subagent({
 
 ### Pass 3: Cross-Family Verdict (고위험 변경 기본)
 
-적용 조건(하나라도 해당): DB 스키마·마이그레이션, 동시성 원시 연산, 인증·인가·암호, 결제·정산, 공용 API 계약 변경.
+적용 조건(하나라도 해당): DB 스키마·마이그레이션, 동시성 원시 연산, 인증·인가·암호, 결제·정산·재고 차감, WCAG 접근성 계약, 법원 최종 제출본, 공용 API 계약 변경.
 
-근거: Gemini 4 Argon은 터미널·에이전틱 코딩 벤치(Terminal-Bench 4.0, FrontierSWE v2)에서 Claude Opus 5.5에 뒤지고, 기존 코드베이스 리팩터링 과제에서 사람 검토 기각률이 높다. 같은 가족의 두 번째 의견은 같은 사각지대를 공유한다.
+근거: 동일 모델 가족의 두 번째 의견은 같은 사각지대를 공유한다. 별도 외부 쿼터 버킷(`Pool 2`)의 `Claude Opus 5.5`는 보안·접근성·스펙 외 결함 포착률이 높지만 직접 구현을 맡기면 코드 비대화(`+79%`)와 범위 이탈 위험이 있으므로 **읽기 전용 적대적 감사관**으로만 투입한다.
 
 절차:
-1. Pass 2 결과와 `git diff`를 `.lazyargon/dual-verify-handoff.md`에 ≤80줄로 적는다(판정 대상 파일 목록, 테스트 명령, Pass 2 지적 사항).
-2. 사용자에게 **세션 모델을 Claude Sonnet/Opus 5.5로 전환**해 달라고 한 번 요청한다. 전환이 불가능하면(Pro 플랜, 할당량 소진) 그 사실을 보고에 적고 Pass 2 결과로 완료하되 `cross-family: skipped(<사유>)`를 명시한다.
-3. 전환된 세션에서 `Model: "inherit"` 판정 레인 **하나만** 띄운다(Claude 할당량이 희소하다). 프롬프트는 핸드오프 파일 경로 + "BLOCKING 항목만 파일:라인으로 반환, ≤30줄".
-4. 판정이 돌아오면 원래 세션으로 복귀해 Self-Healing 루프를 돈다.
+1. **Mode A (기본 — 무전환 `swarm` 읽기 전용 감사)**: 사용자 승인 범위 안에서 UI 세션 전환 없이 `swarm` 도구로 `claude-opus-5-5-medium` 읽기 전용 검증관 1기를 호출한다:
+   ```javascript
+   swarm({
+     action: "add",
+     name: "opus-critic",
+     model: "claude-opus-5-5-medium",
+     brief: "읽기 전용 적대적 감사관이다. 파일 수정·커밋 금지. <대상 파일 목록>과 git diff를 직접 열어 보안·동시성·경계조건·WCAG·스펙 외 결함만 파일:라인 근거로 @coordinator 에 30줄 이내 보고하라."
+   })
+   ```
+2. 다음 턴 보드 알림 수신 후 `BLOCKING` 항목만 메인(`Carbon`/`Argon`)이 최소 코드로 패치해 테스트를 재통과시키고 `swarm({ action: "kill", name: "opus-critic" })`로 워커를 즉시 회수한다.
+3. **Mode B (폴백 — `swarm` 미지원·플랜 미제공·할당량 소진 시)**: Pass 2 결과와 `git diff` 요약을 `.lazyargon/dual-verify-handoff.md`에 ≤80줄로 적고 사용자에게 세션 모델 전환(Claude Sonnet/Opus 5.5)을 1회 요청한다. 전환이 불가능하면 `cross-family: skipped(<사유>)`를 보고에 명시하고 Pass 2 결과로 완료한다.
 
 ### Tiered Blocking & Self-Healing Policy
 - `P0 (Critical Security)`: 즉각 블로킹 및 수정 후 재검증.

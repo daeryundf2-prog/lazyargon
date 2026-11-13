@@ -1,9 +1,5 @@
 #!/usr/bin/env node
-/**
- * lsp_diagnostics.mjs — OMH/omp LSP diagnostics & workspace/willRenameFiles preview
- * CLI:
- *   node scripts/lsp_diagnostics.mjs [check|rename-preview] [--files f1,f2] [--root <dir>] [--from <old>] [--to <new>] [--json]
- */
+/** lsp_diagnostics.mjs — LSP diagnostics & workspace/willRenameFiles preview */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
@@ -17,9 +13,7 @@ function checkTsSyntax(src) {
 	if (/(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*:\s*=|=\s*;|^\s*(?:import|export)\s*;|^\s*import\s+from\b|^\s*export\s+(?:const|let|var|function|class|type|interface)\s*;/m.test(src)) {
 		return "Malformed TypeScript declaration or import/export";
 	}
-	const stripped = src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/gm, (m) =>
-		m.startsWith("//") || m.startsWith("/*") ? " " : '""',
-	);
+	const stripped = src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$|'(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*"|`(?:\\.|[^`\\])*`/gm, (m) => (m.startsWith("//") || m.startsWith("/*") ? " " : '""'));
 	const stack = [];
 	const pairs = { "}": "{", ")": "(", "]": "[" };
 	for (const ch of stripped) {
@@ -34,14 +28,11 @@ function walkFiles(dir, exts = CODE_EXTS, acc = []) {
 	for (const entry of readdirSync(dir, { withFileTypes: true })) {
 		if (IGNORE_DIRS.has(entry.name)) continue;
 		const full = join(dir, entry.name);
-		let st;
 		try {
-			st = statSync(full);
-		} catch {
-			continue;
-		}
-		if (st.isDirectory()) walkFiles(full, exts, acc);
-		else if (st.isFile() && exts.has(extname(entry.name))) acc.push(full);
+			const st = statSync(full);
+			if (st.isDirectory()) walkFiles(full, exts, acc);
+			else if (st.isFile() && exts.has(extname(entry.name))) acc.push(full);
+		} catch {}
 	}
 	return acc;
 }
@@ -56,11 +47,7 @@ export function checkSingleFile(filePath) {
 	}
 	if (ext === ".py") {
 		const pyCmd = process.platform === "win32" ? "python" : "python3";
-		const res = spawnSync(pyCmd, ["-B", "-m", "py_compile", abs], {
-			encoding: "utf8",
-			timeout: 10000,
-			env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" },
-		});
+		const res = spawnSync(pyCmd, ["-B", "-m", "py_compile", abs], { encoding: "utf8", timeout: 10000, env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" } });
 		return res.status !== 0 ? { file: filePath, severity: "error", message: (res.stderr || res.stdout || "Python compile error").trim() } : null;
 	}
 	if (ext === ".json") {
@@ -78,12 +65,51 @@ export function checkSingleFile(filePath) {
 	return null;
 }
 
+const BATCH_JS_WORKER = [
+	'const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");',
+	'const out=[],wrap=(s)=>`(function(exports,require,module,__filename,__dirname){${s}\\n});`;',
+	'for(const f of JSON.parse(fs.readFileSync(0,"utf8"))){try{',
+	'  const raw=fs.readFileSync(f,"utf8").replace(/^#!.*(?=\\r?\\n|$)/,"//"),ext=path.extname(f).toLowerCase();',
+	'  if(ext===".cjs"||typeof vm.SourceTextModule!=="function")new vm.Script(wrap(raw),{filename:f});',
+	'  else{try{new vm.SourceTextModule(raw,{identifier:f});}catch(err){if(ext===".js"){try{new vm.Script(wrap(raw),{filename:f});}catch{throw err;}}else throw err;}}',
+	'}catch(e){out.push({file:f,message:String(e?.stack?e.stack.split("\\n").slice(0,4).join("\\n"):e?.message||"Syntax error").trim()});}}',
+	"process.stdout.write(JSON.stringify(out));",
+].join("\n");
+
+const BATCH_PY_WORKER = "import json,sys\nout=[]\nfor f in json.loads(sys.stdin.read()):\n try:\n  with open(f,'rb') as h: compile(h.read(),f,'exec',dont_inherit=True)\n except Exception as e: out.append({'file':f,'message':f'{type(e).__name__}: {e}'})\nsys.stdout.write(json.dumps(out))";
+
+function runBatchCheck(cmd, args, files, env) {
+	if (files.length === 0) return new Map();
+	const res = spawnSync(cmd, args, { input: JSON.stringify(files), encoding: "utf8", timeout: 15000, env });
+	if (!res.error && res.status === 0 && res.stdout) {
+		try {
+			return new Map(JSON.parse(res.stdout).map((d) => [d.file, d.message]));
+		} catch {}
+	}
+	const fallback = new Map();
+	for (const f of files) {
+		const d = checkSingleFile(f);
+		if (d) fallback.set(f, d.message);
+	}
+	return fallback;
+}
+
 export function runDiagnosticsCheck({ files = [], root = process.cwd() } = {}) {
-	const targets = files.length > 0 ? files.map((f) => (existsSync(f) ? resolve(f) : resolve(root, f))) : walkFiles(resolve(root), CODE_EXTS);
+	const rootAbs = resolve(root);
+	const targets = files.length > 0 ? files.map((f) => (existsSync(f) ? resolve(f) : resolve(rootAbs, f))) : walkFiles(rootAbs, CODE_EXTS);
+	const existing = targets.filter((f) => existsSync(f));
+	const jsErrs = runBatchCheck(process.execPath, ["--experimental-vm-modules", "--no-warnings", "-e", BATCH_JS_WORKER], existing.filter((f) => /\.(?:mjs|js|cjs)$/i.test(f)), process.env);
+	const pyErrs = runBatchCheck(process.platform === "win32" ? "python" : "python3", ["-B", "-c", BATCH_PY_WORKER], existing.filter((f) => /\.py$/i.test(f)), { ...process.env, PYTHONDONTWRITEBYTECODE: "1" });
 	const diagnostics = [];
 	for (const file of targets) {
-		const d = checkSingleFile(file);
-		if (d) diagnostics.push({ ...d, file: relative(resolve(root), file) || basename(file) });
+		const rel = relative(rootAbs, file) || basename(file);
+		if (!existsSync(file)) diagnostics.push({ file: rel, severity: "error", message: "File does not exist" });
+		else if (jsErrs.has(file)) diagnostics.push({ file: rel, severity: "error", message: jsErrs.get(file) });
+		else if (pyErrs.has(file)) diagnostics.push({ file: rel, severity: "error", message: pyErrs.get(file) });
+		else if (!/\.(?:mjs|js|cjs|py)$/i.test(file)) {
+			const d = checkSingleFile(file);
+			if (d) diagnostics.push({ ...d, file: rel });
+		}
 	}
 	return { schema: "language_diagnostic_evidence/v1", no_new_diagnostics_observed: diagnostics.length === 0, checked_count: targets.length, error_count: diagnostics.length, diagnostics, worktree_isolated: true };
 }
@@ -144,8 +170,8 @@ export function runRenamePreview({ root = process.cwd(), from, to } = {}) {
 
 		for (const match of content.matchAll(specRx)) {
 			const spec = match[1] || match[2];
-			if (!spec) continue;
-			const resolvedSpec = spec.startsWith(".") ? resolve(fileDir, spec) : resolve(rootAbs, spec);
+			if (!spec || (!spec.startsWith("./") && !spec.startsWith("../"))) continue;
+			const resolvedSpec = resolve(fileDir, spec);
 			if (resolvedSpec === fromAbs || stripExt(resolvedSpec) === stripExt(fromAbs)) {
 				const hadExt = Boolean(extname(spec));
 				let newRel = toPosix(relative(fileDir, hadExt ? toAbs : stripExt(toAbs)));
