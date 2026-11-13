@@ -51,3 +51,59 @@ Same 100 cases for each model (13 families), original bench prompt, agy print ti
 | Hydrogen high | 65 | 0 | 65.0% | 9/67 | 10/33 | 2/6 | 5/5 | 24 |
 
 The fill-in run used about 4 weekly points for 119 calls (about 0.034 per call). Carbon's errors were concentrated in image cases (7 of 14).
+
+## Task router
+
+`/ulw` runs `node scripts/classify-task.mjs "<task description>"` at the start of every task (before writing `.lazyargon/ulw-scope.md`) and follows its JSON output. The classifier reads `task_kinds` from `skills/ulw/references/model-routing.json`; no model names are hardcoded in the script or in `skills/ulw/SKILL.md`.
+
+| Task kind | Signals (sample) | Role | Action |
+|---|---|---|---|
+| `judgment` | review, audit, verify, PR, 리뷰, 검증, 검토, 감사 | `verdict_review` | delegate via invoke_subagent pro |
+| `long_execution` | tdd, until tests pass, flaky, 테스트 통과 | `long_execution` | proceed in session model + notice |
+| `implementation` | implement, fix, refactor, 구현, 수정, 리팩터링 | `implementation` | delegate via invoke_subagent pro |
+| `sensitive` | pii, injection, 개인정보, 주민번호, 인젝션 | `pii_inject_docfmt` | delegate via invoke_subagent pro, apply v2 flag/fail rule |
+| `long_context` | entire codebase, 판결문, 수백, 전체 저장소 | `long_context` | proceed in session model + notice |
+| `general` | (no match) | `default` | delegate via invoke_subagent pro |
+
+Size (`single` / `subagents`): (1) ≥3 code-file paths in the prompt (e.g. `src/a.ts src/b.ts src/c.ts`) → subagents; (2) explicit file count ≥3 ("3 files", "3개 파일") → subagents; (3) `modes.subagents.size_signals` keywords ("parallel", "독립적", "여러 파일") → subagents; otherwise single.
+
+**Verified paths inside a /ulw session:**
+- `invoke_subagent Model: "pro"` (→ Argon) — **verified**: documented tier, confirmed in AGENTS.md.
+- `agy --model <id>` from a terminal — confirmed at the CLI level only.
+- `agy --model <id>` via `run_command` inside a /ulw session (print mode, different tool permissions, separate context) — **unverified-nested**: never tested. Until verified, Hydrogen/Carbon tasks proceed in the current session model with the one-line notice; the classifier emits `verified_path: "unverified-nested"` and `action: "proceed in session model + notice"`.
+
+**Post-reset live checks** (run after quota resets 2026-11-14 09:14 KST):
+
+```bash
+# 1. Terminal: Hydrogen high via agy CLI (~1 small call, ~0.001 weekly pts)
+agy -p "what is 2+2" --model gemini-4-hydrogen-high --print-timeout 60s --output-format text
+# Expected: responds without error; session header confirms Hydrogen model. Exit 0.
+
+# 2. Terminal: Carbon high via agy CLI (~1 small call, ~0.001 weekly pts)
+agy -p "what is 2+2" --model gemini-4-carbon-high --print-timeout 60s --output-format text
+# Expected: responds without error; session header confirms Carbon model. Exit 0.
+
+# 3. Nested (read-only): agy called from inside a /ulw session via run_command (~1 small call, ~0.001 weekly pts)
+# From inside an active /ulw session, run:
+#   run_command: agy -p "what is 2+2" --model gemini-4-hydrogen-high --print-timeout 60s --output-format text
+# Expected: responds without error. If this succeeds, verified_path for long_execution can be upgraded to
+#   "agy --model gemini-4-hydrogen-high --print-timeout 600s --output-format text" in model-routing.json
+#   and action changed to "delegate via agy --model ...".
+
+# 4. Nested (edits scratch file): agy with --mode accept-edits from inside a /ulw session (~1 small call, ~0.001 weekly pts)
+# Create scratch file: echo "TODO: replace me" > /tmp/ulw_scratch_test.txt
+# From inside an active /ulw session, run:
+#   run_command: agy -p "In /tmp/ulw_scratch_test.txt replace TODO with DONE" \
+#     --model gemini-4-hydrogen-high --mode accept-edits --print-timeout 60s --output-format text
+# Then: cat /tmp/ulw_scratch_test.txt
+# Expected: file content updated (DONE: replace me or similar). Exit 0.
+# If both #3 and #4 pass, the nested path is verified and action/verified_path can be updated.
+
+# 5. Classifier shape check (no model calls, no quota cost)
+node scripts/classify-task.mjs "이 PR 리뷰해줘" | node -e \
+  "const j=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
+   console.assert(j.kind==='judgment','kind'); \
+   console.assert(j.verified_path==='invoke_subagent Model: \"pro\"','vpath'); \
+   console.log('shape ok')"
+# Expected: "shape ok". Exit 0.
+```

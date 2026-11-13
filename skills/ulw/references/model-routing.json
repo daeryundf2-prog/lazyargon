@@ -55,7 +55,7 @@
 				"gemini-4-hydrogen-high"
 			],
 			"note": "with the original prompt PII was weak for every model (best 3/6 on the 100-case set); with the v2 prompt Hydrogen xhigh/Argon/Carbon reached inject 32/32 and pii 38/38 (clean false positives 0/24 for xhigh)",
-			"prompt": "v2 flag/fail rule required"
+			"prompt": "v2 flag/fail rule required: skills/ulw/references/sensitive-check-v2.md"
 		}
 	},
 	"modes": {
@@ -65,6 +65,25 @@
 		},
 		"subagents": {
 			"use_when": "3+ truly independent lanes with disjoint files",
+			"size_signals": [
+				"independent",
+				"parallel",
+				"lanes",
+				"multiple files",
+				"across the repo",
+				"독립적",
+				"병렬",
+				"레인",
+				"여러 파일",
+				"세 파일",
+				"세 개",
+				"전체 폴더",
+				"모든 파일",
+				"모든 모듈",
+				"전체 모듈",
+				"모든 컴포넌트",
+				"프로젝트 전체"
+			],
 			"status": "measured 5/5 at ~33k tokens, ~131 s (about 2x tokens, 4x time vs single); use only when lanes are independent"
 		},
 		"swarm": {
@@ -92,5 +111,158 @@
 		"min_weekly_percent": 8,
 		"min_five_hour_percent": 10,
 		"note": "below these, drop to the cheapest mode that still meets the pass-rate rule and say so"
+	},
+	"task_kinds": {
+		"judgment": {
+			"description": "Verdict, review, verification, or audit of existing work",
+			"role": "verdict_review",
+			"signals": {
+				"keywords": [
+					"verdict",
+					"review",
+					"verify",
+					"verification",
+					"audit",
+					"evaluate",
+					"assess",
+					"judge",
+					"PR",
+					"리뷰",
+					"검증",
+					"검토",
+					"감사",
+					"판정",
+					"평가"
+				],
+				"patterns": [
+					"is this correct",
+					"check if",
+					"inspect",
+					"올바른지",
+					"맞는지",
+					"적절한지",
+					"점검"
+				]
+			}
+		},
+		"long_execution": {
+			"description": "Implementation with tests or long fix-test loops (Hydrogen High measured equal pass rate, faster than Argon)",
+			"role": "long_execution",
+			"signals": {
+				"keywords": [
+					"tdd",
+					"test-driven",
+					"until tests pass",
+					"fix and test",
+					"flaky",
+					"테스트 통과",
+					"테스트 루프",
+					"반복 실행"
+				],
+				"patterns": [
+					"run tests",
+					"make tests pass",
+					"테스트가 통과",
+					"테스트 실행까지"
+				]
+			}
+		},
+		"implementation": {
+			"description": "Code implementation, fixes, edits, or refactoring without long test loops",
+			"role": "implementation",
+			"signals": {
+				"keywords": [
+					"implement",
+					"build",
+					"create",
+					"add",
+					"edit",
+					"write",
+					"fix",
+					"refactor",
+					"migrate",
+					"구현",
+					"작성",
+					"만들어",
+					"수정",
+					"추가",
+					"고쳐",
+					"리팩토링",
+					"리팩터링",
+					"마이그레이션"
+				],
+				"patterns": [
+					"make it work",
+					"add a function",
+					"write a",
+					"fix the",
+					"만들어줘",
+					"구현해줘",
+					"추가해줘"
+				]
+			}
+		},
+		"sensitive": {
+			"description": "PII detection, prompt injection, or docfmt checks — v2 prompt required",
+			"role": "pii_inject_docfmt",
+			"signals": {
+				"keywords": [
+					"pii",
+					"personal data",
+					"prompt injection",
+					"injection",
+					"docfmt",
+					"sensitive data",
+					"privacy",
+					"개인정보",
+					"개인 정보",
+					"주민번호",
+					"주민등록번호",
+					"주입",
+					"민감 정보",
+					"프롬프트 인젝션",
+					"인젝션"
+				],
+				"patterns": [
+					"check for pii",
+					"scan for sensitive",
+					"injection check",
+					"개인정보 확인",
+					"민감 정보 점검"
+				]
+			}
+		},
+		"long_context": {
+			"description": "Tasks requiring ~250k+ token context: large documents or entire codebase",
+			"role": "long_context",
+			"signals": {
+				"keywords": [
+					"entire codebase",
+					"full repository",
+					"250k",
+					"large document",
+					"all files",
+					"판결문",
+					"판결",
+					"수백",
+					"장문",
+					"기록",
+					"전체 코드베이스",
+					"전체 저장소",
+					"전체 파일",
+					"대용량 문서"
+				],
+				"patterns": [
+					"entire repository",
+					"all source files",
+					"수백 페이지",
+					"판결문 요약",
+					"기록 분석",
+					"페이지 분석",
+					"전체 소스",
+					"전체 저장소 분석"
+				]
+			}
+		}
 	}
 }
