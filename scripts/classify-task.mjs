@@ -61,27 +61,39 @@ function readPrompt() {
  * Score each kind by keyword (weight 2) and pattern (weight 1) hits.
  * JSON key order determines priority when scores tie (first = highest priority).
  */
+// ASCII signals match whole words only ("PR" must not hit "print"); Korean signals keep substring matching for particles.
+function hasSignal(lower, signal) {
+	const s = signal.toLowerCase();
+	if (!/^[\x00-\x7f]+$/.test(s)) return lower.includes(s);
+	const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return new RegExp(`(?<![a-z0-9])${escaped}(?![a-z0-9])`).test(lower);
+}
+
 function scoreKinds(prompt, taskKinds) {
 	const lower = prompt.toLowerCase();
 	const scores = {};
 	for (const [kind, def] of Object.entries(taskKinds)) {
 		let score = 0;
 		for (const kw of def.signals.keywords) {
-			if (lower.includes(kw.toLowerCase())) score += 2;
+			if (hasSignal(lower, kw)) score += 2;
 		}
 		for (const pat of def.signals.patterns) {
-			if (lower.includes(pat.toLowerCase())) score += 1;
+			if (hasSignal(lower, pat)) score += 1;
 		}
 		scores[kind] = score;
 	}
 	return scores;
 }
 
-/** Pick the highest-scoring kind; JSON key order breaks ties. */
+/**
+ * Pick the highest-scoring kind; JSON key order breaks ties.
+ * Kinds with override_on_match (security/PII) win whenever they match, so their audit rules are never dropped.
+ */
 function pickKind(scores, taskKinds) {
 	let best = "general";
 	let bestScore = 0;
-	for (const kind of Object.keys(taskKinds)) {
+	const overrides = Object.keys(taskKinds).filter((k) => taskKinds[k].override_on_match && (scores[k] ?? 0) > 0);
+	for (const kind of overrides.length ? overrides : Object.keys(taskKinds)) {
 		if ((scores[kind] ?? 0) > bestScore) {
 			bestScore = scores[kind];
 			best = kind;
@@ -202,7 +214,7 @@ function buildReason(kind, taskKinds, prompt, size) {
 	}
 	const def = taskKinds[kind];
 	const lower = prompt.toLowerCase();
-	const hit = def.signals.keywords.filter((k) => lower.includes(k.toLowerCase()));
+	const hit = def.signals.keywords.filter((k) => hasSignal(lower, k));
 	const kw = hit.length ? hit.join(", ") : "(pattern match)";
 	return `Kind: ${kind}. Keywords matched: ${kw}. Role: ${def.role}. Size: ${size}.`;
 }

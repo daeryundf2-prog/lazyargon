@@ -74,6 +74,31 @@ test("FIX: 'src/a.ts src/b.ts src/c.ts src/d.ts 각각 리팩터링' → size su
 	assert.equal(r.size, "subagents");
 });
 
+test("FIX: 'print the config' → not judgment (PR is a whole word only)", () => {
+	const r = classify("print the config");
+	assertSchema(r, "FIX print");
+	assert.notEqual(r.kind, "judgment");
+});
+
+test("FIX: 'process the queue' → not judgment", () => {
+	const r = classify("process the queue");
+	assertSchema(r, "FIX process");
+	assert.notEqual(r.kind, "judgment");
+});
+
+test("FIX: 'review this pr' → judgment", () => {
+	const r = classify("review this pr");
+	assertSchema(r, "FIX review pr");
+	assert.equal(r.kind, "judgment");
+});
+
+test("FIX: '개인정보 마스킹 구현해줘' → sensitive with v2 (a matched sensitive signal beats a higher implementation score)", () => {
+	const r = classify("개인정보 마스킹 구현해줘");
+	assertSchema(r, "FIX PII implement");
+	assert.equal(r.kind, "sensitive");
+	assert.equal(r.prompt, "v2");
+});
+
 // ── Regression: single-size tasks must NOT delegate ─────────────────────────
 
 test("FIX: '이 스크립트 오타 하나 고쳐줘' → size single → action proceed in session", () => {
