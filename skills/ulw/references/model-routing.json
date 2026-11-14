@@ -2,6 +2,8 @@
 	"version": "2026-11-15",
 	"status": "verdict roles measured on 100 common cases (original bench prompt) and, for Argon medium vs high, on 41 hard round-3 cases; implementation measured on easy F13 cases only (every arm 5/5, so the default is chosen on cost); harder multi-file cases unmeasured",
 	"selection_rule": "Maximize pass rate first. Among arms tied for the best pass rate within sampling noise, pick the fewest tokens and quota, then the fastest. Never trade pass rate for savings.",
+	"common_rule": "코드·문서·증거에 대한 주장마다 파일:줄(또는 해시·오프셋) 근거를 붙인다. 배율·건수·합계·diff 통계·오류 메시지 같은 구체 값은 실행한 명령 출력에서만 적고, 확인하지 못했으면 '추정'이라고 표시한다.",
+	"common_rule_source": "false-claims-1115: 5,251 claims, repeats were invented run commands (3), comments trusted over code (2), unexecuted numbers (3)",
 	"how_to_revise": "Edit this file only. /ulw reads it at the start of a task; no code or rules change needed. Record the evidence in docs/model-routing.md.",
 	"subagent_tiers": {
 		"pro": "gemini-4-argon",
@@ -59,6 +61,26 @@
 			],
 			"note": "Separate measurements, not comparable: on the 100-case set (original prompt, pii 7, inject 8 cases) PII was weak for every model (best 3/6 caught); on the v2 retest (pii 38, inject 32 cases) Argon, Carbon and Hydrogen xhigh caught 70/70. docfmt cases are partly a bench artifact (binary documents shown as 256-byte hex), so docfmt scores are not used for routing.",
 			"prompt": "v2 flag/fail rule required: skills/ulw/references/sensitive-check-v2.md"
+		},
+		"script_first": {
+			"model": "gemini-4-argon-high",
+			"rule": "건수·합계·해시·기간 같은 숫자는 직접 세지 말고 스크립트로 계산한다. 보고서에는 실행한 명령과 출력 값을 그대로 인용하고, 입력 파일 해시를 함께 적는다.",
+			"note": "routing unchanged (Argon); rule from false-claims-1115 unexecuted-number repeats"
+		},
+		"tool_first": {
+			"model": "gemini-4-argon-high",
+			"rule": "OCR·STT는 전용 엔진을 먼저 돌린다(대량 녹취: 구글 서버 STT + 무음 기준 분할 + 음량 정규화, 외부 반출 불가 자료: 로컬 whisper, 문서: 전용 OCR). 모델은 엔진 결과를 정리·대조만 하고, 손글씨·숫자·고유명사는 원본 대조 여부를 표시한다. 모델이 오디오·이미지를 직접 받아 적은 결과를 원문으로 쓰지 않는다.",
+			"note": "engine choice from field notes; to be replaced by ocr-stt-1115 measurements"
+		},
+		"forensic_verdict": {
+			"model": "gemini-4-argon-high",
+			"rule": "판정마다 근거(파일:줄, 해시, 오프셋, 메타데이터 필드 값)를 붙이고 근거 수준(확인/추정/불명)을 표시한다. 작성시각>수정시각처럼 정상 원인(복사·이동)이 있을 수 있는 현상은 단정하지 않고 '의심'으로 둔다.",
+			"note": "set2 100 cases: Argon high 72 > Hydrogen 65 > Carbon 62"
+		},
+		"mechanical": {
+			"model": "gemini-4-argon-high",
+			"rule": "반복 변환·이름 변경은 스크립트로 일괄 처리하고, 처리 전후 파일 수와 샘플 3개를 비교해 보고한다.",
+			"note": "Hydrogen high is fastest here but cannot be selected inside /ulw (unverified-nested)"
 		}
 	},
 	"modes": {
@@ -135,6 +157,121 @@
 					"security review",
 					"보안상 문제",
 					"해킹 위험"
+				]
+			}
+		},
+		"forensic_verdict": {
+			"description": "Forensic verdicts on evidence: forgery, metadata, disk images, appraisal reports",
+			"role": "forensic_verdict",
+			"signals": {
+				"keywords": [
+					"forensic",
+					"forgery",
+					"tamper",
+					"metadata",
+					"e01",
+					"disk image",
+					"포렌식",
+					"위변조",
+					"위조",
+					"변조",
+					"조작 여부",
+					"메타데이터",
+					"감정서",
+					"감정 보고서",
+					"진위",
+					"디스크 이미지",
+					"증거",
+					"tampered",
+					"tampering",
+					"작성시각",
+					"수정시각"
+				],
+				"patterns": [
+					"원본 여부"
+				]
+			}
+		},
+		"count_extract": {
+			"description": "Exact numbers: counts, totals, hashes, durations",
+			"role": "script_first",
+			"signals": {
+				"keywords": [
+					"how many",
+					"count",
+					"total",
+					"sum",
+					"checksum",
+					"sha256",
+					"md5",
+					"건수",
+					"몇 건",
+					"몇건",
+					"몇 개",
+					"몇 명",
+					"몇 번",
+					"합계",
+					"총합",
+					"집계",
+					"해시",
+					"해쉬",
+					"통계",
+					"빈도",
+					"file hash",
+					"hash value"
+				],
+				"patterns": [
+					"얼마나 많",
+					"전부 세",
+					"개수"
+				]
+			}
+		},
+		"media_transcribe": {
+			"description": "OCR and speech-to-text: reading text from images, audio and video",
+			"role": "tool_first",
+			"signals": {
+				"keywords": [
+					"ocr",
+					"stt",
+					"transcribe",
+					"transcription",
+					"speech to text",
+					"subtitle",
+					"전사",
+					"녹취",
+					"녹취록",
+					"받아쓰기",
+					"자막",
+					"판독",
+					"문자 인식",
+					"음성 인식",
+					"번호판"
+				],
+				"patterns": [
+					"글자 읽",
+					"말 받아"
+				]
+			}
+		},
+		"mechanical": {
+			"description": "Mechanical bulk changes: format conversion, renaming",
+			"role": "mechanical",
+			"signals": {
+				"keywords": [
+					"rename",
+					"convert",
+					"reformat",
+					"형식 변환",
+					"포맷 변환",
+					"이름 바꾸",
+					"이름 변경",
+					"일괄 변경",
+					"일괄 변환",
+					"파일명 정리"
+				],
+				"patterns": [
+					"으로 변환"
 				]
 			}
 		},

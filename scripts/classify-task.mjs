@@ -258,6 +258,14 @@ const notice = sessionNotice(model, roles);
 const reason = buildReason(kind, task_kinds, prompt, size);
 const promptField = usesV2(roles, roleName) ? "v2" : null;
 
+// Rules of every matched kind apply (a prompt can be both a count and a forensic verdict), then the common rule.
+const matchedRules = Object.keys(task_kinds)
+	.filter((k) => (scores[k] ?? 0) > 0)
+	.sort((a, b) => scores[b] - scores[a])
+	.map((k) => roles[task_kinds[k].role]?.rule)
+	.filter(Boolean);
+const rules = [...new Set([...matchedRules, routing.common_rule].filter(Boolean))];
+
 process.stdout.write(
 	JSON.stringify(
 		{
@@ -270,6 +278,7 @@ process.stdout.write(
 			action,
 			session_notice: notice,
 			prompt: promptField,
+			rules,
 		},
 		null,
 		2,
