@@ -26,7 +26,8 @@ function classify(prompt) {
 // ── JSON schema ──────────────────────────────────────────────────────────────
 
 const REQUIRED_FIELDS = ["kind", "size", "model", "mode", "reason", "verified_path", "action", "session_notice", "prompt"];
-const VALID_KINDS = new Set(["judgment", "long_execution", "implementation", "sensitive", "long_context", "general"]);
+// Valid kinds come from model-routing.json task_kinds plus "general", so adding a kind there needs no test edit.
+const VALID_KINDS = new Set([...Object.keys(JSON.parse(fs.readFileSync(new URL("../skills/ulw/references/model-routing.json", import.meta.url), "utf8")).task_kinds), "general"]);
 const VALID_SIZES = new Set(["single", "subagents"]);
 
 function assertSchema(result, label) {
@@ -124,10 +125,31 @@ test("KO judgment: '결과가 올바른지 검증해줘'", () => {
 	assert.equal(r.kind, "judgment");
 });
 
-test("KO judgment: '보안 감사 진행해줘'", () => {
+test("KO security audit: '보안 감사 진행해줘' routes to security_audit with the v2 rule", () => {
 	const r = classify("보안 감사 진행해줘");
-	assertSchema(r, "KO judge 3");
+	assertSchema(r, "KO audit 1");
+	assert.equal(r.kind, "security_audit");
+	assert.equal(r.prompt, "v2");
+});
+
+test("KO security audit: 'API 키 노출 같은 취약점 있는지 봐줘'", () => {
+	const r = classify("API 키 노출 같은 취약점 있는지 봐줘");
+	assertSchema(r, "KO audit 2");
+	assert.equal(r.kind, "security_audit");
+	assert.equal(r.prompt, "v2");
+});
+
+test("KO plan: '이 기능 설계 계획 세워줘' reaches the plan role", () => {
+	const r = classify("이 기능 설계 계획 세워줘");
+	assertSchema(r, "KO plan 1");
+	assert.equal(r.kind, "plan");
+	assert.equal(r.action, "proceed in session");
+});
+
+test("judgment stays without the v2 rule", () => {
+	const r = classify("이 PR 리뷰해줘");
 	assert.equal(r.kind, "judgment");
+	assert.equal(r.prompt, null);
 });
 
 test("KO judgment: '이 로직 맞는지 검토 부탁해'", () => {

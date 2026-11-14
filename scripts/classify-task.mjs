@@ -22,7 +22,7 @@
  *                   • either mode, non-Argon → "proceed in session model + notice"
  *                   sensitive appends ", apply v2 flag/fail rule" to any of the above.
  * - session_notice: null for Argon (session default); one-line string for Hydrogen/Carbon.
- * - prompt:         "v2" for sensitive tasks (flag/fail rule required); null otherwise.
+ * - prompt:         "v2" when the routed role requires the v2 flag/fail rule; null otherwise.
  *
  * No model names are hardcoded here. All signals and role mappings come from model-routing.json.
  *
@@ -156,12 +156,12 @@ function verifiedPath(model, subagentTiers) {
  *   • Argon + subagents mode: spawn one verified "pro" worker per disjoint lane → "delegate via ..."
  *   • Argon + single mode:  Tier 0, main agent directly (no subagent startup) → "proceed in session"
  *
- * Sensitive tasks append ", apply v2 flag/fail rule" to signal the prompt swap requirement.
+ * Roles whose routing entry carries a "prompt" starting with "v2" append ", apply v2 flag/fail rule".
  */
-function getAction(model, roles, kind, mode) {
+function getAction(model, roles, roleName, mode) {
 	const defaultModel = roles.default?.model;
 	const isArgon = model === defaultModel;
-	const v2Suffix = kind === "sensitive" ? ", apply v2 flag/fail rule" : "";
+	const v2Suffix = usesV2(roles, roleName) ? ", apply v2 flag/fail rule" : "";
 
 	if (!isArgon) {
 		// Hydrogen/Carbon: nested call unverified → proceed in current session with notice
@@ -175,6 +175,11 @@ function getAction(model, roles, kind, mode) {
 
 	// Argon + single: Tier 0, main agent proceeds directly (saves 14–18K token subagent startup)
 	return `proceed in session${v2Suffix}`;
+}
+
+/** True when the role's routing entry requires the v2 flag/fail rule (data-driven, not by kind name). */
+function usesV2(roles, roleName) {
+	return typeof roles[roleName]?.prompt === "string" && roles[roleName].prompt.startsWith("v2");
 }
 
 /**
@@ -231,10 +236,10 @@ const roleData = roles[roleName] ?? roles.default;
 const model = roleData.model;
 
 const vpath = verifiedPath(model, subagent_tiers);
-const action = getAction(model, roles, kind, mode);
+const action = getAction(model, roles, roleName, mode);
 const notice = sessionNotice(model, roles);
 const reason = buildReason(kind, task_kinds, prompt, size);
-const promptField = kind === "sensitive" ? "v2" : null;
+const promptField = usesV2(roles, roleName) ? "v2" : null;
 
 process.stdout.write(
 	JSON.stringify(

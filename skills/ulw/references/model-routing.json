@@ -1,5 +1,5 @@
 {
-	"version": "2026-11-13b",
+	"version": "2026-11-14",
 	"status": "verdict roles measured on 100 common cases (original bench prompt); implementation measured on easy F13 cases only (every arm 5/5, so the default is chosen on cost); harder multi-file cases unmeasured",
 	"selection_rule": "Maximize pass rate first. Among arms tied for the best pass rate within sampling noise, pick the fewest tokens and quota, then the fastest. Never trade pass rate for savings.",
 	"how_to_revise": "Edit this file only. /ulw reads it at the start of a task; no code or rules change needed. Record the evidence in docs/model-routing.md.",
@@ -15,7 +15,7 @@
 		},
 		"plan": {
 			"model": "gemini-4-argon-high",
-			"note": "Carbon dropped: Carbon high matched Argon high when it answered (72.1% vs 72.7% on 100 cases) but its median was 212 s, so a 180 s cap cut off more than half its calls and they fell back to Argon anyway"
+			"note": "Argon high. Carbon high was as accurate when it answered (62/86 = 72.1% vs Argon 72/99 = 72.7%) but its latency (p50 212 s, p95 526 s) makes it impractical; a 180 s cap with Argon fallback scores 71/100 against Argon alone 72/100 with twice the calls. Only Carbon high was measured (medium unmeasured)."
 		},
 		"final_review": {
 			"model": "gemini-4-argon-high",
@@ -25,12 +25,14 @@
 			"model": "gemini-4-carbon-high",
 			"min_context_tokens": 250000,
 			"fallback": "gemini-4-argon-high",
-			"timeout_sec": 180,
-			"note": "only role left for Carbon: documents beyond ~250k tokens"
+			"timeout_sec": 600,
+			"note": "Carbon high latency on the 100-case set: p50 212 s, p90 492 s, p95 526 s, so the cap is 600 s (a 180 s cap would cut off nearly every call). Fallback Argon high is unverified at this size.",
+			"min_context_tokens_note": "250k threshold is an unmeasured assumption: no case near that size was tested and Argon high was not measured beyond it"
 		},
 		"security_audit": {
 			"model": "gemini-4-argon-high",
-			"note": "Carbon high missed fewer bad cases (4/67 vs 7/67) but 14/100 failed or timed out; Argon high is the audit model"
+			"prompt": "v2 flag/fail rule required: skills/ulw/references/sensitive-check-v2.md",
+			"note": "Counting unanswered cases as misses, Carbon high missed 13/67 bad cases and Argon high 8/67. Audits include injection and PII, so the v2 rule applies."
 		},
 		"verdict_review": {
 			"model": "gemini-4-argon-high",
@@ -54,7 +56,7 @@
 			"never": [
 				"gemini-4-hydrogen-high"
 			],
-			"note": "with the original prompt PII was weak for every model (best 3/6 on the 100-case set); with the v2 prompt Hydrogen xhigh/Argon/Carbon reached inject 32/32 and pii 38/38 (clean false positives 0/24 for xhigh)",
+			"note": "Separate measurements, not comparable: on the 100-case set (original prompt, pii 7, inject 8 cases) PII was weak for every model (best 3/6 caught); on the v2 retest (pii 38, inject 32 cases) Argon, Carbon and Hydrogen xhigh caught 70/70. docfmt cases are partly a bench artifact (binary documents shown as 256-byte hex), so docfmt scores are not used for routing.",
 			"prompt": "v2 flag/fail rule required: skills/ulw/references/sensitive-check-v2.md"
 		}
 	},
@@ -113,6 +115,49 @@
 		"note": "below these, drop to the cheapest mode that still meets the pass-rate rule and say so"
 	},
 	"task_kinds": {
+		"security_audit": {
+			"description": "Security audit: vulnerabilities, secrets, injection and PII exposure in code or documents",
+			"role": "security_audit",
+			"signals": {
+				"keywords": [
+					"security audit",
+					"vulnerability",
+					"vulnerabilities",
+					"secret leak",
+					"보안 감사",
+					"보안 점검",
+					"취약점",
+					"보안 검토"
+				],
+				"patterns": [
+					"security review",
+					"보안상 문제",
+					"해킹 위험"
+				]
+			}
+		},
+		"plan": {
+			"description": "Planning or design before implementation",
+			"role": "plan",
+			"signals": {
+				"keywords": [
+					"plan",
+					"design",
+					"architecture",
+					"계획",
+					"설계",
+					"아키텍처",
+					"기획"
+				],
+				"patterns": [
+					"how should we",
+					"어떻게 만들",
+					"구조를 짜",
+					"계획 세워",
+					"설계해"
+				]
+			}
+		},
 		"judgment": {
 			"description": "Verdict, review, verification, or audit of existing work",
 			"role": "verdict_review",

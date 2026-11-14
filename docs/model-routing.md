@@ -5,11 +5,11 @@ Numbers come from our own tests (small samples; re-measure before tightening). V
 | Role | Model | Evidence | Fallback |
 |---|---|---|---|
 | Default | Argon high | Common 100 verdict cases: 72/100 exact, 1 error, median 38 s (best of three) | Argon medium |
-| Plan, design, final review, security audit | Argon high | Carbon high matched Argon when it answered (72.1% vs 72.7%) but 14 of 100 failed or timed out and its median was 212 s, so a 180 s cap would cut off most calls | - |
-| Long context (~250k+ tokens) | Carbon high, cap 180 s | Only role where Argon cannot take the input | Argon high on timeout |
+| Plan, design, final review, security audit | Argon high (security audit also applies the v2 rule) | Accuracy is a tie: Carbon high 62/86 answered (72.1%) vs Argon high 72/99 (72.7%). Carbon is dropped for latency: p50 212 s, p95 526 s, and 14/100 hit the 10-minute cap. A 180 s cap with Argon fallback scores 71/100 against Argon alone 72/100 with twice the calls. Only Carbon high was measured; medium is unmeasured. | - |
+| Long context (~250k+ tokens, unmeasured threshold) | Carbon high, cap 600 s | Cap covers Carbon p95 (526 s). The 250k threshold and Argon fallback at that size are assumptions: no case near that size was tested | Argon high on timeout (unverified at this size) |
 | Verdict, review, verification | Argon high | As above; Hydrogen high 65/100 with the most clean false alarms (10/33) | Hydrogen xhigh with the v2 prompt |
 | Implementation, edits, test runs | Argon high (default); Hydrogen high for long or flaky test-verified execution | All implementation arms passed 5/5 on F13; Argon high was cheapest (see below) | Argon high |
-| PII, prompt-injection, docfmt and judgment checks | Argon high or Hydrogen xhigh, v2 prompt required | Original prompt: PII weak for every model (best 3/6 on the 100 set). v2 retest: xhigh inject 32/32, pii 38/38, clean false positives 0/24; Hydrogen high had 36% (8/22), so high is never a gate | Carbon for a suspect |
+| PII, prompt-injection, docfmt and judgment checks | Argon high or Hydrogen xhigh, v2 prompt required | Two separate measurements: 100-case set with the original prompt (pii 7, inject 8 cases), PII weak for every model, best 3/6 caught; v2 retest (pii 38, inject 32 cases), 70/70 for Argon, Carbon and Hydrogen xhigh, clean false positives 0/24 for xhigh. Hydrogen high had 36% clean false alarms (8/22), so high is never a gate. docfmt scores are partly a bench artifact (binary documents shown as 256-byte hex) | Carbon for a suspect |
 | Orchestrator | no role yet | Verdict tasks are answered by Carbon alone (250 s, 10 of 67 failed); implementation comparison pending | - |
 
 Quota rule: Carbon only for long-context input; everything else runs on Argon high, with Hydrogen high for long test-verified execution.
@@ -50,7 +50,7 @@ Same 100 cases for each model (13 families), original bench prompt, agy print ti
 | Carbon high | 62 | 14 | 72.1% | 4/67 | 7/33 | 0/6 | 5/5 | 212 |
 | Hydrogen high | 65 | 0 | 65.0% | 9/67 | 10/33 | 2/6 | 5/5 | 24 |
 
-The fill-in run used about 4 weekly points for 119 calls (about 0.034 per call). Carbon's errors were concentrated in image cases (7 of 14).
+The fill-in run used about 4 weekly points for 119 calls (about 0.034 per call). Carbon's errors were 10-minute print timeouts concentrated in image cases (7 of 14), so they measure latency, not accuracy; the 3 timeouts from the fill-in timed out again on a retry (2026-11-14). "Missed bad" excludes unanswered cases; counting them as misses, Carbon high missed 13/67 and Argon high 8/67. Bootstrap of the Argon minus Carbon exact gap (20,000 resamples): mean +10.0 points, 95% CI [+4, +17].
 
 ## Task router
 
