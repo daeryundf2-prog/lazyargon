@@ -13,6 +13,14 @@ description: "Unified autonomous execution workflow for Antigravity (/ulw, ultra
 
 ## Step 1. 3줄 범위 잠금 + 예산 (Scope Lock)
 
+**[작업 분류]** 범위 잠금 작성 전에, `node scripts/classify-task.mjs "<작업 설명>"` 을 실행하고 JSON 출력에 따라 모델과 모드를 정한다(`references/model-routing.json`의 `task_kinds` → `roles` 연결; 모델 이름은 그 파일에만 있다):
+
+- `action`: **지금 당장 취할 수 있는 경로**만 나타낸다. 값은 `size`와 모델에 따라 결정된다. `"proceed in session"` = Tier 0 단독 실행(`size: single`; 서브에이전트 기동 비용 14~18K 토큰 불필요). `"delegate via invoke_subagent Model: \"pro\""` = `size: subagents`일 때만 Argon 서브에이전트 위임(세션 내 검증된 유일 경로; 레인당 1 워커). `"proceed in session model + notice"` = 이상적 모델(Hydrogen·Carbon)이 현재 세션과 다르지만 검증된 중첩 경로가 없으므로 현재 세션 모델로 진행. sensitive 작업에는 뒤에 `", apply v2 flag/fail rule"` 이 붙는다.
+- `verified_path`: `"invoke_subagent Model: \"pro\""` 만 세션 내 검증된 경로다. 그 외는 `"unverified-nested"`(agy CLI는 터미널에서만 확인됨; `/ulw` 세션 내 `run_command` 경유 중첩 호출은 미검증).
+- `session_notice`: `null`이 아니면 한 줄 출력 후 현재 세션 모델로 계속 진행한다. `/ulw`는 세션 도중 모델을 바꿀 수 없다.
+- `prompt: "v2"`: sensitive 작업에만 설정된다. **v2 flag/fail 규칙**(`references/sensitive-check-v2.md`, 판정 전에 반드시 읽는다)을 적용해야 한다(`roles.pii_inject_docfmt` 의 `"prompt": "v2 flag/fail rule required"` 참조). 이 필드가 `"v2"`이면 판정 프롬프트를 v2로 교체하지 않고는 진행하지 않는다.
+- `size: "subagents"`: Tier 1 이상 병렬 경로를 우선 고려한다.
+
 모든 `/ulw` 작업은 먼저 대상 저장소의 규약 문서와 호출처를 읽기 전용 도구(`read_file`·`rg`)로 빠르게 확인한 직후 **첫 쓰기 호출로 `.lazyargon/ulw-scope.md`에 아래 범위 잠금을 작성**하고 짧게 선언한다(긴 본문 텍스트와 파일 쓰기 툴콜을 한 턴에 섞어 출력하면 JSON 닫기 괄호 `}}}}` 스트리밍 루프가 발생할 수 있으므로 툴 호출 시에는 부연 설명을 생략하고 바로 도구를 호출한다):
 
 ```text

@@ -5,11 +5,11 @@ Numbers come from our own tests (small samples; re-measure before tightening). V
 | Role | Model | Evidence | Fallback |
 |---|---|---|---|
 | Default | Argon high | Common 100 verdict cases: 72/100 exact, 1 error, median 38 s (best of three) | Argon medium |
-| Plan, design, final review, security audit | Argon high | Carbon high matched Argon when it answered (72.1% vs 72.7%) but 14 of 100 failed or timed out and its median was 212 s, so a 180 s cap would cut off most calls | - |
-| Long context (~250k+ tokens) | Carbon high, cap 180 s | Only role where Argon cannot take the input | Argon high on timeout |
+| Plan, design, final review, security audit | Argon high (security audit also applies the v2 rule) | Accuracy is a tie: Carbon high 62/86 answered (72.1%) vs Argon high 72/99 (72.7%). Carbon is dropped for latency: p50 212 s, p95 526 s, and 14/100 hit the 10-minute cap. A 180 s cap with Argon fallback scores 71/100 against Argon alone 72/100 with twice the calls. Only Carbon high was measured; medium is unmeasured. | - |
+| Long context (~250k+ tokens, unmeasured threshold) | Carbon high, cap 600 s | Cap covers Carbon p95 (526 s). The 250k threshold and Argon fallback at that size are assumptions: no case near that size was tested | Argon high on timeout (unverified at this size) |
 | Verdict, review, verification | Argon high | As above; Hydrogen high 65/100 with the most clean false alarms (10/33) | Hydrogen xhigh with the v2 prompt |
 | Implementation, edits, test runs | Argon high (default); Hydrogen high for long or flaky test-verified execution | All implementation arms passed 5/5 on F13; Argon high was cheapest (see below) | Argon high |
-| PII, prompt-injection, docfmt and judgment checks | Argon high or Hydrogen xhigh, v2 prompt required | Original prompt: PII weak for every model (best 3/6 on the 100 set). v2 retest: xhigh inject 32/32, pii 38/38, clean false positives 0/24; Hydrogen high had 36% (8/22), so high is never a gate | Carbon for a suspect |
+| PII, prompt-injection, docfmt and judgment checks | Argon high or Hydrogen xhigh, v2 prompt required | Two separate measurements: 100-case set with the original prompt (pii 7, inject 8 cases), PII weak for every model, best 3/6 caught; v2 retest (pii 38, inject 32 cases), 70/70 for Argon, Carbon and Hydrogen xhigh, clean false positives 0/24 for xhigh. Hydrogen high had 36% clean false alarms (8/22), so high is never a gate. docfmt scores are partly a bench artifact (binary documents shown as 256-byte hex) | Carbon for a suspect |
 | Orchestrator | no role yet | Verdict tasks are answered by Carbon alone (250 s, 10 of 67 failed); implementation comparison pending | - |
 
 Quota rule: Carbon only for long-context input; everything else runs on Argon high, with Hydrogen high for long test-verified execution.
@@ -50,4 +50,60 @@ Same 100 cases for each model (13 families), original bench prompt, agy print ti
 | Carbon high | 62 | 14 | 72.1% | 4/67 | 7/33 | 0/6 | 5/5 | 212 |
 | Hydrogen high | 65 | 0 | 65.0% | 9/67 | 10/33 | 2/6 | 5/5 | 24 |
 
-The fill-in run used about 4 weekly points for 119 calls (about 0.034 per call). Carbon's errors were concentrated in image cases (7 of 14).
+The fill-in run used about 4 weekly points for 119 calls (about 0.034 per call). Carbon's errors were 10-minute print timeouts concentrated in image cases (7 of 14), so they measure latency, not accuracy; the 3 timeouts from the fill-in timed out again on a retry (2026-11-14). "Missed bad" excludes unanswered cases; counting them as misses, Carbon high missed 13/67 and Argon high 8/67. Bootstrap of the Argon minus Carbon exact gap (20,000 resamples): mean +10.0 points, 95% CI [+4, +17].
+
+## Task router
+
+`/ulw` runs `node scripts/classify-task.mjs "<task description>"` at the start of every task (before writing `.lazyargon/ulw-scope.md`) and follows its JSON output. The classifier reads `task_kinds` from `skills/ulw/references/model-routing.json`; no model names are hardcoded in the script or in `skills/ulw/SKILL.md`.
+
+| Task kind | Signals (sample) | Role | Action |
+|---|---|---|---|
+| `judgment` | review, audit, verify, PR, 리뷰, 검증, 검토, 감사 | `verdict_review` | delegate via invoke_subagent pro |
+| `long_execution` | tdd, until tests pass, flaky, 테스트 통과 | `long_execution` | proceed in session model + notice |
+| `implementation` | implement, fix, refactor, 구현, 수정, 리팩터링 | `implementation` | delegate via invoke_subagent pro |
+| `sensitive` | pii, injection, 개인정보, 주민번호, 인젝션 | `pii_inject_docfmt` | delegate via invoke_subagent pro, apply v2 flag/fail rule |
+| `long_context` | entire codebase, 판결문, 수백, 전체 저장소 | `long_context` | proceed in session model + notice |
+| `general` | (no match) | `default` | delegate via invoke_subagent pro |
+
+Size (`single` / `subagents`): (1) ≥3 code-file paths in the prompt (e.g. `src/a.ts src/b.ts src/c.ts`) → subagents; (2) explicit file count ≥3 ("3 files", "3개 파일") → subagents; (3) `modes.subagents.size_signals` keywords ("parallel", "독립적", "여러 파일") → subagents; otherwise single.
+
+**Verified paths inside a /ulw session:**
+- `invoke_subagent Model: "pro"` (→ Argon) — **verified**: documented tier, confirmed in AGENTS.md.
+- `agy --model <id>` from a terminal — confirmed at the CLI level only.
+- `agy --model <id>` via `run_command` inside a /ulw session (print mode, different tool permissions, separate context) — **unverified-nested**: never tested. Until verified, Hydrogen/Carbon tasks proceed in the current session model with the one-line notice; the classifier emits `verified_path: "unverified-nested"` and `action: "proceed in session model + notice"`.
+
+**Post-reset live checks** (run after quota resets 2026-11-14 09:14 KST):
+
+```bash
+# 1. Terminal: Hydrogen high via agy CLI (~1 small call, ~0.001 weekly pts)
+agy -p "what is 2+2" --model gemini-4-hydrogen-high --print-timeout 60s --output-format text
+# Expected: responds without error; session header confirms Hydrogen model. Exit 0.
+
+# 2. Terminal: Carbon high via agy CLI (~1 small call, ~0.001 weekly pts)
+agy -p "what is 2+2" --model gemini-4-carbon-high --print-timeout 60s --output-format text
+# Expected: responds without error; session header confirms Carbon model. Exit 0.
+
+# 3. Nested (read-only): agy called from inside a /ulw session via run_command (~1 small call, ~0.001 weekly pts)
+# From inside an active /ulw session, run:
+#   run_command: agy -p "what is 2+2" --model gemini-4-hydrogen-high --print-timeout 60s --output-format text
+# Expected: responds without error. If this succeeds, verified_path for long_execution can be upgraded to
+#   "agy --model gemini-4-hydrogen-high --print-timeout 600s --output-format text" in model-routing.json
+#   and action changed to "delegate via agy --model ...".
+
+# 4. Nested (edits scratch file): agy with --mode accept-edits from inside a /ulw session (~1 small call, ~0.001 weekly pts)
+# Create scratch file: echo "TODO: replace me" > /tmp/ulw_scratch_test.txt
+# From inside an active /ulw session, run:
+#   run_command: agy -p "In /tmp/ulw_scratch_test.txt replace TODO with DONE" \
+#     --model gemini-4-hydrogen-high --mode accept-edits --print-timeout 60s --output-format text
+# Then: cat /tmp/ulw_scratch_test.txt
+# Expected: file content updated (DONE: replace me or similar). Exit 0.
+# If both #3 and #4 pass, the nested path is verified and action/verified_path can be updated.
+
+# 5. Classifier shape check (no model calls, no quota cost)
+node scripts/classify-task.mjs "이 PR 리뷰해줘" | node -e \
+  "const j=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); \
+   console.assert(j.kind==='judgment','kind'); \
+   console.assert(j.verified_path==='invoke_subagent Model: \"pro\"','vpath'); \
+   console.log('shape ok')"
+# Expected: "shape ok". Exit 0.
+```
