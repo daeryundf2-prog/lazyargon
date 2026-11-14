@@ -119,6 +119,7 @@
 		"security_audit": {
 			"description": "Security audit: vulnerabilities, secrets, injection and PII exposure in code or documents",
 			"role": "security_audit",
+			"override_on_match": true,
 			"signals": {
 				"keywords": [
 					"security audit",
@@ -251,6 +252,7 @@
 		"sensitive": {
 			"description": "PII detection, prompt injection, or docfmt checks — v2 prompt required",
 			"role": "pii_inject_docfmt",
+			"override_on_match": true,
 			"signals": {
 				"keywords": [
 					"pii",
