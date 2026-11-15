@@ -235,3 +235,38 @@ test("insaneSearchPaths finds the default install and lets env override it", () 
 		fs.rmSync(home, { recursive: true, force: true });
 	}
 });
+
+test("CLI: with standing consent a blocked page goes through the engine automatically; --no-bypass keeps it blocked", async () => {
+	const home = fs.mkdtempSync(path.join(os.tmpdir(), "is-consent-"));
+	const saved = { home: process.env.HOME, dir: process.env.ULW_INSANE_SEARCH_DIR, py: process.env.ULW_INSANE_SEARCH_PYTHON };
+	try {
+		const base = path.join(home, ".local", "share", "insane-search");
+		fs.mkdirSync(path.join(base, "skills", "insane-search", "engine"), { recursive: true });
+		fs.writeFileSync(path.join(base, "STANDING_CONSENT"), "public web research");
+		const fakePy = path.join(home, "fake-python");
+		const payload = { ok: true, verdict: "ok", final_url: "https://news.example.com/fine", untrusted_content_boundary: { begin: "[B]", end: "[E]" }, untrusted_text: "header\n[B]\nArticle 12 sets the fine at 3,000,000 won from 1 March 2026.\n[E]\n" };
+		fs.writeFileSync(fakePy, `#!/bin/sh\ncat <<'JSON'\n${JSON.stringify(payload)}\nJSON\n`);
+		fs.chmodSync(fakePy, 0o755);
+		process.env.HOME = home;
+		delete process.env.ULW_INSANE_SEARCH_DIR;
+		process.env.ULW_INSANE_SEARCH_PYTHON = fakePy;
+		const dir = path.join(home, "session");
+		fs.mkdirSync(dir);
+		fs.writeFileSync(path.join(dir, "claims.jsonl"), JSON.stringify(highClaim()));
+		fs.writeFileSync(path.join(dir, "sources.jsonl"), SOURCES.map((s) => JSON.stringify(s)).join("\n"));
+		const fetchImpl = async () => new Response("<title>Just a moment...</title>", { status: 403, headers: { "content-type": "text/html" } });
+		const off = await runSnapshot(["--session-dir", dir, "--no-bypass"], { fetchImpl });
+		assert.equal(off.json.snapshots[0].status, "blocked");
+		const on = await runSnapshot(["--session-dir", dir, "--refresh"], { fetchImpl });
+		assert.equal(on.json.snapshots[0].status, "ok", JSON.stringify(on.json));
+		assert.equal(on.json.snapshots[0].bypass, true);
+		const gate = runClaimGate(["--session-dir", dir]);
+		assert.equal(gate.json.verified, 1);
+		assert.ok(gate.json.warnings.some((w) => /bypass/.test(w)));
+	} finally {
+		process.env.HOME = saved.home;
+		if (saved.dir !== undefined) process.env.ULW_INSANE_SEARCH_DIR = saved.dir;
+		if (saved.py !== undefined) process.env.ULW_INSANE_SEARCH_PYTHON = saved.py; else delete process.env.ULW_INSANE_SEARCH_PYTHON;
+		fs.rmSync(home, { recursive: true, force: true });
+	}
+});
