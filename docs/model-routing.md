@@ -119,3 +119,17 @@ node scripts/classify-task.mjs "이 PR 리뷰해줘" | node -e \
    console.log('shape ok')"
 # Expected: "shape ok". Exit 0.
 ```
+
+## Korean STT model (stt-models-1116, 2026-11-16)
+
+Same 20 synthetic clips and grader as ocr-stt-1115 (14 natural voice, 6 robot TTS), isolated HOME, one agy call at a time. The cloud transcription model in the `tool_first` rule is `gemini-3.8-flash-high`; the local pass stays faster-whisper large-v3-turbo + VAD.
+
+| Model | Natural CER | Natural numbers | All-clip CER | Hallucinated words | s per clip |
+|---|---|---|---|---|---|
+| gemini-3.8-flash-high | 0.0% | 100% | 2.2% | 0 | 108 |
+| gemini-4-argon-high | 0.1% | 98.9% | 3.8% | 28 | 68 |
+| gemini-4-argon-medium | 0.3% | 97.8% | 6.0% | 81 | 31 |
+| gemini-4-hydrogen-high | 2.1% | 93.1% | 6.7% | 64 | 36 |
+| gemini-4-hydrogen-xhigh | 0.4% | 96.8% | 25.4% | 333 | 232 |
+
+The owner's note that Hydrogen transcribes Korean better was not confirmed here. Natural voice is nearly a tie between Flash High and Argon High; robot TTS and silence gaps separate them. Small synthetic set: re-measure on real recordings before tightening.
