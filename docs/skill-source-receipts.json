@@ -433,6 +433,19 @@
       "kind": "inspiration",
       "license": "MIT",
       "note": "reference only"
+    },
+    {
+      "repo": "fivetaku/insane-search",
+      "url": "https://github.com/fivetaku/insane-search",
+      "pinned_sha": "82211894339e45e7e848c54d47ef4743460bd5df",
+      "keyword": "insane-search engine",
+      "mapped_targets": [
+        "skills/ulw-research/scripts/fetch-guard.mjs"
+      ],
+      "status": "verified",
+      "kind": "inspiration",
+      "license": "MIT",
+      "note": "internal-address and injection-signal rules adapted; the engine is called, not bundled, only with --allow-bypass"
     }
   ]
 }

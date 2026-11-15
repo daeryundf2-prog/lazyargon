@@ -29,6 +29,12 @@ unresolved/refuted annex) is inspired by the data-flow-lock verification design 
   deletes the allowlist, the unresolved-ratio warning, and the report check for
   unverified or ghost claim ids. The implementation is our own Node code; no Python
   source was copied.
+- **Added 2026-11-16 (insane-search engine, https://github.com/fivetaku/insane-search, MIT,
+  commit 82211894339e):** `scripts/fetch-guard.mjs` follows its `engine/safety.py` internal-address
+  rules and `engine/content_safety.py` injection signals, made stricter after the design notes of
+  the dbc-hbin/muse-discord-gateway Go port (unresolvable hosts fail closed; checked at connect time
+  on each redirect hop). That repository has no license, so none of its code is used. The engine
+  itself is never bundled: `--allow-bypass` calls a separately installed copy.
 
 ```
 MIT License
