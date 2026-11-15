@@ -227,7 +227,7 @@ Five styles, bound to topology. Don't let user override style on focal-touching,
 | Bar → row node (vertical drop) | **bottom** of bar at `node_cx(target)` | **top** of target |
 | Platform → consumer | **right** of source platform component | **left** of consumer |
 | Footer → zone | **top** of footer (at `footer_auth_x(k)`) | zone bottom edge `y = zone_y + zone_h` |
-| Footer → component (any specific one) | **forbidden** |
+| Footer → component (any specific one) | **forbidden** | **forbidden** |
 
 ### 3.2 Routing
 
