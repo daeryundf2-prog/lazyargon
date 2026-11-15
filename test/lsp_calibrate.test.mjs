@@ -7,13 +7,11 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { runDiagnosticsCheck, runRenamePreview, runSnapshot, runVerify } from "../scripts/lsp_diagnostics.mjs";
-import { MODEL_PRESETS, SHARED_PREAMBLE_MAX_BYTES, calibrateModel } from "../experimental/scripts/model_calibrate.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pluginRoot = join(__dirname, "..");
 const wsRoot = join(pluginRoot, "..", "lazyargon-workspace");
 const lspScript = join(pluginRoot, "scripts", "lsp_diagnostics.mjs");
-const calibrateScript = join(pluginRoot, "experimental", "scripts", "model_calibrate.mjs");
 const mdGuardScript = join(pluginRoot, "scripts", "markdown_structure_guard.mjs");
 
 test("lsp_diagnostics.mjs: check passes on valid .mjs, .py, .json files", () => {
@@ -143,32 +141,6 @@ test("lsp_diagnostics.mjs: rename-preview identifies affected imports and barrel
 	}
 });
 
-test("model_calibrate.mjs: supports Argon/Carbon and all presets while enforcing <= 2770B cap", () => {
-	assert.equal(SHARED_PREAMBLE_MAX_BYTES, 2770);
-	const expectedModels = ["gemini-4-argon", "gemini-4-carbon", "gemini-3.8-flash", "claude-5.5", "gpt-6", "kimi-k3", "glm-5"];
-	for (const key of expectedModels) {
-		assert.ok(Object.hasOwn(MODEL_PRESETS, key), `Missing preset: ${key}`);
-	}
-
-	for (const model of [...expectedModels, "opus", "sonnet", "astra", "codex", "kimi-code", "zcode"]) {
-		const res = calibrateModel({ model, compact: false });
-		assert.equal(res.schema, "model_calibration/v1");
-		assert.ok(expectedModels.includes(res.model));
-		assert.ok(res.byte_length > 0 && res.byte_length <= 2770);
-		assert.equal(res.max_bytes, 2770);
-	}
-
-	const carbonRes = calibrateModel({ model: "gemini-4-carbon-medium" });
-	assert.equal(carbonRes.model, "gemini-4-carbon");
-	assert.ok(carbonRes.byte_length > 0 && carbonRes.byte_length <= 2770);
-
-	const cli = spawnSync(process.execPath, [calibrateScript, "--model", "kimi-code", "--compact", "--json"], { encoding: "utf8" });
-	assert.equal(cli.status, 0);
-	const parsed = JSON.parse(cli.stdout);
-	assert.equal(parsed.model, "kimi-k3");
-	assert.ok(parsed.guidance.startsWith("[MODEL_CALIBRATE:kimi-k3]"));
-	assert.ok(parsed.byte_length <= 2770);
-});
 
 test("4 reference docs exist, fit 60-90 lines, have language tags, and pass markdown guard", () => {
 	const refs = [

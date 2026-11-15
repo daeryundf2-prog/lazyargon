@@ -13,15 +13,8 @@ Use two diagnostic modes:
 - **Installed-skill mode** (default): check the runtime and the resolved skill
   installation. Do not require maintainer-only repository files.
 - **Maintainer-checkout mode**: use this only when the resolved installation
-  root contains `plugin.json` and `skills/diagram-design/SKILL.md` — i.e., it
-  is a checkout of this repository rather than an installed skill. Add the
-  repository integrity checks below.
-  Note: the repository-level gate scripts referenced by older docs
-  (`verify-geometry.py`, `verify-motion.py`, `lint-skin.py`,
-  `verify-drawio-import.py`, `verify-mermaid-import.py`, `verify-docs-sync.py`,
-  `verify-plugin-package.py`, `test-verify-*.py`) are **not shipped in this
-  repository**. Never require them; `scripts/self_check.py` is the only shipped
-  verifier.
+  root contains `CONTRIBUTING.md`, `.github/workflows/ci.yml`, and
+  `scripts/verify-plugin-package.py`. Add the repository integrity checks below.
 
 ## Inputs
 
@@ -37,42 +30,50 @@ If no flags are provided, run in standard mode.
 Run all checks in this order and report each as `pass`, `warn`, or `fail`.
 
 1. Python runtime
-- Resolve `python3` first, then `python`.
+- Resolve `python3` first, then `python`. A name that is on PATH but cannot report
+  its own version does not win the resolution: fall through to the next candidate.
+  (Windows ships a `python3` App Execution Alias that is a Microsoft Store stub, not
+  an interpreter, and it sits on PATH ahead of a python.org install.) A name that
+  cannot be launched at all counts as the same kind of dud, and is reported as a
+  failed check rather than ending the run.
 - Require version >= 3.10.
 - `fail` if no Python interpreter is found.
 - `fail` if version is below 3.10.
 
 2. Playwright availability for PNG export
-- Check whether Playwright import works in the active Python interpreter (`import playwright`).
-- Check whether Chromium is installed for Playwright (`playwright install --help` availability is sufficient for command presence; prefer also checking browser cache when practical).
-- If missing, mark `warn` and print exact setup hint:
-  - `pip install playwright && playwright install chromium`
+- Check whether Playwright import works in the active Python interpreter (`import playwright`); an optional package version attribute is not required.
+- Verify the default headless Chromium can launch in that interpreter and close it after the probe. This includes a supported headless-shell-only installation; the full Chromium executable path is not required for default PNG export. Bound browser startup to 5 seconds and the subprocess probe to 10 seconds, then terminate the owned probe tree on timeout. Windows tree cleanup and parent reaping each have an additional 2-second limit; report cleanup failures as warnings.
+- If missing, mark `warn` and report that the host environment must provision
+  an approved Playwright installation and compatible browser.
 - Never auto-install dependencies.
 
-3. Shipped script presence
-- Verify the scripts that ship with the skill exist beneath the resolved skill
-  directory (`skills/diagram-design/` in a maintainer checkout, the skill root
-  when installed):
-  - `scripts/self_check.py`
-  - `scripts/drawio_extract.py`
-  - `scripts/mermaid_extract.py`
-  - `scripts/fixtures/sample-flowchart.mmd`
-  - `scripts/fixtures/sample-architecture.drawio`
-- Missing shipped files are `fail`.
-- The repository-level gate scripts (`verify-*.py`, `lint-skin.py`) are not
-  shipped in this distribution; do not look for them and do not warn about
-  their absence.
+3. Expected script presence (maintainer-checkout mode only)
+- Verify these repository scripts exist:
+  - `scripts/verify-drawio-import.py`
+  - `scripts/verify-mermaid-import.py`
+  - `scripts/verify-excalidraw-import.py`
+  - `scripts/verify-plantuml-import.py`
+  - `scripts/verify-motion.py`
+  - `scripts/lint-skin.py`
+  - `scripts/verify-docs-sync.py`
+- Missing scripts are `fail` in maintainer-checkout mode.
+- In installed-skill mode, report that maintainer scripts are not applicable;
+  their absence is not a warning or failure.
 
 4. Plugin wiring surfaces (maintainer-checkout mode only)
 - Verify Claude command files exist and point to their references:
   - `commands/export-diagram.md` -> `references/export.md`
   - `commands/import-drawio.md` -> `references/import-drawio.md`
   - `commands/import-mermaid.md` -> `references/import-mermaid.md`
+  - `commands/import-excalidraw.md` -> `references/import-excalidraw.md`
+  - `commands/import-plantuml.md` -> `references/import-plantuml.md`
   - `commands/profile.md` -> `references/profiles.md`
   - `commands/doctor.md` -> `references/doctor.md`
 - Verify Pi prompt files exist and point to their references:
   - `prompts/export-diagram.md` -> `references/export.md`
   - `prompts/import-mermaid.md` -> `references/import-mermaid.md`
+  - `prompts/import-excalidraw.md` -> `references/import-excalidraw.md`
+  - `prompts/import-plantuml.md` -> `references/import-plantuml.md`
   - `prompts/profile.md` -> `references/profiles.md`
   - `prompts/doctor.md` -> `references/doctor.md`
 - Missing files are `fail`.
@@ -100,7 +101,7 @@ Always print:
 2. A checklist with one line per check:
 - `[PASS] Python 3.11.9 found at ...`
 - `[WARN] Playwright not installed ...`
-- `[FAIL] Missing scripts/self_check.py`
+- `[FAIL] Missing scripts/verify-docs-sync.py`
 
 3. A `Next actions` section only when warn/fail exists.
 
@@ -120,10 +121,10 @@ Always print:
 Doctor summary: WARN (6 pass, 2 warn, 0 fail)
 [PASS] Python 3.11.9 found at /usr/bin/python3
 [WARN] Playwright package not found in active interpreter
-[PASS] scripts/self_check.py present (shipped verifier)
+[PASS] scripts/verify-drawio-import.py present
 ...
 
 Next actions
-- Install PNG export dependencies: pip install playwright && playwright install chromium
+- Provision an approved PNG export renderer, then re-run the doctor check
 - Re-run: /diagram-design:doctor --strict
 ```

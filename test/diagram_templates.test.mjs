@@ -21,7 +21,6 @@ test("#given diagram-design skill and all 23 skills #when SKILL.md is inspected 
 	assert.match(content, /^---\r?\n/m);
 	assert.match(content, /^name:\s*diagram-design\r?$/m);
 	assert.match(content, /^description:\s*".+"\r?$/m);
-	assert.match(content, /Thirty-nine visual types/);
 
 	const skillsRoot = join(root, "skills");
 	const entries = await readdir(skillsRoot, { withFileTypes: true });

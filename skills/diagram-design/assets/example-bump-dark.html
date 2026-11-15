@@ -42,7 +42,7 @@
 
       <!-- Rank is ORDINAL: every vertex sits exactly on a rank row, y = 88 + 56 x
            (rank - 1), and every snapshot's ranks are a permutation of 1..6.
-           The verify-bump contract enforces both against the ranks each series
+           scripts/verify-bump.py enforces both against the ranks each series
            declares - there is no tolerance, because rank has no fractions. -->
       <text transform="rotate(-90 24 228)" x="24" y="228" fill="#bfc0c0" font-size="7" font-family="'Geist Mono', monospace" letter-spacing="0.14em" text-anchor="middle">RANK BY WEEKLY DOWNLOADS · 1 = MOST</text>
 
@@ -113,7 +113,7 @@
       <!-- legacy-http FOCAL - and it is the series that FELL. The accent marks the
            editorially focal line, never the winner. Focus is carried by stroke
            weight, not tone, for the reason the slopegraph section gives: the
-           accent measures 2.86:1 on light paper. Drawn last so its descent
+           accent measures 4.71:1 on light paper, mid-ramp. Drawn last so its descent
            crosses over, not under, the lines it overtakes downward. -->
       <path data-series="legacy-http" data-ranks="1,2,4,6" d="M320,88 L440,144 L560,256 L680,368" fill="none" stroke="#f08a59" stroke-width="2.4"/>
       <circle cx="320" cy="88" r="4" fill="#f08a59"/>

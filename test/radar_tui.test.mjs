@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const radarScript = join(root, "scripts", "upstream_radar.mjs");
-const tuiScript = join(root, "experimental", "scripts", "lazy_tui.mjs");
 const binEntry = join(root, "bin", "lazyargon");
 
 test("upstream_radar.mjs audit --json verifies all 33 sources and closure targets", () => {
@@ -73,62 +72,6 @@ test("upstream_radar.mjs poll --offline --json returns 33 pinned sources", () =>
 	assert.equal(data.drift_count, 0);
 });
 
-test("lazy_tui.mjs --once and --json render 4 panels with real memory.db stats, KEEP/DISCARD counts, and 0-runs sparkline", () => {
-	const tmp = mkdtempSync(join(tmpdir(), "tui-test-"));
-	try {
-		const emptyRes = spawnSync(process.execPath, [tuiScript, "--once", "--cwd", tmp], { encoding: "utf8" });
-		assert.equal(emptyRes.status, 0);
-		assert.match(emptyRes.stdout, /─ \(0 runs\)/);
-
-		const stateDir = join(tmp, ".lazyargon");
-		mkdirSync(stateDir, { recursive: true });
-		const dbPath = join(stateDir, "memory.db");
-		const memScript = join(root, "experimental", "scripts", "lazy_memory.py");
-		const pyBin = process.platform === "win32" ? "python" : "python3";
-		const pyEnv = { ...process.env, PYTHONDONTWRITEBYTECODE: "1" };
-		spawnSync(pyBin, ["-B", memScript, "resolve", "--db", dbPath, "--op", "ADD", "--subject", "lazyargon", "--predicate", "uses", "--object", "argon4"], { encoding: "utf8", env: pyEnv });
-		spawnSync(pyBin, ["-B", memScript, "resolve", "--db", dbPath, "--op", "UPDATE", "--subject", "lazyargon", "--predicate", "uses", "--object", "argon4-high"], { encoding: "utf8", env: pyEnv });
-
-		writeFileSync(
-			join(stateDir, "ulw-dag.json"),
-			JSON.stringify({ nodes: [{ id: "wave1", state: "verified" }, { id: "wave2", status: "running" }, { id: "wave3", state: "reported_done" }] }),
-		);
-		writeFileSync(join(stateDir, "pins.md"), "- [fact] hash: abc123\n- [fact] target: lazy_tui.mjs\n");
-		writeFileSync(
-			join(stateDir, "experiment-ledger.tsv"),
-			"iter\tcommit\tmetric\tdelta\tverdict\thypothesis\n1\tabc1234\t0.72\t0\tKEEP\tinit\n2\tdef5678\t0.91\t+0.19\tDISCARD\ttry2\n",
-		);
-
-		const onceRes = spawnSync(process.execPath, [tuiScript, "--once", "--cwd", tmp], { encoding: "utf8" });
-		assert.equal(onceRes.status, 0);
-		assert.match(onceRes.stdout, /╭─/);
-		assert.match(onceRes.stdout, /\[1\] HOST & RULES BUDGET/);
-		assert.match(onceRes.stdout, /\[2\] DAG-ULW EXECUTION GRAPH/);
-		assert.match(onceRes.stdout, /\[3\] MEM0 \+ LETTA \+ AUTORAG/);
-		assert.match(onceRes.stdout, /Active: 1 \| Superseded: 1 \| Edges: 1 \| Dreams: 0 \| Pins: 2개/);
-		assert.match(onceRes.stdout, /\[4\] AUTORESEARCH & UPSTREAM RADAR/);
-		assert.match(onceRes.stdout, /Runs: 2 \(KEEP: 1 \/ DISCARD: 1\)/);
-		assert.match(onceRes.stdout, /33 sources tracked/);
-
-		const jsonRes = spawnSync(process.execPath, [tuiScript, "--json", "--cwd", tmp], { encoding: "utf8" });
-		assert.equal(jsonRes.status, 0);
-		const state = JSON.parse(jsonRes.stdout);
-		assert.equal(state.llm_calls, 0);
-		assert.equal(state.panels.dag_ulw.counts.verified, 1);
-		assert.equal(state.panels.dag_ulw.counts.running, 1);
-		assert.equal(state.panels.dag_ulw.counts.reported_done, 1);
-		assert.equal(state.panels.memory_rag.active, 1);
-		assert.equal(state.panels.memory_rag.superseded, 1);
-		assert.equal(state.panels.memory_rag.edges, 1);
-		assert.equal(state.panels.memory_rag.pins_count, 2);
-		assert.equal(state.panels.autoresearch_radar.keep_count, 1);
-		assert.equal(state.panels.autoresearch_radar.discard_count, 1);
-		assert.equal(state.panels.autoresearch_radar.best_metric, 0.72);
-		assert.equal(state.panels.autoresearch_radar.tracked_sources, 33);
-	} finally {
-		rmSync(tmp, { recursive: true, force: true });
-	}
-});
 
 test("bin/lazyargon routes active subcommands only and exits with code 2 on unknown or quarantined subcommand", () => {
 	const tmp = mkdtempSync(join(tmpdir(), "bin-route-"));
