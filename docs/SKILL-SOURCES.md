@@ -42,6 +42,7 @@ Generated from `docs/skill-source-receipts.json` (2026-11-15 rewrite). `skill_or
 | [`yunshenwuchuxun/latex-paper-skills`](https://github.com/yunshenwuchuxun/latex-paper-skills) | `d0f106108cb0` | MIT | `skills/ulw-research/references/latex-report.md` | ideas only |
 | [`ndpvt-web/latex-document-skill`](https://github.com/ndpvt-web/latex-document-skill) | `54279f78ecd9` | none declared | `skills/ulw-research/references/latex-report.md` | ideas only |
 | [`Marker-Inc-Korea/ko-pii`](https://github.com/Marker-Inc-Korea/ko-pii) | `8957e8bc9f0a` | MIT | `../lazyargon-workspace/skills/korean-pii-masker/SKILL.md` | reference only |
+| [`fivetaku/insane-search`](https://github.com/fivetaku/insane-search) | `82211894339e` | MIT | `skills/ulw-research/scripts/fetch-guard.mjs` | internal-address and injection-signal rules adapted; the engine is called, not bundled, only with --allow-bypass |
 
 ## 3. Removed on 2026-11-15
 
