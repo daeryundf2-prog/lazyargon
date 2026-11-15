@@ -20,6 +20,15 @@ unresolved/refuted annex) is inspired by the data-flow-lock verification design 
 - **What is adapted:** the IDEA only — a verification gate whose output is the sole
   allowlist the synthesis draws from, so skipping verification leaves nothing to
   synthesize. No insane-research code is copied or redistributed.
+- **Added 2026-11-15 (rules from insane-research v2.9-v2.10, snapshot 8f92b33, 2026-11-03):**
+  the mechanical gate in `scripts/claims-gate.mjs` / `claims-cli.mjs` follows its
+  `validate_ledger.py` and `verify_report.py` rules: verbatim quotes matched against a
+  stored, sha256-pinned page snapshot, the numeric-value rule, independence by
+  organization rather than domain, a structured counter-search with registered URLs,
+  primary source derived from the source type, two source surfaces, a failed gate that
+  deletes the allowlist, the unresolved-ratio warning, and the report check for
+  unverified or ghost claim ids. The implementation is our own Node code; no Python
+  source was copied.
 
 ```
 MIT License

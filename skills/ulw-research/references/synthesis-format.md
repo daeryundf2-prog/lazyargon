@@ -18,7 +18,7 @@ Members + lanes: <total> · Waves: <count> · Excursions: <count> · Sources: <c
 ## Expansion trace          — per wave: workers → markers; convergence reason
 ```
 
-`SYNTHESIS.md` is the citation source of truth for final materials: every claim carries inline `[Source N]` citations, and every high-risk non-code claim you assert must be a verified-claims row from Phase 4b. Assert nothing the gate left in the unresolved/refuted annex and nothing the skeptic's attack left standing unanswered.
+`SYNTHESIS.md` is the citation source of truth for final materials: every claim carries inline `[Source N]` citations and its ledger id `[C<n>]`, and every high-risk non-code claim you assert must be in `verified-claims.json`. Unresolved or refuted ids may appear only under the Gaps, Contradictions or Debate record headings (or an Unresolved/Refuted annex); `claims report` enforces it. Assert nothing the gate left in the unresolved/refuted annex and nothing the skeptic's attack left standing unanswered.
 
 **Write the skeleton early and fill it as claims lock.** The moment the brief records the deliverable, create the deliverable file with its section headings and a `STATUS: draft — <n> sections open` line as line 2 (an HTML comment in HTML); that line is the partial-state marker `outcome state` reads, removed only when the deliverable is complete. An interrupted run must leave a partial report on disk, never an empty directory and a lost conversation.
 
