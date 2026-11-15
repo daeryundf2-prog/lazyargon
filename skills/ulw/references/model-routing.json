@@ -69,8 +69,8 @@
 		},
 		"tool_first": {
 			"model": "gemini-4-argon-high",
-			"rule": "OCR·STT는 전용 엔진을 먼저 돌린다(대량 녹취: 구글 서버 STT + 무음 기준 분할 + 음량 정규화, 외부 반출 불가 자료: 로컬 whisper, 문서: 전용 OCR). 모델은 엔진 결과를 정리·대조만 하고, 손글씨·숫자·고유명사는 원본 대조 여부를 표시한다. 모델이 오디오·이미지를 직접 받아 적은 결과를 원문으로 쓰지 않는다.",
-			"note": "engine choice from field notes; to be replaced by ocr-stt-1115 measurements"
+			"rule": "OCR: 세션 모델이 이미지를 직접 읽고, 외부 반출 불가 자료는 Apple Vision(로컬)으로 읽는다. 금액·전화·계좌·날짜는 두 번째 엔진(Apple Vision)과 대조한다. STT: 구글 웹 STT(recognize_google)는 쓰지 않는다(숫자 든 문장을 오류 없이 누락). 로컬은 faster-whisper large-v3-turbo + VAD(VAD 없는 whisper.cpp는 긴 녹음 구간 누락). 세션 모델(Gemini)로 전사할 때도 faster-whisper를 함께 돌려 두 결과가 다른 구간과 숫자를 표시한다(알아듣기 어려운 음성에서 Gemini는 없는 문장을 지어냄). 증거용 녹취록은 사람이 숫자·고유명사를 원음과 대조한다.",
+			"note": "ocr-stt-1115 (synthetic, 20 clips / 30 images): STT natural-voice CER Gemini 0.1%, faster-whisper+VAD 1.2%, whisper.cpp 23.2%, Google web 36.7% (numbers 60.8%, drops numeric sentences); Gemini invented unrelated sentences on 2/5 unintelligible clips. OCR CER Gemini 0.0%, Claude Sonnet 0.1%, Apple Vision 2.2%, tesseract 12.9%."
 		},
 		"forensic_verdict": {
 			"model": "gemini-4-argon-high",
