@@ -5,7 +5,7 @@
  *   lazyargon radar <audit|list|poll> [--json] [--remote] [--write]
  *   lazyargon codegraph <build|handoff|tests> ...
  *   lazyargon lsp <check|snapshot|verify|rename-preview> ...
- * Quarantined engines live in experimental/scripts/ and are run by path.
+ * The v2.0 "apex" engines (dag, memory, rag, tui, slop, calibrate, autoresearch) were removed on 2026-11-15 after two weeks unused in quarantine.
  */
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";

@@ -1,5 +1,22 @@
 # ulw-research — final materials, gates, and closing briefing
 
+## Success criteria
+
+The research is done when all of these hold:
+
+- Every axis from the Phase 0 brief was covered by at least one dedicated member or lane.
+- Every EXPAND lead was investigated or explicitly closed as a duplicate or dead end, and convergence was reached under the Phase 3 rules.
+- Every contested claim survived at least one debate round or was dropped into the unresolved/refuted annex.
+- Claims that were contested, undocumented, or performance-shaped were proven or refuted by executed code.
+- Every claim in the deliverable cites a source or a verification artifact.
+- Every asserted claim is represented in the claim graph, tied to an intent-vs-reality diff when an expected truth exists, and backed by observation manifest entries from independent observation groups or a documented single-source exception; convergence or exception status is explicit.
+- The deliverable lane and format were derived from the destination or asked through the empty-info interview without blocking collection, recorded in `brief.md` with `answered_by`, and the final materials match that record.
+- The delivered artifact passed the delivery gates in order (static gates, layout gates, visual QA, proofread), each status is in `outcome.json`, and `outcome verify` passed.
+- Every excursion opened during the run was closed by an EXIT rule, folded back into the claim or axis that triggered it, and recorded in both `excursion-log.md` and the markdown Claim Ledger (`$SESSION_DIR/claim-graph.md`).
+- The delivery message carries the closing briefing printed by `outcome briefing`: sources (total + unique domains), elapsed minutes, every promised deliverable with its status, and any residual defects.
+- The session journal reconstructs what was searched, found, expanded, and debated, wave by wave, and it was written in real time rather than reconstructed at the end.
+- Every spawned subagent returned and was accounted for (result journaled or lane explicitly closed) before the final answer — Antigravity subagents terminate on completion, so "done" means every result landed, not a team object deleted.
+
 The promised formats recorded in `brief.md` and `outcome.json` are binding; `pdf` + `docx` is the default pair only when a document was asked for with no format word and no destination:
 
 | Target | How |

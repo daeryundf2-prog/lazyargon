@@ -14,7 +14,7 @@
 
 ## Planning Through `/ulw`
 
-When planning is needed, `designpowers` supplies design-specific context and lets `/ulw` own the plan artifact. Do not write a separate design plan. The Prometheus plan should receive:
+When planning is needed, `designpowers` supplies design-specific context and lets `/ulw` (`ulw-plan`) own the plan artifact. Do not write a separate design plan. The `/ulw` (`ulw-plan`) plan should receive:
 
 - product or page goal;
 - primary tasks and user journeys;
@@ -35,7 +35,7 @@ When a plan is approved or selected, `/ulw` remains the orchestrator. `designpow
 - required `/visual-qa` loading for rendered visual proof;
 - the design debt rule: unresolved accessibility debt cannot disappear into a summary.
 
-Direct implementation outside `/ulw` is not part of this routing contract when a Prometheus plan is active.
+Direct implementation outside `/ulw` is not part of this routing contract when a `/ulw` (`ulw-plan`) plan is active.
 
 ## UI Build Through Frontend `design` And `perfection`
 

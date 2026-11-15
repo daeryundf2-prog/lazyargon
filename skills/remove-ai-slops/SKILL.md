@@ -1,6 +1,6 @@
 ---
 name: remove-ai-slops
-description: "Removes AI-generated code smells from branch changes or an explicit file list behind regression tests. Use when the user asks to clean up, deslop, or remove AI-slop patterns from recent changes."
+description: "Removes AI-generated code smells from branch changes or an explicit file list behind regression tests, including junk tests (prose pins, source greps, copied inventories, mock echoes), each proven by its class's rule before a cut. Use when the user asks to clean up, deslop, remove AI-slop patterns, or prune tests from recent changes."
 ---
 
 ## Antigravity Harness Tool Compatibility
@@ -32,72 +32,32 @@ The core safety invariant: **behavior is locked by green tests before a single l
 
 ## Categories (what counts as slop)
 
-The agent looks for these ten categories. The first three are stylistic, the next four are structural, the next two are about hidden cost, and the last is about behavior coverage.
+The agent looks for these ten categories. The first three are stylistic, the next three are structural, the next two are about hidden cost, the ninth is tests, and the last is size.
 
 ### Stylistic
-1. **Obvious comments** — comments restating code, trivial docstrings, section dividers, commented-out code, vague TODOs/Notes.
-   - KEEP: comments explaining WHY (business logic, edge cases, workarounds), ticket links, regex/algorithm explanations.
-   - KEEP: BDD markers (`# given`, `# when`, `# then`, `# when/then`).
-
-2. **Over-defensive code** — null checks for guaranteed values, try/except around code that cannot raise, isinstance checks for statically typed params, default values for required params, backward-compat shims, redundant validation duplicated at multiple layers, **broad exception catching** (`except Exception`/`except BaseException` in Python, empty `catch {}` or `catch (e) { console.error(e) }` without narrowing in TypeScript/JavaScript).
-   - KEEP: validation at system boundaries (user input, external APIs), I/O error handling, nullable DB fields. Top-level boundary catch-all (CLI `main()`, HTTP handler) with explicit logging + re-raise is acceptable.
-   - REFACTOR: `except Exception` → catch the specific exception you expect. Empty `catch {}` → add `instanceof` narrowing or re-throw. `catch (e) { log(e) }` → narrow with `instanceof`, handle known cases, re-throw unknown.
-   - PROOF REQUIRED: before deleting any validation or error handling at a trust boundary, Phase 2 must include an **adversarial** regression (malformed or hostile input) that fails if the guard is removed. No adversarial test → the guard stays. Redundant defense to remove is a duplicate of a check that already runs *inside* the boundary; a guard with no proof of redundancy is load-bearing.
-
-3. **Excessive complexity** — deep nesting (>3 levels), nested ternaries, complex boolean expressions (combine 4+ predicates), long parameter lists (>5 args without a struct/dataclass/object), god functions (>50 lines doing many things), overly clever one-liners that sacrifice readability, `if/elif/else` chains for type/enum/literal discrimination (must be `match/case` + `assert_never`), `object` used as a type annotation (must be `Protocol`, `TypeVar`, or explicit union).
-   - KEEP: established complexity patterns in this codebase, performance-critical hot paths that intentionally use a complex idiom. `if/else` for boolean conditions and range checks (not variant discrimination).
-   - REFACTOR: nested if-chains → guard clauses / early returns. Complex ternaries → explicit if/else. isinstance/enum if/elif chains → `match/case` with `assert_never` on the wildcard. `object` annotations → `Protocol` (structural), `TypeVar` (generic), or union (known variants).
+1. **Obvious comments** — remove comments restating code, trivial docstrings, section dividers, commented-out code, and vague TODOs/Notes; KEEP comments explaining WHY (business logic, edge cases, workarounds), ticket links, regex/algorithm explanations, and BDD markers (`# given`, `# when`, `# then`, `# when/then`).
+2. **Over-defensive code** — remove null checks for guaranteed values, try/except around non-raising code, `isinstance` on statically typed params, defaults on required params, backward-compat shims, duplicate multi-layer validation, and **broad exception catching** (`except Exception`/`except BaseException`, empty `catch {}`, or un-narrowed `catch (e) { console.error(e) }` — REFACTOR to specific exceptions or `instanceof` narrowing + re-throw); KEEP boundary validation, I/O error handling, nullable DB fields, and top-level boundary catch-alls (CLI `main()`, HTTP handler) with explicit logging + re-raise. **PROOF REQUIRED**: before deleting any validation or error handling at a trust boundary, Phase 2 must include an **adversarial** regression (malformed or hostile input) that fails if the guard is removed (no adversarial test → the guard stays; only a proven duplicate of an inner check is removable).
+3. **Excessive complexity** — refactor deep nesting (>3 levels → guard clauses / early returns), nested ternaries (→ explicit `if/else`), 4+ predicate booleans, >5-arg parameter lists, >50-line god functions, overly clever one-liners, type/enum/literal `if/elif/else` chains (must be `match/case` + `assert_never` on wildcard), and `object` type annotations (must be `Protocol`, `TypeVar`, or explicit union); KEEP established codebase complexity patterns, intentional hot-path idioms, and `if/else` for boolean conditions and range checks.
+- Full stylistic category rules (KEEP, REFACTOR, and boundary adversarial proof requirements): [references/categories.md](references/categories.md)
 
 ### Structural
-4. **Needless abstraction** — pass-through wrappers, single-use helpers, speculative indirection ("we might need this later"), interfaces with one implementer where the interface adds no testability win, factory functions that just call a constructor.
-   - KEEP: abstractions that provide a real seam (testability, multiple implementers, framework-required boundaries).
-
-5. **Boundary violations** — wrong-layer imports (UI importing DB driver), leaky responsibilities (handler doing business logic that belongs in a service), hidden coupling (module A reads module B's private state), side effects in pure-named functions.
-   - KEEP: pragmatic short-circuits already established as a pattern in this codebase. Flag for human judgment if unsure.
-
-6. **Dead code** — unused imports, unused private functions/methods, unreachable branches, stale feature flags, debug leftovers (`console.log`, `print(...)`, `dbg!`), removed-but-still-referenced code.
-   - KEEP: code referenced via reflection, dynamic dispatch, or string lookup. Code intentionally kept as a feature flag rollback path (verify with the user).
+4. **Needless abstraction** — remove pass-through wrappers, single-use helpers, speculative indirection ("we might need this later"), single-implementer interfaces with no testability win, and constructor-only factories; KEEP abstractions that provide a real seam (testability, multiple implementers, framework-required boundaries).
+5. **Boundary violations** — fix wrong-layer imports (UI importing DB driver), leaky responsibilities (handler doing service business logic), hidden coupling (reading another module's private state), and side effects in pure-named functions; KEEP pragmatic short-circuits already established in this codebase and flag for human judgment if unsure.
+6. **Dead code** — remove unused imports, unused private functions/methods, unreachable branches, stale feature flags, debug leftovers (`console.log`, `print(...)`, `dbg!`), and removed-but-still-referenced code; KEEP code referenced via reflection, dynamic dispatch, string lookup, or intentional feature-flag rollback paths (verify with the user).
+- Full structural category catalog and KEEP rules: [references/categories.md](references/categories.md)
 
 ### Hidden cost
-7. **Duplication** — copy-pasted branches with trivial differences, redundant helpers that do the same thing in two places, repeated literal/magic-number sequences.
-   - KEEP: incidental duplication (two pieces of code that look similar but serve different intents that could diverge). Prefer leaving them separate over forcing a premature shared abstraction.
+7. **Duplication** — consolidate copy-pasted branches with trivial differences, redundant helpers doing the same thing in two places, and repeated literal/magic-number sequences; KEEP incidental duplication where similar-looking code serves different intents that could diverge.
+8. **Performance equivalences (behavior-preserving optimizations)** — apply provably equivalent optimizations (`O(n²) → O(n)` set lookup vs list scan, hoisting repeated loop computation, generator over single-pass `list(...)`, `join` over loop string concatenation, batching loop DB/API calls, removing redundant deep copies/clones, caching `.length`/`len()` in loops). **Hard rule**: only apply when behavior equivalence is obvious; do NOT change algorithms with subtle correctness implications, do NOT micro-optimize hot paths without a benchmark, and if in doubt, SKIP.
+- Full duplication and performance-equivalence catalog: [references/categories.md](references/categories.md)
 
-8. **Performance equivalences (behavior-preserving optimizations)** — changes that are provably equivalent in semantics but cheaper in time/space:
-   - O(n²) → O(n) when correctness preserved (e.g., set lookup vs list scan)
-   - Repeated computation inside a loop → hoist outside
-   - Unnecessary intermediate collections (eager `list(...)` when only iterated once → generator)
-   - String concatenation in loop → `join`
-   - Redundant DB/API calls in a loop → batch
-   - Redundant deep copies / clones
-   - `.length` / `len()` recomputed inside loop → cache
+### Tests
+9. **Tests: missing or junk** — judge every in-scope test by `../programming/references/testing/junk-classes.md`: (a) **Missing**: add the narrowest test passing the four-question authoring gate (`../programming/references/testing/README.md`) and naming its owner contract (PROSE files like prompt/`SKILL.md`/rule/markdown cover only machine-consumed values or leave to review); (b) **Junk**: mark every in-scope test declaration `R`/`F`/`C`/`D` (re-mark misnamed tests by their assertions, never cut for name) and prove every `D` or `C` by its class's rule BEFORE the cut (serial orchestrator mutations in Phase 4b where `D` requires keeper red + candidate green or both red, while candidate-only red is `R` or `C` into keeper; prose pin, change certificate, seam keeper via `knip`/grep, copied inventory, capability restatement or `F` if no delivery test, and near-duplicate table consolidation + typecheck; delete any test-only production seam whose last test was cut); (c) **KEEP**: everything under the retention bar (public API, protocol, config, migration, storage, security, platform, shipped-copy equality, Node-compat suites, issue regressions, machine-consumed text), never delete static/slow tests for being static/slow, and report baseline-red tests as product bugs rather than deleting them.
+- Full missing/junk test rules, per-class proof requirements, and retention bar: [references/categories.md](references/categories.md)
 
-   **Hard rule**: only apply when behavior equivalence is obvious. Do NOT change algorithms with subtle correctness implications. Do NOT micro-optimize hot paths without a benchmark. If in doubt, SKIP.
-
-### Behavior coverage
-9. **Missing tests** — behavior present in changed files that is not locked by any regression test. The fix is not to remove code but to ADD the narrowest test that pins the behavior. EXCEPTION: a PROSE file (prompt, `SKILL.md`, rule, markdown) has no behavioral seam — do NOT add a text/word-count/phrase pin for it; that guards a diff, not behavior. Cover only a machine-consumed value (parsed field, sentinel a runtime greps, a doc JSON sample through its real validator) or leave it to review.
-
-### Structural
-10. **Oversized modules** — any source file exceeding **250 pure LOC** (non-blank, non-comment lines). This is an architectural defect, not a style preference.
-    - Measure (POSIX): `awk '!/^[[:space:]]*$/ && !/^[[:space:]]*(#|\/\/)/' <file> | wc -l`
-    - Measure (Cross-platform Python): `python -c "import re,sys; print(sum(1 for l in open(sys.argv[1],encoding='utf-8') if l.strip() and not re.match(r'^\s*(#|//|--)',l)))" <file>`
-    - Measure (PowerShell): `(Get-Content <file> | Where-Object { $_ -notmatch '^\s*$' -and $_ -notmatch '^\s*(#|//|--)' }).Count`
-
-   **When found, do NOT just flag it. Execute a full modular refactoring:**
-   1. Run the language-matching `check-no-excuse-rules` script recursively on scope to list all violations — `skills/programming/scripts/{python,rust}/check-no-excuse-rules.py`, `skills/programming/scripts/typescript/check-no-excuse-rules.ts`, or `skills/programming/scripts/{rust,go}/check-no-excuse-rules.sh`.
-   2. For each oversized file, identify distinct responsibilities (single-responsibility principle).
-   3. Plan the split: name each new file after the concept it owns (never `utils.py`, `helpers.py`, `common.py`, `part_1.py`).
-   4. Present the split plan to the user before executing.
-   5. Extract into clean modules with explicit `__init__.py` re-exports (re-exports ONLY, no logic in `__init__.py`).
-   6. Verify: run the same `check-no-excuse-rules` script again — every file must be ≤250 pure LOC. Run tests, typecheck, lint.
-
-   **Forbidden escapes**:
-   - Counting blanks/comments toward budget.
-   - Splitting by token count (`foo_1.py`, `foo_2.py`) — split by what each file DOES.
-   - Catch-all dump files (`utils.py`, `helpers.py`, `service.py`).
-   - "It's generated" — only valid if the file lives in a build output directory.
-   - "230 LOC, close enough" — a 230-LOC file about to grow is already over. Split now.
-
-   KEEP: genuinely self-contained single-responsibility scripts (e.g., a standalone CLI checker). Opt out with `# noqa: SIZE_OK` in first 5 lines and a comment explaining why.
+### Size
+10. **Oversized modules** — any source file exceeding **250 pure LOC** (non-blank, non-comment lines; POSIX measure: `awk '!/^[[:space:]]*$/ && !/^[[:space:]]*(#|\/\/)/' <file> | wc -l`, or `uv run <programming skill dir>/scripts/python/check-no-excuse-rules.py <paths>` rule `oversized-module` for `.py` files only) is an architectural defect requiring full modular refactoring: (1) measure and list every oversized file in scope, (2) identify single responsibilities, (3) plan concept-named splits (never `utils.py`, `helpers.py`, `common.py`, `service.py`, `part_1.py`, or `foo_1.py`/`foo_2.py` token splits), (4) present the split plan to the user before executing, (5) extract into clean modules with re-export-only `__init__.py`, and (6) re-measure (all ≤250 pure LOC) and run tests, typecheck, and lint; no counting blanks/comments, no "230 LOC, close enough", and no "it's generated" outside build output directories (KEEP standalone single-responsibility scripts only with `# noqa: SIZE_OK` or `// allow: SIZE_OK` in the first 10 lines plus a WHY comment).
+- Full cross-platform LOC measurement commands (POSIX, Python, PowerShell), 6-step modular refactoring procedure, and forbidden escapes: [references/categories.md](references/categories.md)
 
 ---
 
@@ -133,183 +93,50 @@ Filter out: deleted files, binary files, generated/vendored files (`node_modules
 
 ### Phase 2: Lock behavior with regression tests (NEW — non-negotiable)
 
-For each in-scope source file:
-
-1. Identify the public/observable behavior the file exposes (exported functions, HTTP handlers, CLI commands, classes used elsewhere).
-2. Check whether existing tests cover that behavior. Use `git grep` / project test conventions to find related test files.
-3. **If behavior is uncovered or weakly covered, write the narrowest regression test that pins current behavior BEFORE editing the file.** Tests should pin observable outputs, not implementation details. A PROSE file (prompt/`SKILL.md`/rule/markdown) is exempt — its wording is not behavior; skip the test and rely on review, or assert only a machine-consumed value.
-4. Run the test suite (or at minimum the relevant tests). They must be **green** before any cleanup begins.
-
-If you cannot establish a green baseline (e.g., test runner is broken), STOP and report. Do not proceed with cleanup on unverified ground.
+- For each in-scope source file: (1) identify public/observable behavior, (2) check existing test coverage (`git grep` / test conventions), (3) **if uncovered, write the narrowest test passing the authoring gate (`../programming/references/testing/README.md`) BEFORE editing the file** (asserting observable boundary outputs, never implementation shape or values derived from the code under test; PROSE files like prompt/`SKILL.md`/rule/markdown are exempt unless asserting a machine-consumed value), (4) run the test suite (record unchanged baseline-red tests as bugs excluded from proofs and neither fixed nor deleted; everything else must be **green**, and STOP if the runner is broken), and (5) run `bun run <programming skill dir>/scripts/typescript/check-test-junk.ts <test files>` over all in-scope test files (including step 3 additions, rewriting any step 3 test it flags and adding existing findings as category-9 candidates for the Tests Ledger).
+- Full 5-step Phase 2 behavior-locking procedure: [references/execution-phases.md](references/execution-phases.md)
 
 ### Phase 3: Cleanup plan — existence first, then smells
 
-The largest, safest deletion is code that should not have existed. **Before categorizing smells, run the deletion ladder on each changed unit:**
-
-- **Delete entirely** — the behavior is not needed (YAGNI, speculative, dead on arrival).
-- **Reuse** — an existing helper or pattern in this repo already does it; replace the reimplementation with a call to it.
-- **Platform / stdlib / native / dependency** — the language stdlib, the runtime, or an already-installed dependency already does it (a hand-rolled date picker → `<input type="date">`, a custom query parser → `URLSearchParams`, a bespoke debounce → the util already imported).
-- **Simplify in place** — it must exist; make it smaller.
-
-Only code that lands on **Simplify in place** proceeds to the smell categories. This turns the pass from "find smells to trim" into "first decide whether the code should exist, then trim what survives." One function replaced by a platform call is a bigger, safer win than any in-place cleanup — and it needs no per-line smell analysis.
-
-For a diff that **fixes a bug**, grep the callers of every shared function it touches. Prefer one root-cause fix at the shared seam over repeated guards at each caller — a per-caller patch that leaves a sibling caller broken is a partial fix, not a cleanup.
-
-Then produce an explicit plan **before** spawning the removal agents:
-
-```
-File: src/foo.py
-  Ladder: 2 units simplify-in-place; 1 unit delete (native <input> replaces custom picker)
-  Categories: dead code, excessive complexity, performance
-  Order: dead code → complexity → performance
-  Risk: medium (touches caching layer)
-
-File: src/bar.py
-  Ladder: all simplify-in-place
-  Categories: obvious comments, over-defensive
-  Order: comments → defensive
-  Risk: low
-```
-
-**Intentional shortcuts:** if the plan deliberately keeps a bounded simplification (a naive scan fine under N rows, a global lock, an O(n²) path), mark it in-code with a `debt:` comment naming the ceiling and the upgrade trigger, and list it under "Remaining Risks / Deferred" in the report. That section is the debt ledger — a simplification with a known ceiling and no marker is indistinguishable from a bug.
-
-Order rule (safest → riskiest): comments → dead code → defensive → duplication → complexity → abstraction/boundary → performance → tests → oversized-modules. This minimizes blast radius of any one change.
+- **Run the deletion ladder on each changed unit before categorizing smells**: (1) **Delete entirely** (YAGNI, speculative, dead on arrival; or category-9 test with proof), (2) **Reuse** an existing repo helper or pattern, (3) **Platform / stdlib / native / dependency** replacement (`<input type="date">`, `URLSearchParams`, existing imported util), (4) **Simplify in place** (only code landing here proceeds to smell categories).
+- **Bug-fix diffs, `debt:` markers, and order rule**: grep callers of every touched shared function and fix the shared seam once rather than per-caller guards; produce an explicit per-file plan (`Ladder`, `Categories`, `Order`, `Risk`) before spawning removal agents; mark intentional bounded simplifications in-code with a `debt:` comment naming ceiling and upgrade trigger (listed under "Remaining Risks / Deferred"); and apply the safest → riskiest order rule: `comments → dead code → defensive → duplication → complexity → abstraction/boundary → performance → tests (F rows; D/C wait for Phase 4b) → oversized-modules`.
+- Full deletion ladder rationale and worked cleanup plan example: [references/execution-phases.md](references/execution-phases.md)
 
 ### Phase 4: Parallel slop removal via `invoke_subagent` (`Model: "inherit"`) in batches of 3–5
 
-Files are processed by subagents (`Model: "inherit"`), **batched up to 3–5 at a time in parallel** via parallel flat `invoke_subagent` calls in the same turn. `Model: "inherit"` gives the agent high speed and thoroughness to correctly evaluate the 10 categories and respect the KEEP rules without slipping into surface fixes.
+- **Strict batching protocol**: (1) slice in-scope files into chunks of 3–5 files (if ≤5 files, launch all in one batch); (2) launch all subagents in the chunk **in parallel in a single turn** with one flat `invoke_subagent({ TypeName: "self", Role: "Slop Remover", Model: "inherit", Prompt })` call per file (never wrap in `Subagents: [...]` or pass `toolAction`/`toolSummary`, **never** launch >5 files at once, and **never** launch serially when >1 file remains in the batch); (3) end your turn and wait for reactive wakeup via `send_message`; (4) collect batch results before starting the next batch.
+- **Per-file worker prompt rules**: run the Phase 3 deletion ladder first, then evaluate EVERY category in `Categories (what counts as slop)` with KEEP and REFACTOR rules verbatim in safest → riskiest order; for a test file, apply `F` rows and return one ledger row per `D`/`C`/`F` (`| test | mark | keeper or reason | proposed proof |`) without cutting `D`/`C` or mutating any file; preserve behavior (SKIP when equivalence is not obvious), do NOT change public API signatures, do NOT remove type hints, do NOT introduce new abstractions or dependencies, keep the diff minimal, report changes grouped by category, and run tests and typecheck.
+- Full batching rationale and verbatim per-file `invoke_subagent` JSON prompt template: [references/execution-phases.md](references/execution-phases.md)
 
-**Batching protocol** (strict):
+### Phase 4b: Prove the test cuts, serially, then cut
 
-1. Slice the in-scope file list into chunks of up to 3–5 files.
-2. For each chunk, launch all subagents **in parallel in a single turn** with one flat `invoke_subagent({ TypeName, Role, Model, Prompt })` call per file (never wrap in `Subagents: [...]` or pass `toolAction`/`toolSummary`).
-3. Stop tool calling to end your turn. Reactive wakeup will trigger when each subagent finishes via `send_message`.
-4. Once all in the batch complete, collect results and proceed to the next batch. Repeat until every file is processed.
-5. If total files ≤ 5, launch all in one batch.
-
-**Never** launch all files at once when there are more than 5; **never** launch them serially when more than one remains in the current batch.
-
-**Per-file `invoke_subagent` call** (flat top-level arguments):
-
-```json
-{
-  "TypeName": "self",
-  "Role": "Slop Remover",
-  "Model": "inherit",
-  "Prompt": "TASK: Remove AI slops from: {file_path}\n\nFirst run the deletion ladder from Phase 3 on this file (delete entirely / reuse existing repo code / platform-stdlib-native / simplify in place); only code that must exist proceeds to smell removal.\n\nThen evaluate EVERY category defined in this skill's 'Categories (what counts as slop)' section, applying that section's KEEP and REFACTOR rules verbatim.\n\nApply changes in this order (safest → riskiest): comments → dead code → defensive → duplication → complexity → abstraction/boundary → performance → oversized-modules.\n\nHard constraints:\n- Behavior MUST be preserved. When equivalence is not obvious, SKIP.\n- Do NOT change public API signatures.\n- Do NOT remove type hints.\n- Do NOT introduce new abstractions or dependencies.\n- Diff stays minimal and scoped to slop removal.\n\nDELIVERABLE: Report changes grouped by category with before/after, why-slop, why-safe. For each skipped issue, give reason.\nSCOPE: {file_path}\nVERIFY: Run tests and typecheck."
-}
-```
-
-**Batch failure handling**: When an agent completes without the deliverable or fails, retry once. Do NOT block the remaining files in the batch. If retry also fails, escalate that file under 'Issues Found & Fixed' in the final report.
+- **Serial mutation and non-mutation proofs**: after the last batch finishes and no worker or test run is live, the orchestrator serially runs `bun run <programming skill dir>/scripts/typescript/mutation-proof.ts --file <owner> --find <text> --replace <text> --test 'candidate=<argv>' --test 'keeper=<argv>'` (with `--json`; use a wrapper script or file-path target if a `--test` filter contains spaces) one mutation at a time (never two on the same file), verifying byte-for-byte sha256 restoration of the owner before the next row, and checks non-mutation proofs (prose pin, change certificate, seam keeper, copied inventory, capability restatement, near-duplicate cases); only rows proven per the table are cut, while a `D` or `C` whose proof fails or was not run becomes an `R`.
+- **Batch failure handling**: if a subagent returns without the deliverable, ack-only after follow-up, `BLOCKED: <reason>`, or fails, do NOT block the batch — collect successful results, retry the failed file once later, and if retry also fails, escalate under "Issues Found & Fixed".
+- Full serial mutation-proof procedure and batch failure handling details: [references/execution-phases.md](references/execution-phases.md)
 
 ### Phase 5: Verify with quality gates + critical review
 
-Run the five quality gates listed above. Then walk the critical review checklist:
-
-**Safety**:
-- [ ] No functional logic accidentally removed
-- [ ] All error handling preserved (especially around I/O, network, external APIs)
-- [ ] Type hints intact and correct
-- [ ] Imports still valid
-- [ ] No breaking changes to public APIs
-
-**Behavior**:
-- [ ] Return values unchanged (verified by Phase 2 regression tests)
-- [ ] Side effects unchanged
-- [ ] Exception behavior unchanged
-- [ ] Edge case handling preserved
-
-**Quality**:
-- [ ] Removed changes are genuinely slop, not intentional patterns
-- [ ] Remaining code follows project conventions
-- [ ] No orphaned code or dead references
-- [ ] Performance changes are obviously equivalent (no subtle algorithm shifts)
-- [ ] No new abstractions introduced
+- Run all five quality gates above, then walk every item of the critical review checklist across **Safety** (no functional logic removed, all I/O/network/external API error handling preserved, type hints intact and correct, imports valid, no breaking changes to public APIs), **Behavior** (return values unchanged per Phase 2 regression tests, side effects unchanged, exception behavior unchanged, edge case handling preserved), and **Quality** (removed changes are genuinely slop rather than intentional patterns, remaining code follows project conventions, no orphaned code or dead references, performance changes are obviously equivalent with no subtle algorithm shifts, no new abstractions introduced).
+- Full critical review checklist (Safety, Behavior, Quality): [references/report-and-checklists.md](references/report-and-checklists.md)
 
 ### Phase 6: Fix issues
 
-If any gate fails or any checklist item flips:
-
-1. Identify the specific change that caused the failure.
-2. Explain why it broke things.
-3. `git checkout` the affected file (or use `git diff` + targeted `Edit` to revert just the problematic hunk).
-4. If genuine slop remains after revert, edit the file directly yourself — in parallel per file via multiple Edit calls — applying only the changes you can prove are safe.
-5. Re-run the failing gate and re-walk the checklist for the affected file.
-6. Repeat until all gates green AND checklist clean.
-
-If you fail three times on the same file, STOP and escalate to the user with: the file, what you tried, what failed, your hypothesis. Do not keep editing.
+- If any gate fails or any checklist item flips: (1) identify the specific change that caused the failure, (2) explain why it broke things, (3) `git checkout` the affected file (or use `git diff` + targeted `replace_file_content` to revert just the problematic hunk), (4) if genuine slop remains after revert, edit the file directly via parallel `replace_file_content` calls applying only provably safe changes, (5) re-run the failing gate and re-walk the checklist, and (6) repeat until all gates are green and the checklist is clean; if you fail three times on the same file, STOP and escalate to the user with the file, what you tried, what failed, and your hypothesis.
+- Full 6-step revert/fix procedure and 3-strike escalation rule: [references/report-and-checklists.md](references/report-and-checklists.md)
 
 ---
 
 ## Output Format
 
-```text
-AI SLOP REMOVAL REPORT
-======================
-
-Scope: [branch diff vs merge-base main / explicit file list]
-Files: [N files]
-  - path/to/file1.ts
-  - path/to/file2.py
-
-Behavior Lock:
-  - Existing coverage: [N files already covered]
-  - Tests added: [M new regression tests at path/to/test_X.py]
-  - Baseline status: GREEN
-
-Cleanup Plan:
-  - path/to/file1.ts: [ladder: 1 delete (native) + simplify-in-place] → [dead code → complexity → performance]
-  - path/to/file2.py: [ladder: all simplify-in-place] → [comments → defensive]
-
-Per-File Results (each cut shows what replaces it):
-  path/to/file1.ts
-    - Ladder/delete: custom DatePicker (48 lines) → <input type="date"> (native), flatpickr import removed
-    - Dead code: 3 removed (lines X-Y, A-B, C) → nothing (unreachable)
-    - Excessive complexity: 1 simplified (nested ternary at L42 → if/else)
-    - Performance: 1 (line N: list scan → set lookup, O(n²)→O(n), behavior identical)
-    - Skipped (preserved): 2 (defensive null check at boundary; commented WHY at L88)
-
-  path/to/file2.py
-    - Obvious comments: 5 removed → nothing
-    - Over-defensive: 1 simplified (redundant isinstance on typed param)
-
-Quality Gates:
-  - Regression tests: PASS (12 tests, 0 failed)
-  - Lint: PASS
-  - Typecheck (lsp_diagnostics + project): PASS (0 new errors on changed files)
-  - Unit/integration tests: PASS (45 tests, 0 failed)
-  - Static/security scan: N/A (not configured)
-
-Critical Review:
-  - Safety: PASS
-  - Behavior: PASS
-  - Quality: PASS
-
-Issues Found & Fixed:
-  - [None] OR [Issue description → Fix applied]
-
-Net Impact:
-  - LOC: -74 (removed 91, added 17)
-  - Dependencies: -1 (flatpickr removed; native <input type="date"> used)
-  - Files deleted: 1 (src/date-picker-wrapper.ts — platform-native replacement)
-
-Remaining Risks / Deferred (this section is the debt ledger):
-  - [None] OR [e.g., "boundary violation in module X flagged but not refactored — needs human judgment"]
-  - `debt:` markers kept this pass: [None] OR [file:line — ceiling → upgrade trigger]
-
-Final Status: CLEAN | ISSUES FIXED | REQUIRES ATTENTION
-```
+- Emit the `AI SLOP REMOVAL REPORT` containing `Scope`, `Files`, `Behavior Lock` (`Existing coverage`, `Tests added`, `Baseline status` with baseline-red list), `Cleanup Plan`, `Per-File Results` (each cut showing what replaces it plus skipped items), `Tests Ledger` (`| Test | Mark | Keeper / reason | Proof |`), `Quality Gates`, `Critical Review` (`Safety`, `Behavior`, `Quality`), `Issues Found & Fixed`, `Net Impact` (`LOC`, `Dependencies`, `Files deleted`), `Remaining Risks / Deferred` (the debt ledger, including `debt:` markers kept this pass with `file:line — ceiling → upgrade trigger`), and `Final Status: CLEAN | ISSUES FIXED | REQUIRES ATTENTION`.
+- Full `AI SLOP REMOVAL REPORT` template and worked example: [references/report-and-checklists.md](references/report-and-checklists.md)
 
 ---
 
 ## Anti-Patterns (do not do these)
 
-- **Skipping Phase 2.** Removing code on uncovered ground is a behavior-change time bomb regardless of how careful the agent is. The regression test IS the safety mechanism; the checklist is its complement, not its replacement.
-- **Bundling unrelated refactors.** A single "cleanup" commit with dead code deletion + abstraction removal + performance change is impossible to review and impossible to bisect. Stay scoped to slop.
-- **Algorithm changes disguised as performance optimization.** If equivalence requires a proof, it is not a slop fix — it is a refactor and belongs in a separate change.
-- **Silent skips.** If a quality gate is N/A, say `N/A` and why. If a check failed and you could not fix it, say so. Never claim PASS without evidence.
-- **Removing comments that explain WHY.** "It is obvious from the code" is rarely true for the next reader. Only remove comments that restate WHAT.
-- **Touching files outside scope.** If a file was not in the branch diff or explicit list, do not edit it, even if you notice slop in passing. Report it under "Remaining Risks".
+- Do NOT skip Phase 2 (regression tests lock behavior; checklists do not), bundle unrelated refactors, disguise algorithm changes as performance optimizations, silently skip N/A or failed gates, remove comments that explain WHY (only remove comments that restate WHAT), or touch files outside scope (report out-of-scope slop under "Remaining Risks").
+- Full anti-patterns list and rationale: [references/report-and-checklists.md](references/report-and-checklists.md)
 
 ---
 
@@ -318,14 +145,12 @@ Final Status: CLEAN | ISSUES FIXED | REQUIRES ATTENTION
 - When a tool call fails, retry with adjusted parameters.
 - Never silently skip a failed tool call.
 - Never claim a gate passed without running it and reading the output.
-- If correctness depends on further inspection, keep using `lsp_diagnostics`, the test runner, and direct file reads until the result is grounded.
+- If correctness depends on further inspection, keep using the project type-checker, the test runner (`run_command`), and direct file reads (`view_file`) until the result is grounded.
 
 ---
 
 ## Quality Assurance
 
 - NEVER remove code that serves a functional purpose.
-- ALWAYS verify changes compile/parse and pass type-check.
-- ALWAYS preserve test coverage; add tests rather than remove them.
-- If uncertain about a change, err on the side of keeping the original code.
-- The default action when in doubt is SKIP, not GUESS.
+- Preserve every proven contract: a test leaves only with its proof receipt (category 9), and a missing contract gets a gate-passing test, never a change certificate.
+- When in doubt, SKIP and keep the original; never GUESS.

@@ -297,6 +297,27 @@ zerocopy = { version = "0.8", features = ["derive"] }
 
 ## Reference Index
 
+### Rust (`.rs`, `Cargo.toml`)
+
+**READ `references/rust/README.md` FIRST.** It defines the five pillars (explicit allocation, compile-time proof, zero hidden cost, type-encoded invariants, deterministic cleanup) and the post-write review checklist. Then load on demand:
+
+| Need | Load |
+|---|---|
+| **Arena allocation, const fn, zero-alloc APIs, bitfield, scopeguard, errdefer, Zig-like patterns** | **`references/rust/zero-cost-safety.md`** |
+| Strict `Cargo.toml` lints + profile + workspace config | `references/rust/cargo-strict.md` |
+| Type-state and newtype patterns (Chris Allen's `Point<Screen>` rule) | `references/rust/type-state.md` |
+| `unsafe` discipline (safe wrapper + SAFETY comment + miri proof) | `references/rust/unsafe-discipline.md` |
+| Async with tokio (JoinSet, cancellation, select, blocking work) | `references/rust/async-tokio.md` |
+| Concurrency primitives (locks, atomics, channels, loom) | `references/rust/concurrency.md` |
+| axum + sqlx + tracing + tower HTTP stack | `references/rust/axum-stack.md` |
+| clap + color-eyre + tracing + indicatif CLI stack | `references/rust/clap-stack.md` |
+| Public API design (naming, conversions, traits, rustdoc sections) | `references/rust/api-design.md` |
+| Declarative and procedural macros | `references/rust/macros.md` |
+| Property tests (proptest) + snapshot tests (insta), test placement, doctests | `references/rust/proptest-insta.md` |
+| Disposable `rust-script` scripts | `references/rust/one-liners.md` |
+| Canonical library defaults | `references/rust/libraries.md` |
+| **ANY `unsafe` / FFI / `MaybeUninit` / lock-free work** | **`references/rust-ub/` (full directory)** |
+
 | File | When to Load |
 |---|---|
 | [zero-cost-safety.md](zero-cost-safety.md) | Arena, allocator, const fn, comptime, zero-alloc, bitfield, repr, scopeguard, errdefer, Zig-like patterns |

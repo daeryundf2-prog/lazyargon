@@ -66,12 +66,33 @@ Read these per-file references for the canonical patterns:
 - **HTTP backend** → `backend-stack.md` — `gin` server skeleton, middleware ordering, SSE/streaming with `http.Flusher`, structured slog logging, graceful shutdown — distilled from the CLIProxyAPI codebase (a real proxy serving OpenAI/Gemini/Claude APIs).
 - **RPC** → `grpc-connect.md` — when to pick Connect vs grpc-go, codegen pipeline, protovalidate, streaming.
 - **DB** → `sqlc-pgx.md` — compile-time-safe SQL via sqlc + pgx connection pool + migrations via goose + testcontainers in CI.
-- **CLI** → `cobra-stack.md` — cobra layout, slog integration, graceful shutdown on signals, fang-style colored help.
+- **CLI** → `cobra-stack.md` — cobra layout, slog integration, graceful shutdown on signals, shell completions, `huh` prompts styled with `lipgloss`.
 - **TUI** → `bubbletea-v2.md` — v2 model, `SetVirtualCursor(false)` + `tea.View{Cursor}` for CJK IME, why v1 was broken for Korean/Japanese/Chinese input.
-- **Testing** → `testing.md` — table-driven tests, `require` vs `assert`, `autogold` snapshots, `gopter` property tests, `testcontainers` for integration, `goleak` for goroutine leaks.
-- **Bootstrap** → `bootstrap.md` — `scripts/go/new-project.py` invocation, project layout (`cmd/`, `internal/`, `pkg/`), Taskfile, CI.
+- **Testing** → `testing.md` — table-driven tests, `require` vs `assert`, `autogold` snapshots, `rapid` (and `gopter`) property tests, `testcontainers` for integration, `goleak` for goroutine leaks.
+- **Bootstrap** → `bootstrap.md` — `scripts/go/new-project.ts` (or `scripts/go/new-project.py`) invocation, project layout (`cmd/`, `internal/`, `pkg/`), Taskfile, CI.
 - **Strict config** → `golangci-strict.md` — the canonical `.golangci.yml` with the full linter whitelist and per-linter rationale.
 - **One-liners** → `one-liners.md` — `go run` scripts with `//go:build ignore`, `gorun`-style invocation.
+
+### Go (`.go`, `go.mod`, `go.sum`, `.golangci.yml`, `*.proto`)
+
+**READ `references/go/README.md` FIRST.** Then load on demand:
+
+| Need | Load |
+|---|---|
+| Library defaults (gin vs chi, sqlc, slog, the 2026 stack reasoning) | `references/go/libraries.md` |
+| Canonical strict `.golangci.yml` (v2) with per-linter rationale | `references/go/golangci-strict.md` |
+| Project layout, Taskfile, CI, `go.mod` template | `references/go/bootstrap.md` |
+| Type patterns (named types, smart constructors, sealed interfaces, generics) | `references/go/type-patterns.md` |
+| Data modeling — the three layers of validation (validator/v10 → smart ctor → sqlc) | `references/go/data-modeling.md` |
+| Error handling (`errors.Is/As`, typed errors, `%w` wrapping, no panic) | `references/go/error-handling.md` |
+| Concurrency (`context.Context`, `errgroup`, channels, locks, `-race`, `goleak`) | `references/go/concurrency.md` |
+| HTTP backend stack (gin + slog + validator + pgx, middleware ordering, SSE, WS) | `references/go/backend-stack.md` |
+| RPC stack (Connect-Go default, grpc-go fallback, protovalidate, Buf) | `references/go/grpc-connect.md` |
+| CLI stack (cobra + slog + huh) | `references/go/cobra-stack.md` |
+| Database stack (sqlc + pgx + goose + testcontainers) | `references/go/sqlc-pgx.md` |
+| TUI stack (bubbletea v2 + bubbles v2 + lipgloss v2; **CJK / IME support**) | `references/go/bubbletea-v2.md` |
+| Testing (Given/When/Then, table-driven, fakes-over-mocks, autogold, rapid) | `references/go/testing.md` |
+| Disposable `go run` scripts | `references/go/one-liners.md` |
 
 ## The 250 pure LOC ceiling
 
@@ -81,7 +102,7 @@ The `cmd/server/main.go` is the most common violator. Refactor it: `main.go` onl
 
 ## Existing codebases — non-strict project
 
-When editing an existing `.go` file that doesn't follow these rules: **write new code in strict style, don't refactor existing code in the same change.** Use the `remove-ai-slops` skill for branch-scope cleanup.
+When editing an existing `.go` file that doesn't follow these rules: **write new code in strict style, don't refactor existing code in the same change.** The one exception is the 250 pure-LOC ceiling: if your edit adds lines to a file already over it, split the unit you are touching into its own file first (see [`../code-smells.md`](../code-smells.md) Smell 1); everything else waits for a separate change. Use the `remove-ai-slops` skill for branch-scope cleanup.
 
 ## Activation
 

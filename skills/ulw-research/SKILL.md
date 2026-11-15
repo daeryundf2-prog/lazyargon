@@ -17,19 +17,10 @@ Open your reply with the line `ULW-RESEARCH MODE ENABLED!`. If another active mo
 
 ## How this maps to Antigravity subagents
 
-This skill is authored against the Antigravity `invoke_subagent` tool surface. You coordinate everything with these tools:
-
-| Purpose | Tool | Key arguments |
-|---------|------|---------------|
-| Stand up the research wave once | `invoke_subagent` | parallel flat `{ TypeName: "self", Role, Model, Prompt }` calls in the same turn — members start together |
-| Send a lead / a debate round onward | next-wave `Prompt` | subagents cannot receive follow-up messages mid-run — fold the lead into the next wave's prompt text |
-| Collect member replies | returned results | results arrive on completion; act on each as it lands |
-| Track shared research state | `$SESSION_DIR` files | `expansion-log.md`, `claim-graph.md`, `sources-ledger.md` are the shared board — workers report in reply text, you journal |
-| Spawn a bounded recon / expansion / verification lane | `invoke_subagent` entry | `Role` names the territory, `Model: "inherit"` for all lanes including `browser` (`"flash"` retired; `"flash_lite"` only for 0% primary quota emergency fallback), `Prompt` carries the full brief |
-| End a lane | — | subagents terminate when their prompt is complete; no explicit teardown tool exists |
-| Disband the wave at the end | — | no team object persists; "done" = every spawned subagent accounted for before the final answer |
-
-Subagents return their findings in their final reply text; they cannot see each other's replies except through what you relay in the next wave's prompts. You are the information broker. Read-only recon lanes and premium attack lanes differ only by `Model` tier and `Prompt` — Antigravity has no curated-agent registry, so every role is spelled out in its `Prompt`.
+- Stand up waves via parallel flat `invoke_subagent({ TypeName: "self", Role, Model: "inherit", Prompt })` calls in the same turn (`"flash"` retired; `"flash_lite"` only for 0% primary quota emergency fallback; every role is spelled out in `Prompt`).
+- Act as the information broker: subagents cannot see each other's replies or receive mid-run messages, so collect returned results on completion, fold leads and debate rounds into the next wave's `Prompt`, journal shared state in `$SESSION_DIR` (`expansion-log.md`, `claim-graph.md`, `sources-ledger.md`) while workers report only in reply text, and account for every spawned subagent before finishing (subagents terminate on completion).
+- Full Antigravity `invoke_subagent` tool-mapping table and broker mechanics: [references/wave-composition.md](references/wave-composition.md).
+- Model routing: `Model: "inherit"` for all lanes including `browser` (`"flash"` retired); `"flash_lite"` only as the 0% primary-quota emergency fallback.
 
 ## Authority while active
 
@@ -39,20 +30,12 @@ Under ultrawork/ulw, the research itself is the deliverable: map each research a
 
 ## Success criteria
 
-The research is done when all of these hold:
-
-- Every axis from the Phase 0 brief was covered by at least one dedicated member or lane.
-- Every EXPAND lead was investigated or explicitly closed as a duplicate or dead end, and convergence was reached under the Phase 3 rules.
-- Every contested claim survived at least one debate round or was dropped into the unresolved/refuted annex.
-- Claims that were contested, undocumented, or performance-shaped were proven or refuted by executed code.
-- Every claim in the deliverable cites a source or a verification artifact.
-- Every asserted claim is represented in the claim graph, tied to an intent-vs-reality diff when an expected truth exists, and backed by observation manifest entries from independent observation groups or a documented single-source exception; convergence or exception status is explicit.
-- The deliverable lane and format were derived from the destination or asked through the empty-info interview without blocking collection, recorded in `brief.md` with `answered_by`, and the final materials match that record.
-- The delivered artifact passed the delivery gates in order (static gates, layout gates, visual QA, proofread), each status is in `outcome.json`, and `outcome verify` passed.
-- Every excursion opened during the run was closed by an EXIT rule, folded back into the claim or axis that triggered it, and recorded in both `excursion-log.md` and the markdown Claim Ledger (`$SESSION_DIR/claim-graph.md`).
-- The delivery message carries the closing briefing printed by `outcome briefing`: sources (total + unique domains), elapsed minutes, every promised deliverable with its status, and any residual defects.
-- The session journal reconstructs what was searched, found, expanded, and debated, wave by wave, and it was written in real time rather than reconstructed at the end.
-- Every spawned subagent returned and was accounted for (result journaled or lane explicitly closed) before the final answer — Antigravity subagents terminate on completion, so "done" means every result landed, not a team object deleted.
+- Every Phase 0 axis was covered by a dedicated member/lane, every EXPAND lead was investigated or closed, and Phase 3 convergence was reached.
+- Every contested claim survived a debate round (or went to the unresolved/refuted annex), and contested/undocumented/performance-shaped claims were proven or refuted by executed code.
+- Every deliverable claim cites a source or verification artifact, exists in `claim-graph.md` tied to `intent-diff.md`, and is backed by independent `observation-manifest.md` groups (or a documented single-source exception).
+- The deliverable lane and format were recorded in `brief.md` with `answered_by` via derivation or non-blocking empty-info interview, every excursion closed by an EXIT rule into `excursion-log.md` and `$SESSION_DIR/claim-graph.md`, the session journal was written in real time, and every spawned subagent returned and was accounted for.
+- The delivered artifact passed the delivery gates in order (`static`, `layout`, `visual`, `proofread`), `outcome verify` passed on `outcome.json`, and the delivery message includes the `outcome briefing` output.
+- Full 12-item completion checklist: [references/final-materials.md](references/final-materials.md).
 
 ## Epistemic instrumentation
 
@@ -60,112 +43,54 @@ Saturation is a knowledge-production protocol, not just more searching: the sess
 
 ## Phase 0 — Scope solo, organize the brief
 
-Before spawning anything, decompose the query YOURSELF with your own direct tools: a handful of fast searches, a skim of the obvious codebase or doc territory, batching the independent lookups yourself. This is a scoping pass, not research — minutes, not waves. Start from "what must be true if the user's intent/spec is true?", not "what looks broken?"
-
-```
-<analysis>
-Core question: <the actual information need>
-Axes (3+ orthogonal): <axis — what to search, where, why> ...
-Codebase relevant: <yes/no> · External: <yes/no> · Browsing: <yes/no> · Verification likely: <yes/no> · X/social signal: <yes/no>
-Scale: <axis count, source territories, target document length> · Precision demand: <what a wrong claim costs here> → lifecycle: <single team | research team then refinement-debate team>
-Debate need: <which claims will be contested, and which member perspectives attack them>
-</analysis>
-```
-
-Then create the session directory and write the brief:
-
-```bash
-mkdir -p .lazyargon/ulw-research/$(date +%Y%m%d-%H%M%S)
-```
-
-This is `$SESSION_DIR`. Write `brief.md` into it: the analysis block, the axis list with one named owner per axis, the expected truths seeding `intent-diff.md`, and the team roster you are about to create. The brief is what the team is built FROM — a team stood up before the brief exists is a failure mode (see the table at the end).
+- Before spawning anything, decompose the query yourself with fast direct tools starting from "what must be true if the user's intent/spec is true?" into an `<analysis>` block (`Core question`, `3+ orthogonal Axes`, `Codebase/External/Browsing/Verification/X-social` flags, `Scale` + `Precision demand` → `lifecycle`, and `Debate need`).
+- Create `$SESSION_DIR` (`mkdir -p .lazyargon/ulw-research/$(date +%Y%m%d-%H%M%S)`) and write `brief.md` (analysis block, axis list with one named owner per axis, expected truths seeding `intent-diff.md`, and team roster) before standing up any wave.
+- Full Phase 0 `<analysis>` template and `brief.md` setup procedure: [references/wave-composition.md](references/wave-composition.md).
 
 ### Coordinate via native `invoke_subagent` waves and journal to the Markdown Claim Ledger in real time
 
-Coordinate research waves natively via Antigravity `invoke_subagent` (`Model: "inherit"` for all collection, skeptic, verification, and synthesis lanes; `"flash_lite"` only for emergency quota fallback) and persist all durable state in the Markdown Claim Ledger (`$SESSION_DIR/claim-graph.md`, `$SESSION_DIR/expansion-log.md`, and `$SESSION_DIR/sources-ledger.md`) so the run survives context compaction without external CLI wrappers. The session directory's timestamp is the run's start clock — the closing briefing is computed from it, so create it once and never rename it. From that point every finding, source, quote, number, and lead is written into `$SESSION_DIR` **the instant it lands** — never held in the conversation for an end-of-run dump. After any context loss, re-read `brief.md`, `expansion-log.md`, and `claim-graph.md` before doing anything else, then resume from the open wave.
+- Coordinate all waves via `invoke_subagent` (`Model: "inherit"`, `"flash_lite"` emergency fallback only), never rename `$SESSION_DIR` (its timestamp is the start clock), journal every finding/source/quote/number/lead into `$SESSION_DIR/claim-graph.md`, `expansion-log.md`, and `sources-ledger.md` the instant it lands, and after context loss re-read `brief.md`, `expansion-log.md`, and `claim-graph.md` before resuming.
+- Full real-time Markdown Claim Ledger journaling and compaction-recovery protocol: [references/epistemic-instrumentation.md](references/epistemic-instrumentation.md).
 
 ### Deliverable lane, format, and the empty-info interview
 
-Never block collection on the shape of the deliverable, and never guess it either. Read [references/deliverable-phase.md](references/deliverable-phase.md) sections 1-6 before writing the brief, then:
-
-1. **Derive first.** Name the lane (`template-strict`, `template-vibe`, `no-format`, `edit-existing`) and the promised formats from the request and its destination (the reference's section 3). When the request refers to an existing deliverable, decide its state with `node "$SKILL_DIR/scripts/report-tools.mjs" outcome state --deliverable <path> --session-dir "$SESSION_DIR"`: `partial` resumes the skeleton on disk, `complete` means edit-existing and never a regenerated report. `$SKILL_DIR` is this skill's own directory, the folder containing this SKILL.md.
-2. **Read the requester's format memory** when the memory tool exists: `read` the projected pointer `system/human/report-style.md`, then `reference/human-report-style.md`, and take the choice recorded for the most similar context (same destination kind and audience) as the first option.
-3. **Ask only what is still missing**: at most the reference's three questions (destination and format, audience and length, template lineage) in one `ask_question` call, each with its default first, a free-text "describe the format" path, and "don't care, you decide". Collection starts without waiting — a skipped or late answer is folded in until the assembly lane starts, and after that it becomes a re-render request.
-4. **Record it.** Write `## Deliverable` into `brief.md` (lane, state, formats, destination, audience, template, format description, each with `answered_by: user|default|request`) and open the manifest in the same step: `node "$SKILL_DIR/scripts/report-tools.mjs" outcome init --promised <formats> --lane <lane> --session-dir "$SESSION_DIR"`.
-
-Phase 6 opens by turning the recorded fields into `design-spec.md`.
+- Never block collection on the deliverable shape or guess it: derive the lane (`template-strict`, `template-vibe`, `no-format`, `edit-existing`), promised formats, and existing state via `node "$SKILL_DIR/scripts/report-tools.mjs" outcome state --deliverable <path> --session-dir "$SESSION_DIR"` (`partial` resumes skeleton; `complete` edits in place; `$SKILL_DIR` is this skill's directory).
+- Check format memory (`system/human/report-style.md` → `reference/human-report-style.md`) when available, ask at most the three missing questions (destination/format, audience/length, template lineage) in one non-blocking `ask_question` call before collection, and fold late answers in until assembly starts (after which they become re-render requests).
+- Record `## Deliverable` in `brief.md` with `answered_by: user|default|request`, run `node "$SKILL_DIR/scripts/report-tools.mjs" outcome init --promised <formats> --lane <lane> --session-dir "$SESSION_DIR"`, and turn those fields into `design-spec.md` at Phase 6.
+- Full deliverable lane derivation, state check, memory lookup, and empty-info interview procedure: [references/deliverable-phase.md](references/deliverable-phase.md).
 
 ## Phase 1 — Stand up the team (DEFAULT composition)
 
-**When the user asked for MASS research, scale the waves, not the roster.** "mass ulw research", "mulw research", "ulw mass research" — in any language — order over-collection that a single wave cannot produce. Run collection as chained `invoke_subagent` waves at mass scale: an opening `Model: "inherit"` wave at the runtime's parallel ceiling covering every angle the topic has, each wave's EXPAND leads defining the next wave's `invoke_subagent` calls until convergence, and a synthesis that reduces through several parallel `Model: "inherit"` lanes into one final `Model: "inherit"` reducer. Everything else in this skill still binds: the deliverable interview, the journal, the claim graph, the convergence rules, and the delivery gates. Keep a dedicated `Model: "inherit"` attack wave for the debate rounds of Phase 3 — attack is a prompt role, and collection lanes do not critique themselves.
-
-Otherwise a parallel wave is the DEFAULT for ulw-research, not an option: a lead one member surfaces almost always reshapes what another should search next, and debate needs cooperating members, not fire-and-forget workers. Launch it immediately after the brief — emit parallel flat `invoke_subagent` calls in the same turn for the whole first wave:
-
-```
-invoke_subagent({ TypeName: "self", Role: "axis-owner-1", Model: "inherit", Prompt: "<member brief for axis 1 — see below>" })
-invoke_subagent({ TypeName: "self", Role: "axis-owner-2", Model: "inherit", Prompt: "<member brief for axis 2>" })
-invoke_subagent({ TypeName: "self", Role: "skeptic", Model: "inherit", Prompt: "<debate brief — see below>" })
-```
-
-All research, skeptic, attack/verification, synthesis, and `browser` lanes run on `inherit` (`flash` retired; `flash_lite` only for 0% primary quota emergency fallback). The total number of entries never exceeds the budget line in `brief.md`.
-
-The binding rules, in short — one member per axis (ownership, never a job title); the maximum roster the runtime allows; unified `Model: "inherit"` routing across waves (`flash_lite` emergency fallback only); user's routing words are literal; at least one `inherit` skeptic; every lead returns in the `## EXPAND` reply tail; shared state lives in `$SESSION_DIR` files. Full roster rules, the wave lifecycle table (research → refinement wave), and the member brief contract (including the mandatory `## EXPAND` reply tail): [references/wave-composition.md](references/wave-composition.md).
+- For MASS research ("mass ulw research", "mulw research", "ulw mass research" in any language), scale waves rather than roster: chain `Model: "inherit"` `invoke_subagent` waves at the runtime's parallel ceiling from EXPAND leads until convergence, run a dedicated `Model: "inherit"` attack wave in Phase 3, and reduce synthesis through parallel `Model: "inherit"` lanes into one final `Model: "inherit"` reducer under all standard gates.
+- Otherwise launch a parallel wave as the DEFAULT immediately after `brief.md` via parallel flat `invoke_subagent({ TypeName: "self", Role, Model: "inherit", Prompt })` calls in the same turn for axis owners and skeptic (`"flash"` retired; `"flash_lite"` emergency fallback only), within the `brief.md` budget.
+- Binding rules: one member per axis (ownership, never job title), runtime-maximum roster, unified `Model: "inherit"` routing (`"flash_lite"` fallback only), literal user routing words, at least one `inherit` skeptic, mandatory `## EXPAND` reply tails, and shared state in `$SESSION_DIR` files.
+- Full MASS research procedure, worked `invoke_subagent` launch template, roster rules, wave lifecycle table, and member brief contract: [references/wave-composition.md](references/wave-composition.md).
 
 ## Phase 2 — Saturation wave
 
-Launch the entire first wave in a single turn via parallel `invoke_subagent` calls — every member briefed in its own flat `invoke_subagent` call starts in parallel; include bounded lanes in the same turn for the territories the axis owners cannot reach (read-only sweeps, blocked pages). Sequential launches and "start with one and see" defeat the mode.
-
-**Budget first.** Before sizing the wave, write one line into `brief.md`: `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>`. Without a user-stated budget the default is **4 lanes per wave, 2 waves**; exceeding it needs the user's yes. Because `Gemini 3.8 Flash` shares the same host quota pool as `Gemini 4` while consuming `4.86x` more tokens per task, unify collection, skeptic, verification, and synthesis lanes on `Model: "inherit"` (`flash_lite` only for emergency quota fallback).
-
-Recommended composition (not a floor — the budget line caps it; when the budget is smaller, drop lanes from the right-hand columns first and keep one browsing lane whenever `Browsing: yes`):
-
-| Query scope | codebase lanes | web lanes | browsing lanes | repo-dive lanes | X lanes | wave members | recommended |
-|---|---|---|---|---|---|---|---|
-| Single topic, codebase only | 1 | 0 | 0 | 0 | 0 | 2 | 3 |
-| Single topic, web only | 0 | 2 | 1 | 0 | 0 | 2 | 5 |
-| Single topic, both | 1 | 2 | 1 | 0 | 0 | 2 | 6 |
-| Multi-faceted | 1 | 3 | 1 | 1 | 0 | 3 | 9 |
-| Full due diligence (user-approved budget) | 2 | 4 | 2 | 2 | 0 | 4 | 14 |
-
-Every lane prompt carries the worker contract from `rules/AGENTS.md` (termination conditions, ≤40-line return, chunked writes) plus the `## EXPAND` tail; the EXPAND tail is capped at 5 leads per lane so the next wave stays inside the budget.
-
-X lanes are 0 in Antigravity — `x_search` does not exist in this runtime (see the X/social role protocol below). When the brief says `X/social signal: yes`, substitute public web sources: `site:x.com`/`site:twitter.com` searches, nitter mirrors, and coverage of the account's statements by indexed outlets. Record the substitution in the brief.
-
-The browsing column is BINDING, not advisory: when the brief says `Browsing: yes`, the roster names a browsing-lane owner armed with the session's actual browser tooling (e.g. the Playwright MCP browser when connected) before the first wave launches, and that lane is spawned in the same call as the rest of the wave. A run that reaches wave 2 with zero browsing lanes on a `Browsing: yes` brief has silently downgraded every source to what plain fetch happened to return. If no browser tool is connected at all, say so in the brief — `browsing: unavailable` — and cover render-dependent sources with archive copies.
-
-**Disambiguate before you expand.** When the topic names something that could resolve several ways — a product, a person, a codename, a version — the first wave settles WHICH entity before any lane researches its history, benchmarks, or controversies: canonical name, first-party URL or account, whether it exists in the claimed category, and a confidence line. An unresolved entity never becomes a premise in a later wave's prompt; that is exactly how a run starts inventing facts about something that does not exist.
-
-Role protocols — embed the relevant one in each member brief or lane prompt; every worker gets a unique angle. Full protocol texts (codebase, web, browsing, X/social-unavailable substitution, repo deep-dive): [references/role-protocols.md](references/role-protocols.md). Two are binding enough to restate: the browsing lane RENDERS pages (screenshots + rendered text, never fetch-only) and `x_search` does not exist in this runtime — X/social claims come from public-source substitution recorded in the brief, never from a claimed x_search call.
-
-Lane ground rules:
-
-- **Read-only.** Recon lanes must not write files. Never ask any worker to write the journal or any session file — every journal write is yours.
-- **No recursion — lanes AND members.** Lanes cannot spawn their own subagents, and members must not re-orchestrate: a member researches its axis and reports; it never creates its own team, loads this skill, or fans out a research swarm of its own. Depth comes from YOUR expansion waves. Say so in every member brief — a member that starts its own research protocol burns the run's budget on duplicated orchestration and returns nothing you can cite.
-- **Built-in brakes.** Workers ship with their own retrieval budgets ("stop when answered"). Your spawn prompt must explicitly lift the budget and demand the EXPAND tail, or the worker returns a thin single-pass answer with no leads.
+- Launch the entire first wave in a single turn via parallel flat `invoke_subagent` calls (axis owners plus bounded lanes for unreachable territories; never launch sequentially).
+- Record `예산: <N> 레인 / <M> 웨이브 / 세션 한도 추정 <%>` in `brief.md` first (default 4 lanes/wave, 2 waves; ask the user to exceed; unify all lanes on `Model: "inherit"`, `"flash_lite"` fallback only; when capped, drop right-hand table columns first while keeping one browsing lane when `Browsing: yes`).
+- Embed a unique role protocol, the `rules/AGENTS.md` worker contract (termination conditions, ≤40-line return, chunked writes), and a `## EXPAND` tail (capped at 5 leads/lane) in every lane prompt.
+- X lanes are 0 in Antigravity (`x_search` does not exist): when `X/social signal: yes`, substitute `site:x.com`/`site:twitter.com`, nitter mirrors, and indexed coverage, and record the substitution in `brief.md`.
+- The browsing column is binding: when `Browsing: yes`, spawn a browsing-lane owner with connected browser tooling (e.g. Playwright MCP) in wave 1 to capture full-page screenshots and rendered text (never fetch-only), or record `browsing: unavailable` and use archive copies.
+- Disambiguate ambiguous entities in wave 1 (canonical name, first-party URL/account, category existence, confidence line) before any later wave prompt treats the entity as a premise.
+- Lane ground rules: recon lanes are read-only (workers never write session/journal files), no recursion or re-orchestration by lanes or members, and explicit lifting of built-in stop-when-answered budgets.
+- Recommended wave-composition table, X/browsing/disambiguation rules, lane ground rules, and full role protocols (codebase, web, browsing, X/social substitution, repo deep-dive): [references/role-protocols.md](references/role-protocols.md).
 
 ## Phase 3 — Expand and debate until convergence
 
-This loop is what makes the mode research rather than search. Collect returns as subagents complete — there is no mid-run peek or follow-up message in Antigravity, so wave size stays small enough that no lane runs long enough to stall the loop — and act on each raised lead the moment it arrives:
+1. Journal every return the instant it lands into `wave-<N>-<kind>-<axis>.md` (digest + verbatim EXPAND markers) and append new sources, quotes, and numbers to `sources-ledger.md` and `observation-manifest.md`.
+2. Deduplicate new markers against `expansion-log.md` across every lead ever seen (including rejected leads).
+3. Batch unchecked leads into parallel `invoke_subagent({ TypeName: "self", Role: "expansion-<territory>", Model: "inherit", Prompt })` calls in the next wave with parent return, territory protocol, lifted budget, and `## EXPAND` tail.
+4. Run debate as dedicated `Model: "inherit"` attack waves (`ATTACK: <claim> — EVIDENCE: <what supports it>`) relayed to defense lanes, record verdicts in `debate-log.md` and `claim-graph.md`, and require at least one skeptic pass before any claim enters synthesis as supported.
+5. Record each wave in `expansion-log.md` (spawned, markers gained, leads opened/closed, debates settled).
+6. Relay mid-run user steering verbatim in subsequent wave prompts, log it in `expansion-log.md`, and mark in-flight results as pre-steering when they land.
 
-1. Journal the return the moment it lands, never at the end of the wave: digest plus verbatim EXPAND markers into `wave-<N>-<kind>-<axis>.md`, and append each new source, quote, and number to `sources-ledger.md` and `observation-manifest.md` in the same beat. Real-time journaling is what makes the run survivable — after a compaction the journal, not your memory, is the state.
-2. Deduplicate new markers against `expansion-log.md` — every lead ever seen, not just confirmed ones, or rejected leads resurface each wave.
-3. Route each new unchecked lead in the next expansion wave: batch the leads that arrived this round into parallel `invoke_subagent` calls in the same turn — one call per territory, the lead embedded in its prompt:
+Full expansion-wave `invoke_subagent` prompt template, debate-wave procedure, and mid-run steering rules: [references/wave-composition.md](references/wave-composition.md).
 
-```
-invoke_subagent({ TypeName: "self", Role: "expansion-<territory>", Model: "inherit",
-Prompt: "TASK: expansion wave <N> — investigate: <lead>.
-PARENT: <which return surfaced it>. This is an explicit exhaustive-research assignment; budgets do not apply.
-<role protocol for the lead's territory>
-End your reply with the ## EXPAND tail." })
-```
-
-4. **Debate rounds (the ultradebate/hyperdebate engine).** Subagents cannot receive mid-run messages, so debate runs as dedicated waves: collect contested, high-risk, or surprising claims from the round's returns, then dispatch a `Model: "inherit"` attack wave — "ATTACK: <claim> — EVIDENCE: <what supports it> — find the weakest assumption, the missing counter-source, the independence failure." Relay the attack output back to a defense lane (fresh subagent carrying both sides, or the original claim embedded for re-examination), collect both sides, then record your verdict in `debate-log.md` and update the claim node. A claim that never drew an attack still gets one skeptic pass before it may enter the synthesis as supported.
-5. Record the wave in `expansion-log.md`: spawned, markers gained, leads opened/closed, debates settled.
 ### Excursions — dive deep on a new find, then surface back out
 
 An excursion is a BOUNDED detour off the wave plan: ENTER only on a named trigger (contradicts a locked claim, would change the answer, exposes an unowned territory, or verbatim user steering), budget it before diving, at most ONE nested sub-excursion, EXIT on resolution/plateau/budget, and every EXIT writes what it changed in the top-level answer (`none` is a valid required outcome). Full ENTER/EXIT/fold-back/anti-drift rules: [references/excursions.md](references/excursions.md).
-
-6. **Relay the user's steering to every subsequent wave.** When the user changes scope, cadence, target sources, language, or format mid-run, embed the exact wording in the next wave's prompts and record it in `expansion-log.md` — already-running subagents cannot be re-briefed, so mark their in-flight results as pre-steering when they land. Steering only you saw silently splits the wave's assignment from the user's actual ask.
 
 **Convergence — the only stop rules while this mode is active.** Run at least 2 expansion waves on any multi-faceted query before claiming convergence; then stop only when one holds:
 
@@ -177,45 +102,16 @@ An excursion is a BOUNDED detour off the wave plan: ENTER only on a named trigge
 
 ## Phase 4 — Verify contested claims by running code
 
-Settle with executed code, not judgment, whenever sources disagree, a behavior is undocumented, a claim is performance- or compatibility-shaped, or the honest answer is "it should work". Run the verification yourself with your own exec tools, or spawn one verification lane per claim in the next `invoke_subagent` wave:
-
-```
-{ TypeName: "self", Role: "verify-<claim-slug>", Model: "inherit",
-Prompt: "TASK: verify by execution: <claim>.
-SOURCE: <where it came from>; CONTRADICTION: <opposing source, if any>.
-Write a minimal self-contained script that tests the claim; run it (uv run --with <deps> python / node / direct compile); capture full stdout+stderr; pin versions.
-Reply with: the exact code, the full output, environment (OS, runtime, dependency versions), and a verdict — CONFIRMED / REFUTED / PARTIAL — grounded in the output." }
-```
-
-Journal each verdict to `verify-<slug>.md`.
+- Whenever sources disagree, behavior is undocumented, a claim is performance/compatibility-shaped, or the answer is "it should work", prove or refute it with executed code (directly or via `invoke_subagent` with `TypeName: "self"`, `Role: "verify-<claim-slug>"`, `Model: "inherit"`) running a minimal version-pinned script (`uv run --with <deps> python` / `node` / direct compile) and journaling exact code, stdout+stderr, environment, and `CONFIRMED`/`REFUTED`/`PARTIAL` verdict to `verify-<slug>.md`.
+- Worked Phase 4 verification lane prompt template: [references/claim-gate.md](references/claim-gate.md).
 
 ## Phase 4b — Lock non-code claims through the claim graph
 
-Code settles code-shaped claims (Phase 4). Numeric, market-share, legal, dated, causal, and financial claims cannot be run — so they pass through a data-flow-lock instead: the synthesis may assert a high-risk non-code claim **only** if it cleared this gate, and the gate's output is the sole allowlist the synthesis draws from. Skip the gate and there is nothing to synthesize — the lock is self-enforcing.
-
-The claim ledger is orchestrator-owned. Workers only return claim candidates as message text, the same channel as EXPAND markers — never a file. As leads resolve, you record one line per asserted claim in `claims.jsonl` and one per source in `sources.jsonl` (schema: [references/claim-gate.md](references/claim-gate.md)), and keep `claim-graph.md` as the readable view. The ledger is the single claim store: final synthesis may not draw from free-form claims that skipped it.
-
-A high-risk claim clears the gate to `verified-claims.json` only when all hold:
-
-- **>= 2 independent organizations** corroborate it (docs.python.org and peps.python.org count once), unless the ledger records why a primary-only source is the correct single-source exception.
-- **One structured counter-search** (`{query, urls, summary}`, every URL registered as a source) looked for a refutation and did not find a stronger one. A missing or free-text counter-search fails the whole gate.
-- **A primary source** (statute, court decision, standard, filing, dataset, or first-party doc) backs it, on **>= 2 source surface types** (a statute page plus a news report, not two news reports).
-- **A verbatim quote** from a cited source, 20-300 characters, appears in the stored snapshot of that page. A numeric claim needs a quote that carries its number. Snapshots are fetched by the tool, never paraphrased by a model.
-- **Temporal evidence is explicit**: each claim records `observed_at` and either `valid_at` or `claim_valid_at`, so branch-only, historical, release, and current-runtime claims cannot be conflated.
-
-Run the lock with the tool, not by judgment:
-
-```bash
-node "$SKILL_DIR/scripts/report-tools.mjs" claims snapshot --session-dir "$SESSION_DIR"   # PDFs and blocked pages: save the text yourself, then --from S3=<file>
-node "$SKILL_DIR/scripts/report-tools.mjs" claims gate --session-dir "$SESSION_DIR"
-```
-
-A failed gate deletes `verified-claims.json` and writes `gate-failed.json`: fix the ledger and rerun. Anything the gate leaves `unresolved` (insufficient evidence) or `refuted` (counter-search won) goes to an annex — abstention is a correct outcome, not a gap to paper over. Mirror each claim's status from `claim-status.json` onto its node in `claim-graph.md`. Worker reply marker (message text, same channel as EXPAND):
-
-```
-## CLAIMS
-- CLAIM: <non-code assertion> — RISK: high|normal — TYPE: numeric|legal|dated|causal|financial|other — SOURCES: <url1, url2> — QUOTE: "<sentence copied verbatim from url1>" — COUNTER: <query> → <urls opened> → <result> — PRIMARY: <primary source or none> — VALID_AT: <date the claim holds for>
-```
+- Assert a high-risk non-code claim (numeric, market-share, legal, dated, causal, financial) in synthesis only if it cleared the mechanical claim gate into `verified-claims.json`; anything left `unresolved` or `refuted` goes to an annex.
+- The claim ledger (`claims.jsonl`, `sources.jsonl`, and readable view `claim-graph.md`) is strictly orchestrator-owned; workers return claim candidates only as `## CLAIMS` message text.
+- Gate pass requirements for `verified-claims.json`: (1) `>= 2` independent organizations corroborating (or a documented primary-source `single_source_exception`), (2) one structured counter-search (`{query, urls, summary}` with all URLs registered in `sources.jsonl`), (3) a primary source on `>= 2` source surface types, (4) a 20–300 char verbatim quote verified in the tool-fetched snapshot (carrying the number for numeric claims), and (5) explicit `observed_at` plus `valid_at` or `claim_valid_at`.
+- Execute via `node "$SKILL_DIR/scripts/report-tools.mjs" claims snapshot --session-dir "$SESSION_DIR"` (`--from S3=<file>` for PDFs/blocked pages) and `node "$SKILL_DIR/scripts/report-tools.mjs" claims gate --session-dir "$SESSION_DIR"`, fix and rerun on `gate-failed.json`, and mirror `claim-status.json` onto `claim-graph.md`.
+- Full JSONL schemas, gate rules, CLI commands, and the worker `## CLAIMS` reply marker format: [references/claim-gate.md](references/claim-gate.md).
 
 ## Phase 5 — Synthesize
 

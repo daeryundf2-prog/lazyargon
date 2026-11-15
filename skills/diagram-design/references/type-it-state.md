@@ -132,7 +132,7 @@ Solid paper fill across `viewBox`. No dot pattern. Each zone box:
       fill="{ink @ 0.02}" stroke="{ink @ 0.10}" stroke-width="0.8" rx="8"/>
 <!-- paper-masked break for the zone label -->
 <rect x="zone_x(i)+20" y="zone_y-8" width="{label_w}" height="16" fill="{paper}"/>
-<text x="zone_x(i)+24" y="zone_y+4" fill="{ink @ 0.40}"
+<text x="zone_x(i)+24" y="zone_y+4" fill="{soft}"
       font-family="{eyebrow}" letter-spacing="0.14em">{name}</text>
 ```
 
@@ -396,7 +396,6 @@ Before emitting SVG, verify **every** item:
 - `assets/example-it-state.html` — minimal light (NatStat canonical: 3 zones, 9 components, 8 connectors, 0 footer bars, SQL Server tinted olive). Gallery default.
 - `assets/example-it-state-dark.html` — same, dark skin.
 - `assets/example-it-state-full.html` — same, editorial-card frame with summary cards.
-- Extended variant (§4 color override + 2 footer bars below the zones, third custom color on Analyst Machines in slate-blue) — no HTML file ships for it; derive it from §2–§4.
 
 ---
 
@@ -466,4 +465,4 @@ dark: false
 
 When the source row matches the destination row's y range (e.g., Survey at y=108 with Shared Drive at y=80–148), prefer **side-edge** entry — a single horizontal path with a fully visible arrow. When the source row is offset, detour through the destination's nearest zone background to enter a side edge rather than approaching a top/bottom edge from the wrong side.
 
-The extended variant (§9) — footer bars plus a third custom color, not shipped as an asset — is the case that exercises `viewBox_h` growth when `N_footer > 0`; derive the geometry from §2.
+When footer bars are added (`N_footer > 0`), `viewBox_h` grows according to the canvas formula in §2 to accommodate the footer rows and custom colors.

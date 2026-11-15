@@ -1,7 +1,7 @@
 {
   "schema": "skill_source_closure_audit/v1",
-  "version": "1.1.0",
-  "updated_at": "2026-11-09T14:15:28.000Z",
+  "version": "2.0.0",
+  "updated_at": "2026-11-15T07:10:58.000Z",
   "sources": [
     {
       "repo": "rlaope/oh-my-hermes",
@@ -9,14 +9,12 @@
       "pinned_sha": null,
       "keyword": "OMH / oh-my-hermes",
       "mapped_targets": [
-        "experimental/scripts/dag_ulw.mjs",
-        "experimental/scripts/lazy_tui.mjs",
         "scripts/upstream_radar.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "0f9cf0c",
       "observed_head_sha": "b906cb4258fdbf084fd9b2853d47dd97c7d6d978",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "NousResearch/hermes-agent",
@@ -29,7 +27,8 @@
       ],
       "status": "verified",
       "observed_head_sha": "2d2808ee84549f9836b0056750265058e5488a8a",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "can1357/oh-my-pi",
@@ -41,9 +40,9 @@
         "skills/debugging/references/dap-session-plan.md"
       ],
       "status": "unverified",
-      "claimed_pin": "omp-lsp-dap-v1",
       "observed_head_sha": "95db18ef9936bff96fbd33268b2363ab25a9bb9d",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "michael-denyer/pstack-claude",
@@ -54,9 +53,9 @@
         "skills/programming/references/formal-verify.md"
       ],
       "status": "unverified",
-      "claimed_pin": "pstack-v1",
       "observed_head_sha": "22b5e137e945cb65dd29dac5fc703c13d83a00aa",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "faxenoff/ultracode",
@@ -67,9 +66,9 @@
         "scripts/codegraph.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "codegraph-ppr-v1",
       "observed_head_sha": "58d6126fc11ecc0fc9615a4c7d0ba1e149f91042",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "revfactory/showreel",
@@ -81,58 +80,35 @@
       ],
       "status": "verified",
       "observed_head_sha": "ae09a4a757b6e1d22c4193a09c70c88bda5b3e92",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "blader/humanizer",
-      "url": "https://github.com/blader/humanizer",
-      "pinned_sha": "8c307f367c91bd974002f10f2be2965d642c13df",
-      "keyword": "humanizer(말투)",
-      "mapped_targets": [
-        "experimental/scripts/lazy_slop_cleaner.mjs",
-        "../lazyargon-workspace/skills/humanize-korean/SKILL.md"
-      ],
-      "status": "verified",
-      "observed_head_sha": "0ef9fe5bc3572734fd3ae6c448fe00a30cd5dcf0",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "code-yeongyu/oh-my-openagent",
       "url": "https://github.com/code-yeongyu/oh-my-openagent",
-      "pinned_sha": "c8955517dd95d2d8dd1ed6c871705a2eb9921840",
+      "pinned_sha": "3a5891d18cb512c7996ae1160ae67c70427f4a57",
       "keyword": "OmO",
       "mapped_targets": [
+        "skills/ast-grep/SKILL.md",
+        "skills/coding-agent-sessions/SKILL.md",
+        "skills/data-scientist/SKILL.md",
+        "skills/debugging/SKILL.md",
+        "skills/frontend/SKILL.md",
+        "skills/git-master/SKILL.md",
+        "skills/programming/SKILL.md",
+        "skills/refactor/SKILL.md",
+        "skills/remove-ai-slops/SKILL.md",
+        "skills/visual-qa/SKILL.md",
+        "skills/ulw-research/SKILL.md",
         "skills/ulw/SKILL.md",
         "scripts/stop_claim_guard.mjs"
       ],
       "status": "verified",
       "observed_head_sha": "12bc5cfc37d2cc590441d7d31fba809adc510531",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "Yeachan-Heo/oh-my-claudecode",
-      "url": "https://github.com/Yeachan-Heo/oh-my-claudecode",
-      "pinned_sha": "8262f9f790eed35e6cbd66572b36c2acba18f679",
-      "keyword": "OMC",
-      "mapped_targets": [
-        "experimental/scripts/lazy_slop_cleaner.mjs"
-      ],
-      "status": "verified",
-      "observed_head_sha": "ef8d0d3087a0bf73ac50abbdaa93f764dce89839",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "Yeachan-Heo/oh-my-codex",
-      "url": "https://github.com/Yeachan-Heo/oh-my-codex",
-      "pinned_sha": null,
-      "keyword": "OMX",
-      "mapped_targets": [
-        "experimental/scripts/dag_ulw.mjs"
-      ],
-      "status": "unverified",
-      "claimed_pin": "omx-runtime-v1",
-      "observed_head_sha": "a60b9435a8e6d894ba69d1540ecf20afaac63a7a",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "skill_original",
+      "license": "SUL-1.0 / see upstream LICENSE.md",
+      "note": "packages/shared-skills/skills: ten skills three-way merged to this commit on 2026-11-15; ulw and ulw-research are our own rewrites that diverged from upstream ulw-plan/ulw-execute/ulw-research"
     },
     {
       "repo": "obra/superpowers",
@@ -145,7 +121,8 @@
       ],
       "status": "verified",
       "observed_head_sha": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "garrytan/gstack",
@@ -156,23 +133,9 @@
         "skills/ulw/references/gstack-gates.md"
       ],
       "status": "unverified",
-      "claimed_pin": "gstack-23roles",
       "observed_head_sha": "11c17d466af329ee0a27654f353b84d5484d503b",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "karpathy/autoresearch",
-      "url": "https://github.com/karpathy/autoresearch",
-      "pinned_sha": null,
-      "keyword": "auto-research",
-      "mapped_targets": [
-        "experimental/scripts/autoresearch_loop.mjs",
-        "experimental/docs/measured-loop-discipline.md"
-      ],
-      "status": "unverified",
-      "claimed_pin": "autoresearch-v1",
-      "observed_head_sha": "228791fb499afffb54b46200aca536f79142f117",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "deepseek-ai/deepseek-harness",
@@ -180,78 +143,12 @@
       "pinned_sha": null,
       "keyword": "deepseek-harness",
       "mapped_targets": [
-        "rules/AGENTS.md",
-        "experimental/scripts/lazy_slop_cleaner.mjs"
+        "rules/AGENTS.md"
       ],
       "status": "unverified",
-      "claimed_pin": "cordis-2608.25512",
       "observed_head_sha": "ce7073d51254c26cd63b22a60835b8f948deb447",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "MoonshotAI/kimi-cli",
-      "url": "https://github.com/MoonshotAI/kimi-cli",
-      "pinned_sha": null,
-      "keyword": "kimi-code",
-      "mapped_targets": [
-        "experimental/scripts/model_calibrate.mjs"
-      ],
-      "status": "unverified",
-      "claimed_pin": "kimi-k3.1-pro",
-      "observed_head_sha": "9ab1286b8fe4e6bcd116949a27ce5e0ac3389c82",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "zai-org/ZCode",
-      "url": "https://github.com/zai-org/ZCode",
-      "pinned_sha": null,
-      "keyword": "zcode",
-      "mapped_targets": [
-        "experimental/scripts/model_calibrate.mjs"
-      ],
-      "status": "unverified",
-      "claimed_pin": "glm-5.3-zcode",
-      "observed_head_sha": "a60ba6a7e5a06742270ca605f5d2cc2766afa7e1",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "mem0ai/mem0",
-      "url": "https://github.com/mem0ai/mem0",
-      "pinned_sha": null,
-      "keyword": "mem0",
-      "mapped_targets": [
-        "experimental/scripts/lazy_memory.py"
-      ],
-      "status": "unverified",
-      "claimed_pin": "mem0-graph-v1",
-      "observed_head_sha": "26cdefb46600c0fa5953c4b5ee5003c125539fc4",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "letta-ai/letta",
-      "url": "https://github.com/letta-ai/letta",
-      "pinned_sha": null,
-      "keyword": "letta",
-      "mapped_targets": [
-        "experimental/scripts/lazy_memory.py"
-      ],
-      "status": "unverified",
-      "claimed_pin": "letta-dreaming-v1",
-      "observed_head_sha": "8816d3a8516893bfdc0fa14bfb1235226012e295",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "Marker-Inc-Korea/AutoRAG",
-      "url": "https://github.com/Marker-Inc-Korea/AutoRAG",
-      "pinned_sha": null,
-      "keyword": "autorag",
-      "mapped_targets": [
-        "experimental/scripts/lazy_rag.py"
-      ],
-      "status": "unverified",
-      "claimed_pin": "autorag-rrf-v1",
-      "observed_head_sha": "7a751446d3571b257317e256305c31389fa652eb",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "google-research/harness2",
@@ -259,13 +156,12 @@
       "pinned_sha": null,
       "keyword": "harness2",
       "mapped_targets": [
-        "scripts/doctor.mjs",
-        "experimental/scripts/lazy_slop_cleaner.mjs"
+        "scripts/doctor.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "harness2-keep-base",
       "observed_head_sha": "1cfe254e8d25b15f37048c3730134686abe60335",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "anthropics/claude-code",
@@ -277,9 +173,9 @@
         "scripts/session_start.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "v1.0.24",
       "observed_head_sha": "b3f291d131924810e2b7713ededc144843a229d5",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "openai/codex",
@@ -290,9 +186,9 @@
         "skills/programming/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "codex-cli-01a8f2c",
       "observed_head_sha": "a9e474c8fc7874cdb13b03ef8ffec0bead7c4fbd",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "google-gemini/gemini-cli",
@@ -304,9 +200,9 @@
         "scripts/doctor.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "a4c91e2",
       "observed_head_sha": "b633c0703417eff3f6db8b684515e2b26a824e82",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "anomalyco/opencode",
@@ -314,13 +210,12 @@
       "pinned_sha": null,
       "keyword": "OpenCode TUI & LSP Harness",
       "mapped_targets": [
-        "experimental/scripts/lazy_tui.mjs",
         "scripts/lsp_diagnostics.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "9b3d41e",
       "observed_head_sha": "6b4329c88579c5b100620c8e72e8ca97b1baf3d0",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "Aider-AI/aider",
@@ -331,9 +226,9 @@
         "scripts/codegraph.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "7c2e89a",
       "observed_head_sha": "5dc9490bb35f9729ef2c95d00a19ccd30c26339c",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "OpenHands/OpenHands",
@@ -344,9 +239,9 @@
         "skills/gf-qa-behavioral-verification/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "5f1b30d",
       "observed_head_sha": "940dc61587e31f2625d6a59e07d70340878031d2",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "SWE-agent/SWE-agent",
@@ -357,22 +252,9 @@
         "skills/debugging/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "3e8a71c",
       "observed_head_sha": "3ea751c087f32b16e039a2233dd6eefecef325d5",
-      "observed_at": "2026-10-30T13:46:46.993Z"
-    },
-    {
-      "repo": "continuedev/continue",
-      "url": "https://github.com/continuedev/continue",
-      "pinned_sha": null,
-      "keyword": "Continue Context Rerank",
-      "mapped_targets": [
-        "experimental/scripts/lazy_rag.py"
-      ],
-      "status": "unverified",
-      "claimed_pin": "4d9c20b",
-      "observed_head_sha": "5522c6f44ca0ac3528b37244818fbfa39b5af470",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "cline/cline",
@@ -383,9 +265,9 @@
         "skills/visual-qa/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "8a1f64e",
       "observed_head_sha": "a47448718ad77e6316b12d81927fc1373ade1243",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "firecrawl/firecrawl",
@@ -396,9 +278,9 @@
         "skills/ulw-research/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "2c7e51a",
       "observed_head_sha": "273412baa50cdec4cd022740a3191593fbc2a322",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "ast-grep/ast-grep",
@@ -409,9 +291,9 @@
         "skills/ast-grep/SKILL.md"
       ],
       "status": "unverified",
-      "claimed_pin": "6b4d92f",
       "observed_head_sha": "72f150994f2f5ffe52fd6d1e72f18a93c3998e0e",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "biomejs/biome",
@@ -423,14 +305,14 @@
         "scripts/lsp_diagnostics.mjs"
       ],
       "status": "unverified",
-      "claimed_pin": "1f8e34c",
       "observed_head_sha": "397b0eb28ca9d5a5eadc552d0a81b45540611d79",
-      "observed_at": "2026-10-30T13:46:46.993Z"
+      "observed_at": "2026-10-30T13:46:46.993Z",
+      "kind": "inspiration"
     },
     {
       "repo": "LilMGenius/paperthin",
       "url": "https://github.com/LilMGenius/paperthin",
-      "pinned_sha": "1306ea4a2c038b5dee508db23197b3a19ccfbdfc",
+      "pinned_sha": "c2ee8762b12a9954bddaa3530c0afad62a7ea5aa",
       "keyword": "paperthin (MIT): hate, shower, factchk, mandela, dedot",
       "mapped_targets": [
         "skills/hate/SKILL.md",
@@ -442,7 +324,115 @@
       ],
       "status": "verified",
       "observed_head_sha": "1306ea4a2c038b5dee508db23197b3a19ccfbdfc",
-      "observed_at": "2026-11-09T14:07:41.000Z"
+      "observed_at": "2026-11-09T14:07:41.000Z",
+      "kind": "skill_original",
+      "license": "MIT",
+      "note": "skills/depth/<name>; no upstream change to these five since our copy (checked 2026-11-15)"
+    },
+    {
+      "repo": "cathrynlavery/diagram-design",
+      "url": "https://github.com/cathrynlavery/diagram-design",
+      "pinned_sha": "f6db0decea96de66b901331a0f79a8d4b147ebae",
+      "keyword": "diagram-design",
+      "mapped_targets": [
+        "skills/diagram-design/SKILL.md"
+      ],
+      "status": "verified",
+      "kind": "skill_original",
+      "license": "MIT",
+      "note": "synced to upstream 2.6.164 on 2026-11-15; three Argon anti-pattern rows kept; repo-level checker scripts copied into skills/diagram-design/scripts"
+    },
+    {
+      "repo": "kaankiziltug/logo-design-skill",
+      "url": "https://github.com/kaankiziltug/logo-design-skill",
+      "pinned_sha": "e9eaddc07895575253d6663320354a708f53e955",
+      "keyword": "logo-design",
+      "mapped_targets": [
+        "skills/logo-design/SKILL.md"
+      ],
+      "status": "verified",
+      "kind": "skill_original",
+      "license": "MIT",
+      "note": "skills/logo-design"
+    },
+    {
+      "repo": "nexu-io/open-design",
+      "url": "https://github.com/nexu-io/open-design",
+      "pinned_sha": "6afe7eae156bfa29251a51fd0636649c257f7444",
+      "keyword": "open-design brand DESIGN.md references",
+      "mapped_targets": [
+        "skills/frontend/ATTRIBUTION.md"
+      ],
+      "status": "verified",
+      "kind": "skill_original",
+      "license": "Apache-2.0",
+      "note": "frontend/references/design/<brand>.md, see skills/frontend/ATTRIBUTION.md"
+    },
+    {
+      "repo": "fivetaku/insane-research",
+      "url": "https://github.com/fivetaku/insane-research",
+      "pinned_sha": "8f92b33d5d806a5437cc9e9d2e8b795ecc421315",
+      "keyword": "insane-research claim gate",
+      "mapped_targets": [
+        "skills/ulw-research/ATTRIBUTION.md",
+        "skills/ulw-research/scripts/claims-gate.mjs"
+      ],
+      "status": "verified",
+      "kind": "inspiration",
+      "license": "MIT",
+      "note": "ideas and gate rules only, no code copied"
+    },
+    {
+      "repo": "yunshenwuchuxun/latex-paper-skills",
+      "url": "https://github.com/yunshenwuchuxun/latex-paper-skills",
+      "pinned_sha": "d0f106108cb09e448604a56ce973d35b340cf497",
+      "keyword": "latex-paper-skills",
+      "mapped_targets": [
+        "skills/ulw-research/references/latex-report.md"
+      ],
+      "status": "verified",
+      "kind": "inspiration",
+      "license": "MIT",
+      "note": "ideas only"
+    },
+    {
+      "repo": "ndpvt-web/latex-document-skill",
+      "url": "https://github.com/ndpvt-web/latex-document-skill",
+      "pinned_sha": "54279f78ecd9e232ffb7ac4b5453bc8b76bbe49b",
+      "keyword": "latex-document-skill",
+      "mapped_targets": [
+        "skills/ulw-research/references/latex-report.md"
+      ],
+      "status": "verified",
+      "kind": "inspiration",
+      "license": "none declared",
+      "note": "ideas only"
+    },
+    {
+      "repo": "epoko77-ai/im-not-ai",
+      "url": "https://github.com/epoko77-ai/im-not-ai",
+      "pinned_sha": "80fae0ca391bd2a573173f34e72511954e700008",
+      "keyword": "humanize-korean",
+      "mapped_targets": [
+        "../lazyargon-workspace/skills/humanize-korean/SKILL.md"
+      ],
+      "status": "verified",
+      "kind": "skill_original",
+      "license": "MIT",
+      "note": "skills/humanize-korean v2.4.2 plus its pipeline scripts (was misattributed to blader/humanizer before 2026-11-15)"
+    },
+    {
+      "repo": "Marker-Inc-Korea/ko-pii",
+      "url": "https://github.com/Marker-Inc-Korea/ko-pii",
+      "pinned_sha": "8957e8bc9f0ade3d21381734523b18920330c159",
+      "keyword": "ko-pii",
+      "mapped_targets": [
+        "../lazyargon-workspace/skills/korean-pii-masker/SKILL.md"
+      ],
+      "status": "verified",
+      "kind": "inspiration",
+      "license": "MIT",
+      "note": "reference only"
     }
   ]
 }
