@@ -74,6 +74,57 @@ test("FIX: 'src/a.ts src/b.ts src/c.ts src/d.ts 각각 리팩터링' → size su
 	assert.equal(r.size, "subagents");
 });
 
+test("FIX: 'print the config' → not judgment (PR is a whole word only)", () => {
+	const r = classify("print the config");
+	assertSchema(r, "FIX print");
+	assert.notEqual(r.kind, "judgment");
+});
+
+test("FIX: 'process the queue' → not judgment", () => {
+	const r = classify("process the queue");
+	assertSchema(r, "FIX process");
+	assert.notEqual(r.kind, "judgment");
+});
+
+test("FIX: 'review this pr' → judgment", () => {
+	const r = classify("review this pr");
+	assertSchema(r, "FIX review pr");
+	assert.equal(r.kind, "judgment");
+});
+
+test("FIX: '개인정보 마스킹 구현해줘' → sensitive with v2 (a matched sensitive signal beats a higher implementation score)", () => {
+	const r = classify("개인정보 마스킹 구현해줘");
+	assertSchema(r, "FIX PII implement");
+	assert.equal(r.kind, "sensitive");
+	assert.equal(r.prompt, "v2");
+});
+
+// ── Rule kinds: each carries its role rule plus the common rule ──────────
+
+const ROUTING = JSON.parse(fs.readFileSync(ROUTING_PATH, "utf8"));
+
+for (const [prompt, kind] of [
+	["E01 검토해서 보고서 써줘", "forensic_verdict"],
+	["카톡 대화에서 발신 건수 세줘", "count_extract"],
+	["녹취 파일 20개 전사해줘", "media_transcribe"],
+	["rename all screenshots to include the date", "mechanical"],
+]) {
+	test(`rule kind: '${prompt}' → ${kind} with its role rule and the common rule`, () => {
+		const r = classify(prompt);
+		assertSchema(r, prompt);
+		assert.equal(r.kind, kind);
+		assert.ok(r.rules.includes(ROUTING.roles[ROUTING.task_kinds[kind].role].rule));
+		assert.equal(r.rules.at(-1), ROUTING.common_rule);
+	});
+}
+
+test("rule kinds: a prompt matching two kinds gets both rules", () => {
+	const r = classify("증거 파일 해시값 다시 계산해서 비교해줘");
+	for (const role of ["forensic_verdict", "script_first"]) {
+		assert.ok(r.rules.includes(ROUTING.roles[role].rule), `missing ${role} rule`);
+	}
+});
+
 // ── Regression: single-size tasks must NOT delegate ─────────────────────────
 
 test("FIX: '이 스크립트 오타 하나 고쳐줘' → size single → action proceed in session", () => {
