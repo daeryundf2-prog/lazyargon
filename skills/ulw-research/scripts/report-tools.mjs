@@ -3,6 +3,7 @@
 //   node "$SKILL_DIR/scripts/report-tools.mjs" <command> ...
 // Exit codes: 0 pass, 1 semantic failure (blockers, a failed verify, a blocked repair), 2 usage or IO.
 
+import { runClaims } from "./claims-cli.mjs"
 import { CliError, emit, exitCodeFor } from "./cli-support.mjs"
 import { isCliEntry } from "./entry-guard.mjs"
 import { runCheck, runFormatExtract, runLayoutProbe, runOutcome, runRepairDecide } from "./report-tools-commands.mjs"
@@ -20,6 +21,9 @@ export const COMMANDS = Object.freeze([
 	"outcome finish",
 	"outcome briefing",
 	"format-extract",
+	"claims snapshot",
+	"claims gate",
+	"claims report",
 ])
 
 export async function run(argv) {
@@ -36,6 +40,8 @@ export async function run(argv) {
 			return runOutcome(rest)
 		case "format-extract":
 			return runFormatExtract(rest)
+		case "claims":
+			return runClaims(rest)
 		case "--help":
 		case "help":
 			if (rest.includes("--json")) return { json: { commands: COMMANDS }, exitCode: 0 }

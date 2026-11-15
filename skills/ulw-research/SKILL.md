@@ -193,26 +193,33 @@ Journal each verdict to `verify-<slug>.md`.
 
 Code settles code-shaped claims (Phase 4). Numeric, market-share, legal, dated, causal, and financial claims cannot be run — so they pass through a data-flow-lock instead: the synthesis may assert a high-risk non-code claim **only** if it cleared this gate, and the gate's output is the sole allowlist the synthesis draws from. Skip the gate and there is nothing to synthesize — the lock is self-enforcing.
 
-The claim graph is orchestrator-owned. Workers only return claim candidates as message text, the same channel as EXPAND markers — never a file. As leads resolve, you record one node per asserted claim in `claim-graph.md` and compute its status; workers report candidates in their replies, and you decide. The graph is the single claim store: final synthesis may not draw from free-form claims that skipped it.
+The claim ledger is orchestrator-owned. Workers only return claim candidates as message text, the same channel as EXPAND markers — never a file. As leads resolve, you record one line per asserted claim in `claims.jsonl` and one per source in `sources.jsonl` (schema: [references/claim-gate.md](references/claim-gate.md)), and keep `claim-graph.md` as the readable view. The ledger is the single claim store: final synthesis may not draw from free-form claims that skipped it.
 
-A high-risk claim clears the gate to `verified-claims` only when all hold:
+A high-risk claim clears the gate to `verified-claims.json` only when all hold:
 
-- **>= 2 independent source domains** corroborate it (two pages on the same domain count once).
-- **>= 2 independent observation groups** converge on it, unless the graph records why a primary-only source is the correct single-source exception.
-- **One counter-search** actively looked for a refutation and did not find a stronger one.
-- **A primary source** (the standard, filing, dataset, or first-party doc) backs it, not only secondary commentary.
-- **Temporal evidence is explicit**: each supporting observation records `observed_at` and either `valid_at` or `claim_valid_at`, so branch-only, historical, release, and current-runtime claims cannot be conflated.
+- **>= 2 independent organizations** corroborate it (docs.python.org and peps.python.org count once), unless the ledger records why a primary-only source is the correct single-source exception.
+- **One structured counter-search** (`{query, urls, summary}`, every URL registered as a source) looked for a refutation and did not find a stronger one. A missing or free-text counter-search fails the whole gate.
+- **A primary source** (statute, court decision, standard, filing, dataset, or first-party doc) backs it, on **>= 2 source surface types** (a statute page plus a news report, not two news reports).
+- **A verbatim quote** from a cited source, 20-300 characters, appears in the stored snapshot of that page. A numeric claim needs a quote that carries its number. Snapshots are fetched by the tool, never paraphrased by a model.
+- **Temporal evidence is explicit**: each claim records `observed_at` and either `valid_at` or `claim_valid_at`, so branch-only, historical, release, and current-runtime claims cannot be conflated.
 
-Anything that fails goes to an `Unresolved` (insufficient evidence) or `Refuted` (counter-search won) annex — abstention is a correct outcome, not a gap to paper over. Record each gate outcome on the claim node itself — risk tier, independent source domains, counter-search result, primary source backing, and status — and mirror the cleared nodes into the `verified-claims` digest section at the top of `claim-graph.md`. Worker reply marker (message text, same channel as EXPAND):
+Run the lock with the tool, not by judgment:
+
+```bash
+node "$SKILL_DIR/scripts/report-tools.mjs" claims snapshot --session-dir "$SESSION_DIR"   # PDFs and blocked pages: save the text yourself, then --from S3=<file>
+node "$SKILL_DIR/scripts/report-tools.mjs" claims gate --session-dir "$SESSION_DIR"
+```
+
+A failed gate deletes `verified-claims.json` and writes `gate-failed.json`: fix the ledger and rerun. Anything the gate leaves `unresolved` (insufficient evidence) or `refuted` (counter-search won) goes to an annex — abstention is a correct outcome, not a gap to paper over. Mirror each claim's status from `claim-status.json` onto its node in `claim-graph.md`. Worker reply marker (message text, same channel as EXPAND):
 
 ```
 ## CLAIMS
-- CLAIM: <non-code assertion> — RISK: high|normal — SOURCES: <domain1, domain2> — COUNTER: <refutation search result> — PRIMARY: <primary source or none>
+- CLAIM: <non-code assertion> — RISK: high|normal — TYPE: numeric|legal|dated|causal|financial|other — SOURCES: <url1, url2> — QUOTE: "<sentence copied verbatim from url1>" — COUNTER: <query> → <urls opened> → <result> — PRIMARY: <primary source or none> — VALID_AT: <date the claim holds for>
 ```
 
 ## Phase 5 — Synthesize
 
-After convergence and all verifications, re-read the whole journal, start from `intent-diff.md`, `claim-graph.md`, `observation-manifest.md`, and `debate-log.md`, then write `SYNTHESIS.md`. Skeleton, citation rules, the early-skeleton partial-state marker (`STATUS: draft — <n> sections open`), the `MEASURED`/`ASSUMED`/`DERIVED` lineage contract, and the language rule (search English-first, deliver in the user's language): [references/synthesis-format.md](references/synthesis-format.md). Every claim carries inline `[Source N]` citations; every high-risk non-code claim must be a verified-claims row from Phase 4b. Assert nothing the gate left in the unresolved/refuted annex and nothing the skeptic's attack left standing unanswered.
+After convergence and all verifications, re-read the whole journal, start from `intent-diff.md`, `claim-graph.md`, `observation-manifest.md`, and `debate-log.md`, then write `SYNTHESIS.md`. Skeleton, citation rules, the early-skeleton partial-state marker (`STATUS: draft — <n> sections open`), the `MEASURED`/`ASSUMED`/`DERIVED` lineage contract, and the language rule (search English-first, deliver in the user's language): [references/synthesis-format.md](references/synthesis-format.md). Every claim carries inline `[Source N]` citations and its ledger id `[C<n>]`; every high-risk non-code claim must be in `verified-claims.json`. Assert nothing the gate left in the unresolved/refuted annex and nothing the skeptic's attack left standing unanswered. Before Phase 6, `claims report --session-dir "$SESSION_DIR" --report "$SESSION_DIR/SYNTHESIS.md"` must pass: it fails on an unverified `[C<n>]` outside the annex, a ghost id, or a report that cites no verified claim.
 
 ## Phase 6 — Final materials, then accountability
 
@@ -220,6 +227,7 @@ The promised formats recorded in `brief.md` and `outcome.json` are binding (`pdf
 
 - Write `design-spec.md` before any asset lane spawns; every figure meets the container/aspect-ratio/label standard.
 - A gate that could not execute (e.g. no browser tool) is recorded `not_run`, never `pass`.
+- `claims gate` and `claims report` passed on the final ledger and report; a deliverable built while `gate-failed.json` exists is a failed run.
 - Deliver only after `outcome verify` passes; the closing briefing block is printed by the tool, not recalled from memory.
 
 **Accountability is part of the deliverable.** Confirm every spawned subagent returned and was journaled before the final answer. Antigravity subagents terminate on completion — there is no team object to delete — but a run that writes its final answer while a lane result is still unaccounted for is a failed run, not a finished one.
