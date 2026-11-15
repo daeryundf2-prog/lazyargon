@@ -4,20 +4,32 @@ Numbers come from our own tests (small samples; re-measure before tightening). V
 
 | Role | Model | Evidence | Fallback |
 |---|---|---|---|
-| Default | Argon high | Common 100 verdict cases: 72/100 exact, 1 error, median 38 s (best of three) | Argon medium |
+| Default | Argon medium | 41 hard round-3 cases (carbon-medium-1115): Argon medium 22/41 = Argon high 22/41, identical solved set, median 14 s vs 42 s, output tokens 52k vs 207k (see below) | Argon high |
 | Plan, design, final review, security audit | Argon high (security audit also applies the v2 rule) | Accuracy is a tie: Carbon high 62/86 answered (72.1%) vs Argon high 72/99 (72.7%). Carbon is dropped for latency: p50 212 s, p95 526 s, and 14/100 hit the 10-minute cap. A 180 s cap with Argon fallback scores 71/100 against Argon alone 72/100 with twice the calls. Only Carbon high was measured; medium is unmeasured. | - |
 | Long context (~250k+ tokens, unmeasured threshold) | Carbon high, cap 600 s | Cap covers Carbon p95 (526 s). The 250k threshold and Argon fallback at that size are assumptions: no case near that size was tested | Argon high on timeout (unverified at this size) |
-| Verdict, review, verification | Argon high | As above; Hydrogen high 65/100 with the most clean false alarms (10/33) | Hydrogen xhigh with the v2 prompt |
+| Verdict, review, verification | Argon medium | Same 41 cases as Default. Argon high: 72/100 exact on the common 100 cases (medium not run there); Hydrogen high 65/100 with the most clean false alarms (10/33) | Hydrogen xhigh with the v2 prompt |
 | Implementation, edits, test runs | Argon high (default); Hydrogen high for long or flaky test-verified execution | All implementation arms passed 5/5 on F13; Argon high was cheapest (see below) | Argon high |
 | PII, prompt-injection, docfmt and judgment checks | Argon high or Hydrogen xhigh, v2 prompt required | Two separate measurements: 100-case set with the original prompt (pii 7, inject 8 cases), PII weak for every model, best 3/6 caught; v2 retest (pii 38, inject 32 cases), 70/70 for Argon, Carbon and Hydrogen xhigh, clean false positives 0/24 for xhigh. Hydrogen high had 36% clean false alarms (8/22), so high is never a gate. docfmt scores are partly a bench artifact (binary documents shown as 256-byte hex) | Carbon for a suspect |
 | Orchestrator | no role yet | Verdict tasks are answered by Carbon alone (250 s, 10 of 67 failed); implementation comparison pending | - |
 
-Quota rule: Carbon only for long-context input; everything else runs on Argon high, with Hydrogen high for long test-verified execution.
+Quota rule: Carbon only for long-context input; default and verdicts run on Argon medium, plan, final review, security audit, sensitive checks and implementation on Argon high (medium unmeasured for those), Hydrogen high for long test-verified execution.
 
 Pilot, orchestration style (8 cases F06/F12/F13/F10, n too small to conclude): a split pipeline (Carbon plan, Argon medium implement, Carbon review) passed 6/8 against 4/8 for Flash worker plus Argon verifier. The gap was all F13 code fixes (Flash made no edits, 0/2). The split pipeline took about 2-3x longer. Neither style passed the long Korean report family (F12, 0/2). Four-arm numbers (Swarm, Orchestrator, native, Lazy) follow in the PR discussion.
 
 Caveats:
 - `invoke_subagent.Model` documents only `inherit`, `flash` and `flash_lite`. This table sets the session model; explicit model ids as the subagent `Model` are unverified.
+
+## Argon medium vs high on hard verdicts (carbon-medium-1115, 2026-11-15)
+
+The 41 round-3 cases (picked because other models got them wrong), same runner, prompts and grader as round 3; agy 1.5.9, isolated HOME, 15-minute cap per case. The Argon high arm reuses round 3; a 5-case drift check (seed 1115) reproduced it 5/5.
+
+| Arm | Correct /41 | Confidently wrong | Timeouts | Median s | Total tokens | Output tokens |
+|---|---|---|---|---|---|---|
+| Argon medium | 22 | 19 | 0 | 14.3 | 572k | 52k |
+| Argon high | 22 | 19 | 0 | 42.1 | 776k | 207k |
+| Carbon medium | 20 | 21 | 0 | 118.1 | 1,514k | 610k |
+
+Argon medium and high solved the identical set of cases. Sign test Carbon medium vs Argon high: 1 vs 3 cases, p = 0.625. The whole lane used about 1.6 weekly points. Limits: the case set is biased toward hard misses, and n = 41 cannot resolve a 2-case gap; medium is unmeasured on implementation, planning and the v2 sensitive checks.
 
 ## Implementation arms (orch-pilot, 2026-11-13)
 

@@ -1,6 +1,6 @@
 {
-	"version": "2026-11-14",
-	"status": "verdict roles measured on 100 common cases (original bench prompt); implementation measured on easy F13 cases only (every arm 5/5, so the default is chosen on cost); harder multi-file cases unmeasured",
+	"version": "2026-11-15",
+	"status": "verdict roles measured on 100 common cases (original bench prompt) and, for Argon medium vs high, on 41 hard round-3 cases; implementation measured on easy F13 cases only (every arm 5/5, so the default is chosen on cost); harder multi-file cases unmeasured",
 	"selection_rule": "Maximize pass rate first. Among arms tied for the best pass rate within sampling noise, pick the fewest tokens and quota, then the fastest. Never trade pass rate for savings.",
 	"how_to_revise": "Edit this file only. /ulw reads it at the start of a task; no code or rules change needed. Record the evidence in docs/model-routing.md.",
 	"subagent_tiers": {
@@ -11,7 +11,8 @@
 	},
 	"roles": {
 		"default": {
-			"model": "gemini-4-argon-high"
+			"model": "gemini-4-argon-medium",
+			"note": "41 hard round-3 cases (carbon-medium-1115): Argon medium 22/41 = Argon high 22/41 with the identical set of solved cases, median 14 s vs 42 s, output tokens 52k vs 207k. Equal pass rate, so the cheaper arm wins under selection_rule."
 		},
 		"plan": {
 			"model": "gemini-4-argon-high",
@@ -35,16 +36,16 @@
 			"note": "Counting unanswered cases as misses, Carbon high missed 13/67 bad cases and Argon high 8/67. Audits include injection and PII, so the v2 rule applies."
 		},
 		"verdict_review": {
-			"model": "gemini-4-argon-high",
+			"model": "gemini-4-argon-medium",
 			"alternative": "gemini-4-hydrogen-xhigh",
 			"never": [
 				"gemini-4-hydrogen-high"
 			],
-			"note": "100 common cases: Argon high 72/100 exact, 1 error, 38 s median; Hydrogen high 65/100 with the most clean false alarms (10/33)"
+			"note": "41 hard round-3 cases: Argon medium 22/41 = Argon high 22/41 (same solved set; 2-case gaps are not resolvable at n=41), median 14 s vs 42 s, output tokens 52k vs 207k; Carbon medium 20/41 at 2.6x Argon medium's tokens. 100 common cases (Argon high only): 72/100 exact, 1 error, 38 s median; Hydrogen high 65/100 with the most clean false alarms (10/33)"
 		},
 		"implementation": {
 			"model": "gemini-4-argon-high",
-			"note": "single session; pass 5/5 at ~17.5k tokens, ~32 s, ~0.01 weekly pts per 5 cases. Hydrogen high is the same pass rate (~22.8k tokens, ~28 s)."
+			"note": "single session; pass 5/5 at ~17.5k tokens, ~32 s, ~0.01 weekly pts per 5 cases. Hydrogen high is the same pass rate (~22.8k tokens, ~28 s). Stays Argon high: Argon medium is unmeasured on implementation (the 41-case medium result covers verdicts only)."
 		},
 		"long_execution": {
 			"model": "gemini-4-hydrogen-high",

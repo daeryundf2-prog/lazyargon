@@ -148,6 +148,11 @@ function verifiedPath(model, subagentTiers) {
 	return "unverified-nested";
 }
 
+/** Model id without its thinking-level suffix: "gemini-4-argon-high" → "gemini-4-argon". */
+function modelFamily(model) {
+	return (model ?? "").replace(/-(minimal|low|medium|high|xhigh|max)$/, "");
+}
+
 /**
  * Decide the concrete action /ulw takes right now.
  *
@@ -159,8 +164,8 @@ function verifiedPath(model, subagentTiers) {
  * Roles whose routing entry carries a "prompt" starting with "v2" append ", apply v2 flag/fail rule".
  */
 function getAction(model, roles, roleName, mode) {
-	const defaultModel = roles.default?.model;
-	const isArgon = model === defaultModel;
+	// A different thinking level of the session family stays in session: /ulw cannot change the level mid-flight.
+	const isArgon = modelFamily(model) === modelFamily(roles.default?.model);
 	const v2Suffix = usesV2(roles, roleName) ? ", apply v2 flag/fail rule" : "";
 
 	if (!isArgon) {
@@ -188,7 +193,7 @@ function usesV2(roles, roleName) {
  */
 function sessionNotice(model, roles) {
 	const defaultModel = roles.default?.model;
-	if (!defaultModel || model === defaultModel) return null;
+	if (!defaultModel || modelFamily(model) === modelFamily(defaultModel)) return null;
 	const label = model
 		.replace(/^gemini-\d+-/, "")
 		.replace(/-/g, " ")
