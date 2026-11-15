@@ -136,7 +136,7 @@ test("CLI: snapshot stores page text, gate passes, then a changed snapshot revok
 // ── snapshot hardening: internal-address guard, PDF text layer, injection signals, bypass opt-in ──
 
 import { execFileSync } from "node:child_process";
-import { guardedFetch, injectionSignals, isBlockedIp, looksBlocked } from "../skills/ulw-research/scripts/fetch-guard.mjs";
+import { guardedFetch, injectionSignals, insaneSearchPaths, isBlockedIp, looksBlocked } from "../skills/ulw-research/scripts/fetch-guard.mjs";
 
 function minimalPdf(text) {
 	const stream = `BT /F1 12 Tf 72 720 Td (${text}) Tj ET`;
@@ -205,14 +205,33 @@ test("CLI: a blocked page is not bypassed without opt-in, and --allow-bypass nee
 		const snap = await runSnapshot(["--session-dir", dir], { fetchImpl });
 		assert.equal(snap.exitCode, 1);
 		assert.equal(snap.json.snapshots[0].status, "blocked");
-		const saved = process.env.ULW_INSANE_SEARCH_DIR;
+		const saved = { dir: process.env.ULW_INSANE_SEARCH_DIR, home: process.env.HOME };
 		delete process.env.ULW_INSANE_SEARCH_DIR;
+		process.env.HOME = dir; // no engine under this fake home
 		try {
-			await assert.rejects(runSnapshot(["--session-dir", dir, "--allow-bypass"], { fetchImpl }), /ULW_INSANE_SEARCH_DIR/);
+			await assert.rejects(runSnapshot(["--session-dir", dir, "--allow-bypass"], { fetchImpl }), /insane-search engine/);
 		} finally {
-			if (saved !== undefined) process.env.ULW_INSANE_SEARCH_DIR = saved;
+			if (saved.dir !== undefined) process.env.ULW_INSANE_SEARCH_DIR = saved.dir;
+			process.env.HOME = saved.home;
 		}
 	} finally {
 		fs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test("insaneSearchPaths finds the default install and lets env override it", () => {
+	const home = fs.mkdtempSync(path.join(os.tmpdir(), "is-home-"));
+	try {
+		assert.deepEqual(insaneSearchPaths({}, home), { engineDir: "", python: "python3", standingConsent: false });
+		const base = path.join(home, ".local", "share", "insane-search");
+		fs.mkdirSync(path.join(base, "skills", "insane-search", "engine"), { recursive: true });
+		fs.mkdirSync(path.join(base, ".venv", "bin"), { recursive: true });
+		fs.writeFileSync(path.join(base, ".venv", "bin", "python"), "");
+		assert.deepEqual(insaneSearchPaths({}, home), { engineDir: path.join(base, "skills", "insane-search"), python: path.join(base, ".venv", "bin", "python"), standingConsent: false });
+		fs.writeFileSync(path.join(base, "STANDING_CONSENT"), "public web research");
+		assert.equal(insaneSearchPaths({}, home).standingConsent, true);
+		assert.equal(insaneSearchPaths({ ULW_INSANE_SEARCH_DIR: "/x" }, home).engineDir, "/x");
+	} finally {
+		fs.rmSync(home, { recursive: true, force: true });
 	}
 });
