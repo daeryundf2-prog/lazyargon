@@ -17,6 +17,16 @@ Routed from SKILL.md §7 and §8. SKILL.md keeps the grid rule in one line, the 
 
 ### Complexity budget (per diagram)
 
+| Limit | Rule |
+|---|---|
+| Max nodes | 9 |
+| Max arrows / transitions | 12 |
+| Max coral elements | 2 |
+| Max annotation callouts | 2 |
+| Max motion (optional) | 8 steps, 12 marked items, 2 simultaneous items — see [animation.md](references/animation.md) |
+
+Per-type limits (lifelines, lanes, series, bars, stages, and the rest): [layout-budget.md § Complexity budget](references/layout-budget.md#complexity-budget-per-diagram). Check your type's row before drawing.
+
 These are the per-type limits. The universal rows in SKILL.md §7 (9 nodes, 12 arrows or transitions, 2 coral elements, 2 annotation callouts, and the motion limits) apply to every type on top of these, and a semantic pattern's own budget in [semantic-patterns.md](semantic-patterns.md) can only tighten them. One type is the exception: SBGN replaces the 9 nodes and 12 arrows rows with its own ceiling below, because a process square is a reaction marker rather than a node and every reaction needs its consumption and production arcs. Its other universal rows still apply, and no other type may exceed 9 nodes or 12 arrows by analogy.
 
 | Limit | Rule |

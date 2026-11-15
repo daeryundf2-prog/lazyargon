@@ -73,6 +73,27 @@ Read these per-file references for the canonical patterns:
 - **Strict config** → `golangci-strict.md` — the canonical `.golangci.yml` with the full linter whitelist and per-linter rationale.
 - **One-liners** → `one-liners.md` — `go run` scripts with `//go:build ignore`, `gorun`-style invocation.
 
+### Go (`.go`, `go.mod`, `go.sum`, `.golangci.yml`, `*.proto`)
+
+**READ `references/go/README.md` FIRST.** Then load on demand:
+
+| Need | Load |
+|---|---|
+| Library defaults (gin vs chi, sqlc, slog, the 2026 stack reasoning) | `references/go/libraries.md` |
+| Canonical strict `.golangci.yml` (v2) with per-linter rationale | `references/go/golangci-strict.md` |
+| Project layout, Taskfile, CI, `go.mod` template | `references/go/bootstrap.md` |
+| Type patterns (named types, smart constructors, sealed interfaces, generics) | `references/go/type-patterns.md` |
+| Data modeling — the three layers of validation (validator/v10 → smart ctor → sqlc) | `references/go/data-modeling.md` |
+| Error handling (`errors.Is/As`, typed errors, `%w` wrapping, no panic) | `references/go/error-handling.md` |
+| Concurrency (`context.Context`, `errgroup`, channels, locks, `-race`, `goleak`) | `references/go/concurrency.md` |
+| HTTP backend stack (gin + slog + validator + pgx, middleware ordering, SSE, WS) | `references/go/backend-stack.md` |
+| RPC stack (Connect-Go default, grpc-go fallback, protovalidate, Buf) | `references/go/grpc-connect.md` |
+| CLI stack (cobra + slog + huh) | `references/go/cobra-stack.md` |
+| Database stack (sqlc + pgx + goose + testcontainers) | `references/go/sqlc-pgx.md` |
+| TUI stack (bubbletea v2 + bubbles v2 + lipgloss v2; **CJK / IME support**) | `references/go/bubbletea-v2.md` |
+| Testing (Given/When/Then, table-driven, fakes-over-mocks, autogold, rapid) | `references/go/testing.md` |
+| Disposable `go run` scripts | `references/go/one-liners.md` |
+
 ## The 250 pure LOC ceiling
 
 Same rule as Python/Rust/TS: a `.go` file whose pure LOC (non-blank, non-comment) exceeds 250 is architecturally broken. Go encourages many small files in a single package, so this is *more* natural here than elsewhere — split by responsibility, keep one cohesive type and its methods per file.

@@ -242,6 +242,26 @@ Load `one-liners.md` for full patterns, examples, and anti-patterns.
 
 Load on demand — not all at once.
 
+### Python (`.py`, `.pyi`)
+
+**READ `references/python/README.md` FIRST.** Then load on demand:
+
+| Need | Load |
+|---|---|
+| Strict pyproject.toml / basedpyright / ruff config | `references/python/pyproject-strict.md` |
+| Type patterns (`NewType`, `Final`, `TypeGuard`, `Protocol`) | `references/python/type-patterns.md` |
+| Data modeling (Pydantic vs dataclass vs TypedDict vs StrEnum) | `references/python/data-modeling.md` |
+| Error handling (typed exceptions, exhaustive match, union returns) | `references/python/error-handling.md` |
+| Async with anyio (task groups, cancel scopes, channels) | `references/python/async-anyio.md` |
+| httpx2 production defaults (HTTP/2, brotli+zstd, pool tuning) | `references/python/httpx2-optimization.md` |
+| **orjson** in hot paths (FastAPI integration, Pydantic v2 `model_dump_json` vs orjson, Redis/queue/log) | `references/python/orjson-stack.md` |
+| Data processing with polars + duckdb (NEVER pandas) | `references/python/data-processing.md` |
+| FastAPI + SQLAlchemy 2.x async stack | `references/python/fastapi-stack.md` |
+| pydantic-ai agents | `references/python/pydantic-ai.md` |
+| Textual TUI | `references/python/textual-tui.md` |
+| Disposable PEP 723 scripts | `references/python/one-liners.md` |
+| Canonical library defaults | `references/python/libraries.md` |
+
 | Need | Load |
 |---|---|
 | Full pyproject.toml config | `pyproject-strict.md` |

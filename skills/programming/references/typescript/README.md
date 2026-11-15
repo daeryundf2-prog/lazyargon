@@ -145,6 +145,21 @@ Key flags beyond `"strict": true`:
 
 Load on demand — not all at once.
 
+### TypeScript / JavaScript (`.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs`)
+
+**READ `references/typescript/README.md` FIRST.** Then load on demand:
+
+| Need | Load |
+|---|---|
+| Strict tsconfig | `references/typescript/tsconfig-strict.md` |
+| Default oxlint + oxfmt configs and copy rules | `references/typescript/oxc-lint.md` |
+| Type patterns (branded types, `as const`, `satisfies`, narrowing, `assertNever`) | `references/typescript/type-patterns.md` |
+| Data modeling (type vs interface vs Zod, readonly, parse-don't-validate) | `references/typescript/data-modeling.md` |
+| Error handling (Result, typed errors, union vs throw, AbortSignal timeouts) | `references/typescript/error-handling.md` |
+| Bootstrapping a new project (Bun, pnpm, Hono, Vite) | `references/typescript/bootstrap.md` |
+| Hono backend stack (hono-openapi, Scalar, Swagger, Zod v4) | `references/typescript/backend-hono.md` |
+| 3D & interactive WebGL (React + R3F, Single Canvas Multi-View, GPU `dispose()`) | `references/typescript/threejs-r3f.md` |
+
 | Need | Load |
 |---|---|
 | Strict tsconfig | `tsconfig-strict.md` |

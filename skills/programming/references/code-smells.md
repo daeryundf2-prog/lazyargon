@@ -4,6 +4,36 @@ When any of these smells is detected, **STOP and re-examine your design.** A cod
 
 ---
 
+## CODE SMELLS — AUTOMATIC REVIEW TRIGGERS
+
+Most smells below are design review triggers: STOP, re-examine the code, and either fix the smell or justify carrying it with a SPECIFIC reason. **The 250 pure LOC ceiling is stricter: >250 is a DEFECT. Refactor before adding lines except for rare SIZE_OK or pure-data-table exceptions.**
+
+### Smell 1 — File exceeds 250 pure LOC
+
+A source file past 250 non-blank, non-comment lines has outgrown a single reviewer's working memory. The module is almost certainly doing more than one thing. Measure: `awk '!/^[[:space:]]*$/ && !/^[[:space:]]*(\/\/|#|--)/' <file> | wc -l`.
+
+**When detected:** Name what the file owns in one short noun phrase. If the answer needs "and", the file needs splitting. Load `/refactor` and split by responsibility. If the file genuinely cannot be split (generated parser, indivisible state machine), mark it in the first 10 lines with `# noqa: SIZE_OK — <reason>` in Python (the form `scripts/python/check-no-excuse-rules.py` reads) or `// allow: SIZE_OK — <reason>` in `//`-comment languages.
+
+### Smell 2 — Function with more than 3 parameters
+
+More than 3 arguments signals the function is doing too much, or that related parameters belong in a typed struct. **Workarounds count as the same smell** — passing `dict`/`Record<string, unknown>`/`map[string]any`/`**kwargs`/`...args` to smuggle parameters through one argument, or a throwaway "config" object with 6+ fields that exists solely to wrap what would otherwise be positional args (genuine reusable domain types like `HttpClientConfig` are fine).
+
+**When detected:** Group related parameters into a typed value object with a domain name. If 4+ independent inputs are genuinely required, the justification must be SPECIFIC. See [`references/code-smells.md` Smell 2](#smell-2--function-with-more-than-3-parameters) for Python, TypeScript, and Go examples.
+
+### Smell 3 — Redundant verification after a destructive action
+
+Performing a delete/remove/clear/drop and then immediately querying to "confirm" the thing is gone. **The operation's contract IS the verification.** Re-checking is AI-generated defensive bloat that wastes cycles and teaches the reader the operation is unreliable — which it is not. Same smell: calling a setter then getting to "confirm", writing a file then reading it back, inserting a row then SELECT-ing it, pushing to an array then checking `.length`.
+
+**When detected:** Delete the verification code. Trust the operation's contract. If the operation can genuinely fail silently, fix the operation — do not paper over it with a post-check. See [`references/code-smells.md` Smell 3](#smell-3--redundant-verification-after-a-destructive-action) for examples.
+
+### Smell 4 — Negative-form names and conditions
+
+Naming variables, functions, or flags by the **absence** of a quality (`isNotValid`, `noErrors`, `cannotProceed`, `DisableLogging`) instead of its **presence** (`isValid`, `isClean`, `canProceed`, `LoggingEnabled`). Every negation forces the reader to invert mentally; two negations (`if !isNotReady`) become a logic puzzle nobody reviews confidently.
+
+**When detected:** Rename to the positive form and invert the branch logic. Negation IS appropriate in guard clauses (`if !authorized { return }`) and filters (`items.filter(|x| !x.is_expired())`) — the negative form is the intent there. See [`references/code-smells.md` Smell 4](#smell-4--negative-form-names-and-conditions) for the full naming table and examples.
+
+---
+
 ## Smell 1 — File exceeds 250 pure LOC
 
 ### Why 250
@@ -18,6 +48,13 @@ A file past this line is telling you:
 - Every future reader pays a tax to find what they need.
 
 ### Measuring pure LOC
+
+- Measure (POSIX): `awk '!/^[[:space:]]*$/ && !/^[[:space:]]*(\/\/|#|--)/' <file> | wc -l`
+- Measure (Cross-platform Python): `python -c "import re,sys; print(sum(1 for l in open(sys.argv[1],encoding='utf-8') if l.strip() and not re.match(r'^\s*(//|#|--)',l)))" <file>`
+- Measure (PowerShell): `(Get-Content <file> | Where-Object { $_ -notmatch '^\s*$' -and $_ -notmatch '^\s*(//|#|--)' }).Count`
+- ≤ 200 LOC: Healthy
+- 200 - 250 LOC: Warning band (propose split)
+- \> 250 LOC: **DEFECT** — split by responsibility into smaller cohesive units immediately.
 
 ```bash
 # Quick (line-comment + blank exclusion):

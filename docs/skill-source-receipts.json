@@ -411,7 +411,7 @@
     {
       "repo": "epoko77-ai/im-not-ai",
       "url": "https://github.com/epoko77-ai/im-not-ai",
-      "pinned_sha": "b37e0206d31fffd9149bf57168d4d62eb2086bee",
+      "pinned_sha": "80fae0ca391bd2a573173f34e72511954e700008",
       "keyword": "humanize-korean",
       "mapped_targets": [
         "../lazyargon-workspace/skills/humanize-korean/SKILL.md"
@@ -419,7 +419,7 @@
       "status": "verified",
       "kind": "skill_original",
       "license": "MIT",
-      "note": "skills/humanize-korean (was misattributed to blader/humanizer before 2026-11-15)"
+      "note": "skills/humanize-korean v2.4.2 plus its pipeline scripts (was misattributed to blader/humanizer before 2026-11-15)"
     },
     {
       "repo": "Marker-Inc-Korea/ko-pii",

@@ -15,6 +15,8 @@ The run proves the change; a test proves that the next change cannot silently un
 
 A test that fails on the unchanged base is a product bug to fix at its owner; a test your own change turns red is fixed at the code or at the test. Neither is deleted or edited green to unblock a run.
 
+The README owns the shape (Given / When / Then, the pyramid, the mock ladder, determinism, isolation, the prompt-test rule) and the "test your test" step: break the production owner, watch the test go red for the intended reason, restore byte for byte. A test that fails on the unchanged base is a bug to fix at its owner; one your own change turns red is fixed at the code or at the test; neither is deleted or edited green to unblock a run.
+
 ## Shape
 
 ### The pyramid, cheapest rung first

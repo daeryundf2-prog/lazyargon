@@ -11,7 +11,7 @@ Generated from `docs/skill-source-receipts.json` (2026-11-15 rewrite). `skill_or
 | [`cathrynlavery/diagram-design`](https://github.com/cathrynlavery/diagram-design) | `f6db0decea96` | MIT | `skills/diagram-design/SKILL.md` | synced to upstream 2.6.164 on 2026-11-15; three Argon anti-pattern rows kept; repo-level checker scripts copied into skills/diagram-design/scripts |
 | [`kaankiziltug/logo-design-skill`](https://github.com/kaankiziltug/logo-design-skill) | `e9eaddc07895` | MIT | `skills/logo-design/SKILL.md` | skills/logo-design |
 | [`nexu-io/open-design`](https://github.com/nexu-io/open-design) | `6afe7eae156b` | Apache-2.0 | `skills/frontend/ATTRIBUTION.md` | frontend/references/design/<brand>.md, see skills/frontend/ATTRIBUTION.md |
-| [`epoko77-ai/im-not-ai`](https://github.com/epoko77-ai/im-not-ai) | `b37e0206d31f` | MIT | `../lazyargon-workspace/skills/humanize-korean/SKILL.md` | skills/humanize-korean (was misattributed to blader/humanizer before 2026-11-15) |
+| [`epoko77-ai/im-not-ai`](https://github.com/epoko77-ai/im-not-ai) | `80fae0ca391b` | MIT | `../lazyargon-workspace/skills/humanize-korean/SKILL.md` | skills/humanize-korean (was misattributed to blader/humanizer before 2026-11-15) |
 
 ## 2. Inspiration and references
 

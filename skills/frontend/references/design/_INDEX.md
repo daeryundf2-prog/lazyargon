@@ -204,3 +204,39 @@ Each file ships with: visual theme, hex color palette + semantic roles, full typ
 - **"Data-dense / dashboard"** → `sentry.md`, `kraken.md`, `posthog.md`, `clickhouse.md`
 - **"Bold / sporty / monochrome punch"** → `nike.md`, `uber.md`, `tesla.md`, `binance.md`
 - **"Playful / colorful / friendly"** → `figma.md`, `airtable.md`, `zapier.md`, `lovable.md`
+
+---
+
+### Layer 0 — architecture
+
+| File | Read when |
+|---|---|
+| `design-system-architecture.md` | The project has no `DESIGN.md` (defines the structure you must create first — 8 sections plus a greenfield-only `## 0. Research Log`), or you are extracting a design system from existing UI code. |
+| `material-first-workflow.md` | Building a greenfield brand showcase, landing page, or interactive product catalog without AI slop — enforces the 3-Document Separation (Purpose / UX & Data Flow / Visual Direction), the Material-First Gate (`products.ts` + `content.ts` + Fixed/Variable asset prompt templates before UI code), Bottom-Up assembly (`■ Material` + `● Component/Taxonomy` + `◆ Slot`), and Reverse-Order doc updates. |
+
+### Layer A — taste skills (pick AT MOST ONE style skill; they encode opposing philosophies)
+
+| File | Read when the user says… |
+|---|---|
+| `taste-skill.md` | Neutral or operational UI with no surface ambition — internal tools, dashboards, "just make it usable". The safe default; do NOT settle here when the brief signals glossy / premium / startup-grade craft. |
+| `gpt-tasteskill.md` | "Awwwards-tier", "wow factor", "cinematic", "scroll-triggered" marketing/landing experiences. |
+| `minimalist-skill.md` | "minimal", "clean", "Notion-like", "Linear-like", "editorial". |
+| `brutalist-skill.md` | "brutalist", "raw", "Swiss", "experimental", "anti-design". |
+| `soft-skill.md` | "premium", "luxury", "calm", "expensive", "elegant", AND glossy / glassy / liquid-glass / startup-grade product surfaces — pair with a high-craft Layer B (`supabase`, `linear.app`, `vercel`, `stripe`). |
+| `redesign-skill.md` | Improving EXISTING UI — "this looks bad", "fix the design". Audit-first workflow; never use on greenfield. |
+| `image-to-code-skill.md` | "Generate the design first, then code it." Pair with one image-brief reference (`imagegen-*.md`) below and generate via the `image-generator` subagent. |
+| `output-skill.md` | Stacks on any style skill when output is incomplete — placeholders, `// TODO`, half-done components. |
+| `stitch-skill.md` | Stacks on any style skill for Google Stitch compatibility or a `DESIGN.md` doc export. A complete worked export ships as `stitch-design-example.md`. |
+| `interaction-skill.md` | Stacks on any style skill when work adds or changes interaction or motion. beui.dev-anchored: read the mapped component's source before designing an interaction; reduced motion always. |
+| `ambience-skill.md` | Stacks on any style skill when work adds a hero atmosphere, animated background, typographic reveal, scroll chapter, or card surface effect. react-bits-anchored: read the mapped component's source, extract the mechanism, run the retrofit checklist; one atmosphere per hero, cursor effects quarantined. |
+| `imagegen-frontend-web.md` / `imagegen-frontend-mobile.md` / `imagegen-brandkit.md` | Image-only output via the `image-generator` subagent (mockup, app-screen concepts, brand board). These NEVER write UI code — switch to `image-to-code-skill.md` if code is wanted. |
+
+### Layer B — brand design systems (orthogonal to Layer A; stack freely — `nexu-io/open-design`: https://github.com/nexu-io/open-design)
+
+When the user names a brand or site — "Linear-style", "like Stripe's landing", "Aside-style browser agent" — load `references/design/<brand>.md` as the token source of truth (palette, type scale, components, do/don'ts). Coverage includes `aside` `apple` `stripe` `linear.app` `notion` `vercel` `claude` `figma` `airbnb` `nike` `tesla` `spotify` `raycast` `revolut` and ~56 more; the full list with mood shortcuts is in `_INDEX.md`. Extract the tokens and apply them to the project's own content — never copy logos or trademarked imagery. If the named brand is missing, fall back to a Layer A mood match — or to the `open-design` skill only when that external skill is installed (it is not bundled here).
+
+### React dev tooling
+
+| File | Read when |
+|---|---|
+| `react-dev-tooling-skill.md` | A React project lacks react-grab / react-scan / react-doctor, or you need per-framework install snippets and the dev-only gating pattern (`NODE_ENV === 'development'`). |

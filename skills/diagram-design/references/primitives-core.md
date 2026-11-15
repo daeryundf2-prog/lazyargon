@@ -2,6 +2,32 @@
 
 Routed from SKILL.md §6. SKILL.md keeps the six connector rules as one line each, the arrow roles, and a one-line node box summary. This file holds the markup and the long form of every rule. The copied template already carries the background rect, the commented dotted-paper pattern, and all three arrow markers, so load this file when you need exact markup or a rule's edge cases.
 
+## 6. Core SVG Primitives
+
+Universal building blocks. Type-specialized primitives (lifeline, activation bar, region) live in the relevant type reference linked in the guide. Optional primitives:
+
+- Editorial callouts → [primitive-annotation.md](references/primitive-annotation.md)
+- Hand-drawn variant → [primitive-sketchy.md](references/primitive-sketchy.md)
+- Icon set (laptop, server, DB, K8s, Docker, AWS, …) → [primitive-icons.md](references/primitive-icons.md). Browse the gallery at [`assets/icons.html`](assets/icons.html).
+- Terminal / CLI-window variant → [primitive-terminal.md](references/primitive-terminal.md)
+- Optional explanatory motion → [animation.md](references/animation.md)
+
+Exact markup (background, dotted paper, markers, node box, arrow label, legend) and the long form of each connector rule: [`references/primitives-core.md`](references/primitives-core.md). The static templates (`template.html`, `template-dark.html`, `template-full.html`) already define the background and the `arrow`, `arrow-accent`, and `arrow-link` markers; `template-motion.html` defines only its own prefixed marker, so add the others from primitives-core.md when a motion diagram needs them.
+
+- **Arrows:** `muted` by default, `accent` for the headline path, `link` for HTTP/API and external calls, dashed `5,4` for optional, passive, return, or async. Draw arrows before boxes so lines sit behind nodes.
+- **Node box:** an opaque paper mask rect, then the styled box at `rx=6`, a rectangular type tag at `rx=2` (not a pill), the name in Geist 600, and a Geist Mono sublabel.
+
+### Mandatory connector rules (summary)
+
+Non-negotiable, and §9 checks each one. Full text and edge cases: [primitives-core.md § Mandatory connector rules](references/primitives-core.md#mandatory-connector-rules).
+
+1. **Orthogonal only.** Connectors between off-axis nodes are rounded right-angle elbows at `r=8` (`r=6` minimum in tight layouts); a straight `<line>` only when both ends share x or y. Diagonals fail.
+2. **Label gap.** Every arrow label (14 characters max, all caps, centered on its segment) sits on an opaque mask with a visible 6 to 10px gap from its stroke, beside vertical segments, never on the line.
+3. **No overlaps.** No shared or stacked strokes: offset parallel routes by 12px or more, and use the bridge/hop at a single crossing.
+4. **Fan attach points.** Connectors on one box edge each get their own point at `L * k / (N + 1)`, 12px or more apart (8px on very small boxes).
+5. **No transit behind a non-endpoint box.** Reroute. Only when the box is geometrically unavoidable: dashed stroke (`4,3`), label at the visible end, no marker on the intervening box.
+6. **Mask before node.** A label mask must not overlap a node drawn after it; badge masks fully inside a node and masks over earlier zones are fine. From the installed skill directory, verify with `python3 scripts/verify_geometry.py <file>`.
+
 Type-specialized primitives (lifeline, activation bar, region) live in the relevant type reference linked in SKILL.md §3.
 
 Snippets here and in every type reference name colors and fonts by role, never by value: `{ink}`, `{muted}`, `{paper}`, `{accent}`, `{link}`, `{soft}` for colors, `{ink @ 0.10}` for a role at an opacity, and `{title}`, `{node-name}`, `{sublabel}`, `{eyebrow}`, `{arrow-label}`, `{callout}` for font families. Resolve each against the active skin in [`style-guide.md`](style-guide.md) before emitting: `{ink @ 0.10}` becomes the `ink` color as `rgba(r,g,b,0.10)`, and `{sublabel}` becomes that role's full family stack. Uppercase names (`X`, `FILL`, `STROKE`) are geometry and per-node values you compute.
@@ -134,7 +160,16 @@ Expand SVG `viewBox` height by ~60px.
 
 ## Accessible SVG contract
 
-SKILL.md §12 lists these six points one line each; this is the long form.
+Every diagram is an accessible figure by default (long form: [primitives-core.md § Accessible SVG contract](references/primitives-core.md#accessible-svg-contract)):
+
+1. `<svg>` carries `role="img"` and `aria-labelledby` naming its `<title>` and `<desc>`.
+2. `<title>` is the first child of `<svg>`, before `<defs>`.
+3. IDs are `<slug>-title` / `<slug>-desc`, the slug matching the file (`loop`, `loop-dark`, `loop-full`); never bare `title` / `desc`.
+4. `<title>` is the subject's short name, roughly the page `<h1>`, 60 characters or fewer.
+5. `<desc>` is one sentence about the content, not the geometry.
+6. Decorative-only SVG, such as the glyphs in `assets/icons.html`, carries `aria-hidden="true"` instead.
+
+Long form:
 
 Every diagram is an accessible figure by default:
 

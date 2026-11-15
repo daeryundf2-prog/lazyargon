@@ -48,3 +48,45 @@ node "$SKILL_DIR/scripts/report-tools.mjs" claims report --session-dir "$SESSION
 - `claims snapshot` fetches every source that a high-risk quote points at (`--all` for every quote, `--refresh` to refetch) and stores its text under `sources/snapshots/<id>.txt` with a sha256. HTML becomes its prose text. PDFs, scans and pages that block plain fetches are refused: open them with your own tools, save the text, and pass `--from S3=/path/to/text.txt` (an `.html` file is converted to text). A source that could not be stored leaves its quotes unverifiable, so its claims stay unresolved.
 - `claims gate` writes `claim-status.json` and, only when it passes, `verified-claims.json`. A failed gate deletes any earlier `verified-claims.json` and writes `gate-failed.json`, so nothing can be synthesized from a failed run. Exit 1 = procedure violations to fix; exit 2 = malformed ledger (unknown source ids, evidence from a source the claim does not cite, unregistered counter-search URLs). A warning is printed when more than half the claims are unresolved.
 - `claims report` checks the Markdown report: every `[C<n>]` outside an annex must be verified, unknown ids are ghosts, and at least one verified claim must be cited (`--min-coverage 0.6` to demand more). It fails while the gate has not passed.
+
+## Phase 4 — Verify contested claims by running code
+
+Settle with executed code, not judgment, whenever sources disagree, a behavior is undocumented, a claim is performance- or compatibility-shaped, or the honest answer is "it should work". Run the verification yourself with your own exec tools, or spawn one verification lane per claim in the next `invoke_subagent` wave:
+
+```
+{ TypeName: "self", Role: "verify-<claim-slug>", Model: "inherit",
+Prompt: "TASK: verify by execution: <claim>.
+SOURCE: <where it came from>; CONTRADICTION: <opposing source, if any>.
+Write a minimal self-contained script that tests the claim; run it (uv run --with <deps> python / node / direct compile); capture full stdout+stderr; pin versions.
+Reply with: the exact code, the full output, environment (OS, runtime, dependency versions), and a verdict — CONFIRMED / REFUTED / PARTIAL — grounded in the output." }
+```
+
+Journal each verdict to `verify-<slug>.md`.
+
+## Phase 4b — Lock non-code claims through the claim graph
+
+Code settles code-shaped claims (Phase 4). Numeric, market-share, legal, dated, causal, and financial claims cannot be run — so they pass through a data-flow-lock instead: the synthesis may assert a high-risk non-code claim **only** if it cleared this gate, and the gate's output is the sole allowlist the synthesis draws from. Skip the gate and there is nothing to synthesize — the lock is self-enforcing.
+
+The claim ledger is orchestrator-owned. Workers only return claim candidates as message text, the same channel as EXPAND markers — never a file. As leads resolve, you record one line per asserted claim in `claims.jsonl` and one per source in `sources.jsonl` (schema: [references/claim-gate.md](references/claim-gate.md)), and keep `claim-graph.md` as the readable view. The ledger is the single claim store: final synthesis may not draw from free-form claims that skipped it.
+
+A high-risk claim clears the gate to `verified-claims.json` only when all hold:
+
+- **>= 2 independent organizations** corroborate it (docs.python.org and peps.python.org count once), unless the ledger records why a primary-only source is the correct single-source exception.
+- **One structured counter-search** (`{query, urls, summary}`, every URL registered as a source) looked for a refutation and did not find a stronger one. A missing or free-text counter-search fails the whole gate.
+- **A primary source** (statute, court decision, standard, filing, dataset, or first-party doc) backs it, on **>= 2 source surface types** (a statute page plus a news report, not two news reports).
+- **A verbatim quote** from a cited source, 20-300 characters, appears in the stored snapshot of that page. A numeric claim needs a quote that carries its number. Snapshots are fetched by the tool, never paraphrased by a model.
+- **Temporal evidence is explicit**: each claim records `observed_at` and either `valid_at` or `claim_valid_at`, so branch-only, historical, release, and current-runtime claims cannot be conflated.
+
+Run the lock with the tool, not by judgment:
+
+```bash
+node "$SKILL_DIR/scripts/report-tools.mjs" claims snapshot --session-dir "$SESSION_DIR"   # PDFs and blocked pages: save the text yourself, then --from S3=<file>
+node "$SKILL_DIR/scripts/report-tools.mjs" claims gate --session-dir "$SESSION_DIR"
+```
+
+A failed gate deletes `verified-claims.json` and writes `gate-failed.json`: fix the ledger and rerun. Anything the gate leaves `unresolved` (insufficient evidence) or `refuted` (counter-search won) goes to an annex — abstention is a correct outcome, not a gap to paper over. Mirror each claim's status from `claim-status.json` onto its node in `claim-graph.md`. Worker reply marker (message text, same channel as EXPAND):
+
+```
+## CLAIMS
+- CLAIM: <non-code assertion> — RISK: high|normal — TYPE: numeric|legal|dated|causal|financial|other — SOURCES: <url1, url2> — QUOTE: "<sentence copied verbatim from url1>" — COUNTER: <query> → <urls opened> → <result> — PRIMARY: <primary source or none> — VALID_AT: <date the claim holds for>
+```
