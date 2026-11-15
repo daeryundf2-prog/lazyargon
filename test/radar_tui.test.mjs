@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -8,15 +8,16 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const radarScript = join(root, "scripts", "upstream_radar.mjs");
+const RECEIPT_COUNT = JSON.parse(readFileSync(join(root, "docs", "skill-source-receipts.json"), "utf8")).sources.length;
 const binEntry = join(root, "bin", "lazyargon");
 
-test("upstream_radar.mjs audit --json verifies all 33 sources and closure targets", () => {
+test("upstream_radar.mjs audit --json verifies every receipt source and closure target", () => {
 	const res = spawnSync(process.execPath, [radarScript, "audit", "--json"], { encoding: "utf8" });
 	assert.equal(res.status, 0, `stderr: ${res.stderr}`);
 	const data = JSON.parse(res.stdout);
 	assert.equal(data.schema, "skill_source_closure_audit/v1");
 	assert.equal(data.ok, true);
-	assert.equal(data.source_count, 33);
+	assert.equal(data.source_count, RECEIPT_COUNT);
 	assert.equal(data.missing_targets.length, 0);
 	assert.ok(data.verified_targets >= 15);
 });
@@ -63,12 +64,12 @@ test("upstream_radar.mjs audit negative path detects missing target and fabricat
 	}
 });
 
-test("upstream_radar.mjs poll --offline --json returns 33 pinned sources", () => {
+test("upstream_radar.mjs poll --offline --json returns every receipt source", () => {
 	const res = spawnSync(process.execPath, [radarScript, "poll", "--offline", "--json"], { encoding: "utf8" });
 	assert.equal(res.status, 0);
 	const data = JSON.parse(res.stdout);
 	assert.equal(data.mode, "offline");
-	assert.equal(data.source_count, 33);
+	assert.equal(data.source_count, RECEIPT_COUNT);
 	assert.equal(data.drift_count, 0);
 });
 

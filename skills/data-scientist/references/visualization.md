@@ -22,6 +22,15 @@ question — decoration dilutes the answer.
 | Composition of a whole? | stacked or 100% bar — pie only for four or fewer slices |
 | Many series over time? | small multiples over one spaghetti chart |
 
+## Figures — every chart
+
+- **Days start at the reader's midnight.** Cut daily, weekly and monthly buckets in the
+  reader's time zone, not UTC, and name the zone in the axis label or caption. A bucket still
+  filling (today, this week) is marked partial on its own bar, or it reads as a drop.
+- **Cross-check one figure.** Recompute a headline number from a second source (another
+  table, the system's own dashboard, a raw count) and say beside the chart whether it
+  matched, and by how much it differed if not.
+
 ## Quality bar — every chart
 
 - Title states the finding ("Seoul overtook Busan in March"), not the dataset name.

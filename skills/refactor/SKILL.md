@@ -1,6 +1,7 @@
 ---
 name: refactor
-description: "Intelligent refactor command. Triggers: refactor, refactoring, cleanup, restructure, extract, simplify, modernize."
+description: "Guides a refactor, cleanup, or restructure with the right decomposition. Use when the user asks to refactor, simplify, extract, or modernize code."
+argument-hint: "<refactoring-target> [--scope=<file|module|project>] [--strategy=<safe|aggressive>]"
 ---
 
 ## Antigravity Tool Mapping (default)
@@ -92,7 +93,7 @@ Should I proceed with [recommendation], or would you prefer differently?
 
 ## Step 0.3: Lock Scope & Phase Checklist
 
-**IMMEDIATELY after understanding the request, lock the 3-line scope (`목표 / 완료 조건 / 범위`) and track the 6 phases:**
+**IMMEDIATELY after understanding the request, lock the 3-line scope (`목표 / 완료 조건 / 범위`) and track the 6 phases (all pending):**
 
 - [ ] **PHASE 1**: Codebase Analysis — launch parallel explore subagents (3–4 lanes max by default)
 - [ ] **PHASE 2**: Build Codemap — map dependencies and impact zones
@@ -169,6 +170,8 @@ Use `run_command` with `rg` (`rg -n` for symbol/import search and `rg --files` f
 ## 1.3: Collect Subagent Results
 
 Wait for subagent completion messages (`send_message` Reactive Wakeup — do not poll in a loop).
+
+**Mark PHASE 1 as completed after all subagent and baseline results are collected.**
 
 ---
 
@@ -277,6 +280,11 @@ Which approach do you prefer?
 - Unit: `bun test` / `npm test` / `pytest` / `cargo test` / `go test ./...`
 - Integration: [command if exists]
 - Type check: `tsc --noEmit` / `basedpyright` / `cargo check` / `go vet ./...`
+- Lint: [project's linter command, the one Phase 6.3 runs]
+
+### Baseline (before any change)
+- Pass counts: [X/Y passing per test command above]
+- Diagnostics: [pre-existing compiler/typecheck diagnostics recorded in Phase 1.2]
 
 ### Verification Checkpoints
 After each refactoring step:
@@ -337,6 +345,20 @@ After generating the plan:
 2. **Verify safety**: Each step reversible?
 3. **Verify order**: Dependencies respected?
 4. **Verify verification**: Test commands specified?
+
+## 4.3: Track Detailed Step Checklist
+
+Convert the refactoring plan into a granular step-by-step checklist (each step from the plan is paired with its verification checkpoint):
+
+```text
+- [ ] refactor-1: Step 1: [description]
+- [ ] verify-1: Verify Step 1: run tests and typecheck
+- [ ] refactor-2: Step 2: [description]
+- [ ] verify-2: Verify Step 2: run tests and typecheck
+- ... continue for all steps
+```
+
+**Mark PHASE 4 as completed.**
 
 ---
 
@@ -435,6 +457,8 @@ bun run build  # or npm run build, cargo build, go build ./...
 
 ## 6.5: Generate Summary
 
+Confirm all changed files are clean or match the Phase 1.2 baseline (zero new compiler/typecheck or lint diagnostics), then output:
+
 ```markdown
 ## Refactoring Complete
 
@@ -493,7 +517,7 @@ If any of these occur, **STOP and consult user**:
 - **Continuous verification**: Run the project's typechecker and test runner via `run_command` after every change.
 
 ## AST-Grep (`sg` CLI via `run_command`)
-Use `sg run -p '<pattern>' -r '<rewrite>' -l <lang>` for structural transformations. Always preview without `--update-all` first, review the diff output, and then execute with `--update-all`.
+Use `sg run -p '<pattern>' -r '<rewrite>' -l <lang>` for structural transformations and safe workspace-wide symbol renames. Always preview without `--update-all` first, review the diff output, and then execute with `--update-all`.
 
 ## Subagents (`invoke_subagent`)
 - Dispatch parallel read-only exploration, architectural planning, or verification lanes with `TypeName: "self"` (or `"research"`) and `Model: "inherit"` (default 3–4 lanes max).
@@ -509,3 +533,19 @@ Do **not** use OpenCode `team_*` or `Task(...)` tools on Antigravity. Dispatch i
 
 - [ast-refactor](references/ast-refactor.md) — symbol/call-graph-driven refactoring via `sg` CLI
 - [remove-ai-slops](references/remove-ai-slops.md) — AI slop cleanup checklist across 10 categories
+
+## Multi-Step Parallel Dispatch Protocol (`invoke_subagent`)
+
+When Phase 4.1 plans a multi-file refactor, classify atomic steps before Phase 5:
+
+1. **Plan Staffing & Dependency Breakdown (Phase 4)**:
+   - Record `total_atomic_steps`, `file_independent_steps` (parallelizable, disjoint files), `cross_file_dependent_steps` (with `blockedBy` step IDs), and `dispatch_path_recommendation` (`parallel` when `file_independent_steps >= 3`, `sequential` otherwise).
+   - Classify each step as mechanical (rename, extract variable, inline, simple move, signature update) or logic-preserving (extract function, restructure conditional, pattern transformation, cross-file API change).
+2. **Parallel Subagent Execution (Phase 5 — when `file_independent_steps >= 3`)**:
+   - Dispatch up to **4 parallel workers** per wave via `invoke_subagent` (`TypeName: "self"`, `Model: "inherit"`) for unblocked steps with disjoint file scopes.
+   - Include the **Refactor Intent Card** (Phase 2 codemap summary, constraints, established patterns) and **Verify Spec** (Phase 3.4 commands, baseline pass counts, regression indicators) in each worker prompt.
+   - Workers apply only their assigned step (`edit_file` or previewed `sg run`), never run the full test suite or `git add`, and immediately stop and report `UNCLEAR` if a step is ambiguous or requires out-of-scope edits.
+   - Wait for completion notifications via `send_message` Reactive Wakeup, then run an independent verification pass (`run_command` or a dedicated verifier subagent with `Model: "inherit"`) before creating a Phase 5.3 commit checkpoint.
+   - If verification fails, retry the step with the specific failure output; after **3 consecutive FAIL cycles** on the same step, **STOP and consult the user**.
+3. **Summary Reporting (Phase 6)**:
+   - Append the chosen `Dispatch path` (`parallel` vs `sequential`) and step/verification counts to the Phase 6.5 summary.

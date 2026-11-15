@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-The only shared skill besides `ultimate-browsing` carrying a real sub-project: a Python package + CLI that finds, lists, searches, and reads local coding-agent session transcripts across ~25 platforms (Codex, Claude, OpenCode, OMO/Senpi/pi, Gemini/Antigravity, and a long tail), normalizing them into one `Session` model (24 files total, including 16 package modules under `scripts/agent_sessions/` and the `scripts/find-agent-sessions.py` entry point).
+The only shared skill carrying a real sub-project: a Python package + CLI that finds, lists, searches, and reads local coding-agent session transcripts across ~25 platforms (Codex, Claude, OpenCode, OMO/Senpi/pi, Gemini/Antigravity, and a long tail), normalizing them into one `Session` model (24 files total, including 16 package modules under `scripts/agent_sessions/` and the `scripts/find-agent-sessions.py` entry point).
 
 ## STRUCTURE
 
@@ -30,13 +30,14 @@ coding-agent-sessions/
 
 ## CLI CONTRACT
 
-`python3 scripts/find-agent-sessions.py <command>`; aliases `find`=`search`, `read`=`get`. Commands: `list`, `find`/`search` (repeated `--query` lanes, `--from 7d`, repeated `--platform`, `--workers`, `--cwd/--model`, `--include-subagents`, `--limit`), `get`/`read <session-id>`. Output is JSON with `match_reasons` and reconstructed first/last user prompts — that JSON shape is the stable contract.
+`python3 -B scripts/find-agent-sessions.py <command>`; aliases `find`=`search`, `read`=`get`. Commands: `list`, `find`/`search` (repeated `--query` lanes, `--from 7d`, repeated `--platform`, `--workers`, `--cwd/--model`, `--include-subagents`, `--limit`), `get`/`read <session-id>`. Output is JSON with `match_reasons` and reconstructed first/last user prompts — that JSON shape is the stable contract.
 
 ## CONVENTIONS
 
 - Stdlib-only Python (`>=3.11`), `from __future__ import annotations`, pathlib everywhere; no third-party deps at runtime.
 - Probe-first, bounded discovery: platform-specific roots checked before broad globbing; optional platforms excluded from default search when they cannot reconstruct user prompts.
 - Main sessions hide subagent children by default but report child counts; `--include-subagents` flips it. Parent/child linkage preserved and records deduplicated.
+- The shipped skill must never write next to itself (#11373): `find-agent-sessions.py` sets `sys.dont_write_bytecode` before importing `agent_sessions`, and every documented command passes `-B`.
 
 ## ANTI-PATTERNS
 
@@ -50,9 +51,9 @@ coding-agent-sessions/
 
 ```bash
 # from skills/coding-agent-sessions/
-python3 scripts/find-agent-sessions.py list --limit 20
-python3 scripts/find-agent-sessions.py find "commit" --from 7d --platform senpi --platform opencode
-python3 scripts/find-agent-sessions.py read <session-id>
+python3 -B scripts/find-agent-sessions.py list --limit 20
+python3 -B scripts/find-agent-sessions.py find "commit" --from 7d --platform senpi --platform opencode
+python3 -B scripts/find-agent-sessions.py read <session-id>
 ```
 
 - Parent: [`rules/AGENTS.md`](../../rules/AGENTS.md).

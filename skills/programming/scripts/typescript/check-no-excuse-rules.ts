@@ -109,8 +109,15 @@ type Violation = {
 
 const INCLUDED_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"])
 const IGNORED_DIRECTORIES = new Set([
-  ".git", ".next", ".nuxt", ".turbo", ".yarn",
-  "coverage", "dist", "build", "node_modules",
+  ".git",
+  ".next",
+  ".nuxt",
+  ".turbo",
+  ".yarn",
+  "coverage",
+  "dist",
+  "build",
+  "node_modules",
 ])
 
 const OPT_OUT_RE = /\/\/\s*no-excuse-ok:\s*any/
@@ -179,24 +186,39 @@ function analyzeFile(filePath: string): Violation[] {
       const typeText = node.type.getText(sourceFile)
       if (typeText === "any") {
         const p = pos(node)
-        violations.push({ ruleId: "no-any-assertion", filePath, ...p, message: "`as any` — narrow with type guards or redesign the types" })
+        violations.push({
+          ruleId: "no-any-assertion",
+          filePath,
+          ...p,
+          message: "`as any`: narrow with type guards or redesign the types",
+        })
       }
       if (typeText === "unknown") {
         const p = pos(node)
-        violations.push({ ruleId: "no-unknown-assertion", filePath, ...p, message: "`as unknown` — redesign the types" })
+        violations.push({ ruleId: "no-unknown-assertion", filePath, ...p, message: "`as unknown`: redesign the types" })
       }
     }
 
     // ── enum ──
     if (ts.isEnumDeclaration(node)) {
       const p = pos(node)
-      violations.push({ ruleId: "no-enum", filePath, ...p, message: "`enum` — use `as const` object + literal union type" })
+      violations.push({
+        ruleId: "no-enum",
+        filePath,
+        ...p,
+        message: "`enum`: use `as const` object + literal union type",
+      })
     }
 
     // ── x! non-null assertion ──
     if (ts.isNonNullExpression(node)) {
       const p = pos(node)
-      violations.push({ ruleId: "no-non-null-assertion", filePath, ...p, message: "`x!` — use narrowing or optional chaining" })
+      violations.push({
+        ruleId: "no-non-null-assertion",
+        filePath,
+        ...p,
+        message: "`x!`: use narrowing or optional chaining",
+      })
     }
 
     // ── throw "literal" ──
@@ -204,11 +226,21 @@ function analyzeFile(filePath: string): Violation[] {
       const expr = node.expression
       if (ts.isStringLiteral(expr) || ts.isNumericLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) {
         const p = pos(node)
-        violations.push({ ruleId: "no-throw-literal", filePath, ...p, message: "`throw literal` — throw an Error subclass" })
+        violations.push({
+          ruleId: "no-throw-literal",
+          filePath,
+          ...p,
+          message: "`throw literal`: throw an Error subclass",
+        })
       }
       if (ts.isTemplateExpression(expr)) {
         const p = pos(node)
-        violations.push({ ruleId: "no-throw-literal", filePath, ...p, message: "`throw template` — throw an Error subclass" })
+        violations.push({
+          ruleId: "no-throw-literal",
+          filePath,
+          ...p,
+          message: "`throw template`: throw an Error subclass",
+        })
       }
     }
 
@@ -232,7 +264,12 @@ function analyzeFile(filePath: string): Violation[] {
         const flags = node.declarationList.flags
         if (!(flags & ts.NodeFlags.Const)) {
           const p = pos(node)
-          violations.push({ ruleId: "no-mutable-export", filePath, ...p, message: "`export let/var` — use `export const`" })
+          violations.push({
+            ruleId: "no-mutable-export",
+            filePath,
+            ...p,
+            message: "`export let/var`: use `export const`",
+          })
         }
       }
     }
@@ -244,22 +281,34 @@ function analyzeFile(filePath: string): Violation[] {
         // Skip `as any` — already caught by no-any-assertion
         if (parent && ts.isAsExpression(parent)) {
           // already handled
-        } else if (parent && (
-          ts.isParameter(parent) ||
-          ts.isVariableDeclaration(parent) ||
-          ts.isPropertyDeclaration(parent) ||
-          ts.isPropertySignature(parent)
-        )) {
+        } else if (
+          parent &&
+          (ts.isParameter(parent) ||
+            ts.isVariableDeclaration(parent) ||
+            ts.isPropertyDeclaration(parent) ||
+            ts.isPropertySignature(parent))
+        ) {
           const p = pos(node)
-          violations.push({ ruleId: "no-any-annotation", filePath, ...p, message: "`: any` annotation — use `unknown` and narrow" })
-        } else if (parent && (
-          ts.isFunctionDeclaration(parent) ||
-          ts.isMethodDeclaration(parent) ||
-          ts.isArrowFunction(parent) ||
-          ts.isFunctionExpression(parent)
-        )) {
+          violations.push({
+            ruleId: "no-any-annotation",
+            filePath,
+            ...p,
+            message: "`: any` annotation: use `unknown` and narrow",
+          })
+        } else if (
+          parent &&
+          (ts.isFunctionDeclaration(parent) ||
+            ts.isMethodDeclaration(parent) ||
+            ts.isArrowFunction(parent) ||
+            ts.isFunctionExpression(parent))
+        ) {
           const p = pos(node)
-          violations.push({ ruleId: "no-explicit-any-return", filePath, ...p, message: "`(): any` return — use a specific type" })
+          violations.push({
+            ruleId: "no-explicit-any-return",
+            filePath,
+            ...p,
+            message: "`(): any` return: use a specific type",
+          })
         }
       }
     }
@@ -275,7 +324,12 @@ function analyzeFile(filePath: string): Violation[] {
         if (stmts.length === 0) {
           // Empty catch — swallows everything silently
           const p = pos(node)
-          violations.push({ ruleId: "empty-catch", filePath, ...p, message: "empty `catch` block — handle, re-throw, or remove the try/catch" })
+          violations.push({
+            ruleId: "empty-catch",
+            filePath,
+            ...p,
+            message: "empty `catch` block: handle, re-throw, or remove the try/catch",
+          })
         } else if (node.variableDeclaration) {
           // Has a bound variable — check if it's narrowed with instanceof
           const varName = node.variableDeclaration.name.getText(sourceFile)
@@ -284,7 +338,12 @@ function analyzeFile(filePath: string): Violation[] {
           const hasRethrow = blockText.includes(`throw ${varName}`) || blockText.includes(`throw new`)
           if (!hasInstanceof && !hasRethrow) {
             const p = pos(node)
-            violations.push({ ruleId: "catch-without-narrowing", filePath, ...p, message: "`catch` without `instanceof` narrowing or re-throw — narrow the error type or re-throw" })
+            violations.push({
+              ruleId: "catch-without-narrowing",
+              filePath,
+              ...p,
+              message: "`catch` without `instanceof` narrowing or re-throw: narrow the error type or re-throw",
+            })
           }
         }
       }
@@ -296,9 +355,7 @@ function analyzeFile(filePath: string): Violation[] {
   visit(sourceFile)
 
   // ── @ts-ignore / @ts-expect-error in comments ──
-  const commentRanges = [
-    ...(ts.getLeadingCommentRanges(source, 0) ?? []),
-  ]
+  const commentRanges = [...(ts.getLeadingCommentRanges(source, 0) ?? [])]
   // Scan all comments via regex for reliability
   const commentRegex = /\/\/\s*@ts-(ignore|expect-error)/g
   let match: RegExpExecArray | null
@@ -310,7 +367,7 @@ function analyzeFile(filePath: string): Violation[] {
       filePath,
       line: line + 1,
       column: character + 1,
-      message: `\`@ts-${kind}\` — fix the underlying type`,
+      message: `\`@ts-${kind}\`: fix the underlying type`,
     })
   }
 

@@ -73,6 +73,8 @@ pdftoppm -png -r 150 report.pdf out/page   # or python -m fitz render
 
 Read every page image with `view_file` (using absolute paths) for: blank or near-empty pages, a block stranded alone after a keep-together push, a table or figure split mid-exhibit, a heading orphaned at a page foot, clipped or overflowing text, bounding-box/highlight coordinate drift on annotated evidence images, and a running header or footer that drifted or vanished.
 
+Extracting the text proves the words are present. It cannot see any defect in this list - layout is exactly the information that extraction discards. Fix, re-render, and look again until the pages are clean. The `ulw-research` delivery gate and the `mass-ulw` verification wave hold the same page-by-page inspection standard; `ulw-research` bounds its repair loop (its `repair decide` stop rules) and ships any residual defect listed in its manifest.
+
 - **Headless Browser Profile Isolation & Cleanup**: When converting HTML to PDF via Headless Chrome/Edge (`--headless --print-to-pdf`), always pass `--user-data-dir` pointing to an isolated directory under `os.tmpdir()` (or `$env:TEMP`) and delete both the temporary profile directory and intermediate page PNGs (`verify_*.png`, `out/page*.png`) immediately after verification completes.
 
 ## 7. Korean A4 Print / Legal & Forensic Document Standards

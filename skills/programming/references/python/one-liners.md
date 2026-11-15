@@ -85,17 +85,18 @@ Replace `<SCRIPT_NAME>` with the actual filename. Add argument descriptions if t
 
 ## Template generator
 
-Use `scripts/python/new-script.py` to scaffold a new PEP 723 script with all boilerplate pre-filled:
+Use `scripts/python/new-script.ts` (`../../scripts/python/new-script.ts`, Bun) or `scripts/python/new-script.py` (`uv run`) to scaffold a new PEP 723 script with all boilerplate pre-filled:
 
 ```bash
 # Generate to temp directory (default)
-uv run scripts/python/new-script.py my_tool
+bun run scripts/python/new-script.ts my_tool
+# or: uv run scripts/python/new-script.py my_tool
 
 # Generate to specific path
-uv run scripts/python/new-script.py my_tool --output ./scripts/my_tool.py
+bun run scripts/python/new-script.ts my_tool --output ./scripts/my_tool.py
 
-# With extra dependencies
-uv run scripts/python/new-script.py my_tool --deps "polars" "duckdb" "rich"
+# With extra dependencies (repeat --deps for each)
+bun run scripts/python/new-script.ts my_tool --deps polars --deps duckdb --deps rich
 ```
 
 ## Common dependency sets

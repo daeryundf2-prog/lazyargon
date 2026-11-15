@@ -94,6 +94,7 @@ def _aside_session(path: Path, index: dict[str, _StateRow]) -> Session:
     sid = _dir_session_id(path.parent.name)
     row = index.get(sid)
     first_user = last_user = ""
+    prompts: list[str] = []
     provider = model = None
     created = updated = None
     usage: JsonMap = {}
@@ -108,6 +109,7 @@ def _aside_session(path: Path, index: dict[str, _StateRow]) -> Session:
             if prompt:
                 first_user = first_user or prompt
                 last_user = prompt
+                prompts.append(prompt)
         elif role == "assistant":
             provider = provider or text(data.get("provider"))
             model = model or text(data.get("model"))
@@ -126,6 +128,7 @@ def _aside_session(path: Path, index: dict[str, _StateRow]) -> Session:
         row.parent_id if row is not None else None,
         row.title if row is not None and row.parent_id is not None else None,
         last_user,
+        tuple(prompts),
     )
 
 

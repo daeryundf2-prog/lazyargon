@@ -1,6 +1,15 @@
 import { spawnSync } from "node:child_process"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { afterEach } from "node:test"
 import { describe, expect, test } from "./test-shim.ts"
-import { mkdtempSync, writeFileSync } from "node:fs"
+
+const cleanups: Array<() => void> = []
+afterEach(() => {
+  while (cleanups.length > 0) cleanups.pop()?.()
+})
+function onTestFinished(fn: () => void): void {
+  cleanups.push(fn)
+}
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -8,67 +17,92 @@ import { run, runImageDiff, runTuiCheck } from "./cli.ts"
 import { encodeRgbaPng, solidRgba } from "./png-synth.ts"
 
 function tempDir(): string {
-	return mkdtempSync(join(tmpdir(), "visual-qa-"))
+  const dir = mkdtempSync(join(tmpdir(), "visual-qa-"))
+  onTestFinished(() => rmSync(dir, { recursive: true, force: true }))
+  return dir
 }
 
 describe("runImageDiff", () => {
-	test("#given two identical PNG files #when diffed #then similarity is 100", () => {
-		// given
-		const dir = tempDir()
-		const reference = join(dir, "reference.png")
-		const actual = join(dir, "actual.png")
-		writeFileSync(reference, encodeRgbaPng(2, 2, solidRgba(2, 2, [1, 2, 3, 255])))
-		writeFileSync(actual, encodeRgbaPng(2, 2, solidRgba(2, 2, [1, 2, 3, 255])))
-		// when
-		const result = runImageDiff([reference, actual])
-		// then
-		expect(result.command).toBe("image-diff")
-		expect(result.similarityScore).toBe(100)
-		expect(result.dimensionsMatch).toBe(true)
-	})
+  test("#given two identical PNG files #when diffed #then similarity is 100", () => {
+    // given
+    const dir = tempDir()
+    const reference = join(dir, "reference.png")
+    const actual = join(dir, "actual.png")
+    writeFileSync(reference, encodeRgbaPng(2, 2, solidRgba(2, 2, [1, 2, 3, 255])))
+    writeFileSync(actual, encodeRgbaPng(2, 2, solidRgba(2, 2, [1, 2, 3, 255])))
+    // when
+    const result = runImageDiff([reference, actual])
+    // then
+    expect(result.command).toBe("image-diff")
+    expect(result.similarityScore).toBe(100)
+    expect(result.dimensionsMatch).toBe(true)
+  })
 
-	test("#given missing arguments #when diffed #then it throws a usage error", () => {
-		// given / when / then
-		expect(() => runImageDiff([])).toThrow("usage")
-	})
+  test("#given missing arguments #when diffed #then it throws a usage error", () => {
+    // given / when / then
+    expect(() => runImageDiff([])).toThrow("usage")
+  })
 })
 
 describe("runTuiCheck", () => {
-	test("#given a CJK capture file #when checked #then widths count wide characters", () => {
-		// given
-		const dir = tempDir()
-		const file = join(dir, "capture.txt")
-		writeFileSync(file, "가나\nhello")
-		// when
-		const result = runTuiCheck([file, "--cols", "40"])
-		// then
-		expect(result.command).toBe("tui-check")
-		expect(result.expectedColumns).toBe(40)
-		expect(result.lineWidths).toEqual([4, 5])
-	})
+  test("#given a CJK capture file #when checked #then widths count wide characters", () => {
+    // given
+    const dir = tempDir()
+    const file = join(dir, "capture.txt")
+    writeFileSync(file, "가나\nhello")
+    // when
+    const result = runTuiCheck([file, "--cols", "40"])
+    // then
+    expect(result.command).toBe("tui-check")
+    expect(result.expectedColumns).toBe(40)
+    expect(result.lineWidths).toEqual([4, 5])
+  })
 })
 
 describe("run dispatch", () => {
-	test("#given an unknown command #when run #then it throws", () => {
-		// given / when / then
-		expect(() => run(["bogus"])).toThrow("unknown command")
-	})
+  test("#given an unknown command #when run #then it throws", () => {
+    // given / when / then
+    expect(() => run(["bogus"])).toThrow("unknown command")
+  })
 })
 
 describe("cli entry", () => {
-	test("#given the cli is spawned for image-diff #when it runs #then it prints JSON and exits zero", () => {
-		// given
-		const dir = tempDir()
-		const reference = join(dir, "reference.png")
-		const actual = join(dir, "actual.png")
-		writeFileSync(reference, encodeRgbaPng(2, 2, solidRgba(2, 2, [0, 0, 0, 255])))
-		writeFileSync(actual, encodeRgbaPng(2, 2, solidRgba(2, 2, [255, 255, 255, 255])))
-		// when
-		const proc = spawnSync(process.execPath, ["--experimental-strip-types", join(import.meta.dirname, "cli.ts"), "image-diff", reference, actual])
-		// then
-		expect(proc.status).toBe(0)
-		const parsed: Record<string, unknown> = JSON.parse(proc.stdout.toString())
-		expect(parsed["command"]).toBe("image-diff")
-		expect(parsed["similarityScore"]).toBe(0)
-	})
+  test("#given the cli is spawned for image-diff #when it runs #then it prints JSON and exits zero", () => {
+    // given
+    const dir = tempDir()
+    const reference = join(dir, "reference.png")
+    const actual = join(dir, "actual.png")
+    writeFileSync(reference, encodeRgbaPng(2, 2, solidRgba(2, 2, [0, 0, 0, 255])))
+    writeFileSync(actual, encodeRgbaPng(2, 2, solidRgba(2, 2, [255, 255, 255, 255])))
+    const cliArgs =
+      typeof Bun !== "undefined"
+        ? [join(import.meta.dirname, "cli.ts")]
+        : ["--experimental-strip-types", join(import.meta.dirname, "cli.ts")]
+    // when
+    const proc = spawnSync(process.execPath, [...cliArgs, "image-diff", reference, actual])
+    // then
+    expect(proc.status).toBe(0)
+    const parsed: Record<string, unknown> = JSON.parse(proc.stdout.toString())
+    expect(parsed["command"]).toBe("image-diff")
+    expect(parsed["similarityScore"]).toBe(0)
+  })
+
+  test("#given the Node bundle is spawned for image-diff without Bun on PATH #when it runs #then it prints JSON and exits zero", () => {
+    // given
+    const dir = tempDir()
+    const reference = join(dir, "reference.png")
+    const actual = join(dir, "actual.png")
+    writeFileSync(reference, encodeRgbaPng(2, 2, solidRgba(2, 2, [0, 0, 0, 255])))
+    writeFileSync(actual, encodeRgbaPng(2, 2, solidRgba(2, 2, [255, 255, 255, 255])))
+    const nodePath = typeof Bun !== "undefined" ? (Bun.which("node") ?? "node") : process.execPath
+    // when
+    const proc = spawnSync(nodePath, [join(import.meta.dirname, "visual-qa.mjs"), "image-diff", reference, actual], {
+      env: { ...process.env, PATH: "/usr/bin:/bin" },
+    })
+    // then
+    expect(proc.status).toBe(0)
+    const parsed: Record<string, unknown> = JSON.parse(proc.stdout.toString())
+    expect(parsed["command"]).toBe("image-diff")
+    expect(parsed["similarityScore"]).toBe(0)
+  })
 })

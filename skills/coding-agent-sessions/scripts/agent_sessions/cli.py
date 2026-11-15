@@ -205,7 +205,7 @@ def _annotate_search(item: Session, counts: dict[tuple[str, str], int], reasons:
 
 
 def _detail_hint(item: Session) -> str:
-    return f"python3 scripts/find-agent-sessions.py read {item.id} --platform {item.platform}"
+    return f"python3 -B scripts/find-agent-sessions.py read {item.id} --platform {item.platform}"
 
 
 def _events(item: Session) -> list[Json]:
@@ -239,6 +239,10 @@ def _match_reasons(item: Session, query: str) -> list[JsonMap]:
     for field, value in _search_fields(item):
         if needle in value.lower():
             reasons.append({"query": query, "platform": item.platform, "field": field, "snippet": _snippet(value, needle)})
+    if not reasons:
+        prompt = next((message for message in item.user_messages or () if needle in message.lower()), "")
+        if prompt:
+            reasons.append({"query": query, "platform": item.platform, "field": "user_message", "snippet": _snippet(prompt, needle)})
     return reasons
 
 

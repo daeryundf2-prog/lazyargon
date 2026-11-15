@@ -62,10 +62,11 @@ a direct scan. Then place the work:
   takes longer.
 - **Query remotely, in place** when the data lives elsewhere: DuckDB reads http(s)/S3
   Parquet and CSV with projection and predicate pushdown, so fetch the columns and rows the
-  question needs, never the whole file. When data sits on another machine you can execute
-  on, ship the query to the data and return the small result. Rule: result much smaller
-  than data — move the query; repeated local iteration planned — move a pruned copy of the
-  data once.
+  question needs, never the whole file. When data sits in a database, run the aggregation
+  there in its own SQL and pull back the result rows, never a table dump. When data sits on
+  another machine you can execute on, ship the query to the data and return the small
+  result. Rule: result much smaller than data — move the query; repeated local iteration
+  planned — move a pruned copy of the data once.
 
 Sizing heuristics and recipes: `references/placement.md`.
 
