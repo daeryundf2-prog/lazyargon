@@ -7,6 +7,9 @@
 // Plain Node ESM, node: builtins only.
 
 import { spawnSync } from "node:child_process"
+import { existsSync } from "node:fs"
+import { homedir } from "node:os"
+import { join } from "node:path"
 import { lookup as dnsLookup } from "node:dns"
 import http from "node:http"
 import https from "node:https"
@@ -139,7 +142,17 @@ export function looksBlocked(status, text = "") {
  * blocked the plain request. It imitates browsers to get past bot walls, which can breach a site's terms, so callers must
  * pass --allow-bypass and point ULW_INSANE_SEARCH_DIR at the engine's skill folder. Never used for case material.
  */
-export function insaneSearchFetch(url, engineDir, { timeoutSec = 45, python = process.env.ULW_INSANE_SEARCH_PYTHON || "python3" } = {}) {
+/** Default install location (~/.local/share/insane-search); ULW_INSANE_SEARCH_DIR / ULW_INSANE_SEARCH_PYTHON override it. */
+export function insaneSearchPaths(env = process.env, home = homedir()) {
+	const base = join(home, ".local", "share", "insane-search")
+	const engineDir = env.ULW_INSANE_SEARCH_DIR || (existsSync(join(base, "skills", "insane-search", "engine")) ? join(base, "skills", "insane-search") : "")
+	const python = env.ULW_INSANE_SEARCH_PYTHON || (existsSync(join(base, ".venv", "bin", "python")) ? join(base, ".venv", "bin", "python") : "python3")
+	// A STANDING_CONSENT file next to the engine records the user's standing consent for public web research.
+	const consentFile = join(base, "STANDING_CONSENT")
+	return { engineDir, python, standingConsent: existsSync(consentFile) }
+}
+
+export function insaneSearchFetch(url, engineDir, { timeoutSec = 45, python = insaneSearchPaths().python } = {}) {
 	const run = spawnSync(python, ["-m", "engine", url, "--json-content", "--timeout", String(timeoutSec)], {
 		cwd: engineDir, encoding: "utf8", timeout: (timeoutSec + 30) * 1000, maxBuffer: MAX_BYTES * 2,
 	})
