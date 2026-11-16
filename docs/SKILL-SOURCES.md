@@ -12,6 +12,7 @@ Generated from `docs/skill-source-receipts.json` (2026-11-15 rewrite). `skill_or
 | [`kaankiziltug/logo-design-skill`](https://github.com/kaankiziltug/logo-design-skill) | `e9eaddc07895` | MIT | `skills/logo-design/SKILL.md` | skills/logo-design |
 | [`nexu-io/open-design`](https://github.com/nexu-io/open-design) | `6afe7eae156b` | Apache-2.0 | `skills/frontend/ATTRIBUTION.md` | frontend/references/design/<brand>.md, see skills/frontend/ATTRIBUTION.md |
 | [`epoko77-ai/im-not-ai`](https://github.com/epoko77-ai/im-not-ai) | `80fae0ca391b` | MIT | `../lazyargon-workspace/skills/humanize-korean/SKILL.md` | skills/humanize-korean (was misattributed to blader/humanizer before 2026-11-15) |
+| [`michael-denyer/pstack-claude`](https://github.com/michael-denyer/pstack-claude) | `a12b04786023` | MIT | `skills/create-verification-skill/SKILL.md`, `skills/encode-lessons/SKILL.md`, `skills/no-comments/SKILL.md`, `skills/programming/references/formal-verify.md` | pstack (Lauren Tan): no-comments, encode-lessons (two principles merged), create-verification-skill ported for Antigravity on 2026-11-16 |
 
 ## 2. Inspiration and references
 
@@ -20,7 +21,6 @@ Generated from `docs/skill-source-receipts.json` (2026-11-15 rewrite). `skill_or
 | [`rlaope/oh-my-hermes`](https://github.com/rlaope/oh-my-hermes) | unpinned | - | `scripts/upstream_radar.mjs` | OMH / oh-my-hermes |
 | [`NousResearch/hermes-agent`](https://github.com/NousResearch/hermes-agent) | `63d0b9412002` | - | `scripts/doctor.mjs`, `scripts/session_start.mjs` | Hermes-Agent base |
 | [`can1357/oh-my-pi`](https://github.com/can1357/oh-my-pi) | unpinned | - | `scripts/lsp_diagnostics.mjs`, `skills/debugging/references/dap-session-plan.md` | omp LSP & DAP |
-| [`michael-denyer/pstack-claude`](https://github.com/michael-denyer/pstack-claude) | unpinned | - | `skills/programming/references/formal-verify.md` | poteto pstack & skills |
 | [`faxenoff/ultracode`](https://github.com/faxenoff/ultracode) | unpinned | - | `scripts/codegraph.mjs` | ultracode graph engineering |
 | [`revfactory/showreel`](https://github.com/revfactory/showreel) | `64521220a2f8` | - | `../lazyargon-workspace/skills/video-editor/references/showreel-videogen.md` | videogen / showreel |
 | [`obra/superpowers`](https://github.com/obra/superpowers) | `2ce8aa15d05b` | - | `skills/debugging/SKILL.md`, `skills/debugging/references/dap-session-plan.md` | superpowers |

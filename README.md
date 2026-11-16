@@ -34,6 +34,9 @@ Google Antigravity용 자율 실행(`/ulw`)·소프트웨어 엔지니어링·�
 | `refactor` | 코드 구조 개선 및 안전한 리팩토링 |
 | `ast-grep` | 25개 언어 AST 패턴 검색 및 코드모드 재작성 |
 | `remove-ai-slops` | AI 코드 슬롭 10종 병렬 제거 |
+| `no-comments` | 주석 싫어하는 리뷰어 서브에이전트로 설명·변명 주석 삭제, 땜질 근본 수정 (pstack) |
+| `encode-lessons` | 같은 교정이 반복되면 규칙 한 줄 대신 린트·테스트·훅으로 박기, 근본 원인 수정 (pstack) |
+| `create-verification-skill` | 저장소별 검증 스킬(.agents/skills/verify) 생성: 앱을 실제로 돌려 증거 남기기 (pstack) |
 | `git-master` | 원자적 커밋, 히스토리 분석, rebase/bisect 관리 |
 | `coding-agent-sessions` | 멀티 플랫폼 코딩 에이전트 세션 로그 탐색 및 복구 |
 | `frontend` | UI/UX/AX 디자인 시스템 레퍼런스와 구현 규칙 |

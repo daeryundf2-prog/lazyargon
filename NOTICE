@@ -67,3 +67,36 @@ names and Gemini Argon field notes. Upstream terms: third-party components keep 
 licenses (see skills/frontend/ATTRIBUTION.md); everything else is under the Sustainable Use
 License 1.0 in the upstream LICENSE.md.
 
+
+## pstack (Lauren Tan, MIT) — no-comments, encode-lessons, create-verification-skill
+
+Ported on 2026-11-16 from michael-denyer/pstack-claude a12b04786023e762f12f5de7bb5fafb8c23f8c36 (`plugins/pstack`), which carries the upstream cursor/plugins pstack skills under the MIT License, Copyright (c) 2026 Lauren Tan.
+
+- `skills/no-comments/`: rewritten for Antigravity (`invoke_subagent` with the `comment-sicko` prompt); `references/comment-sicko.md` is the upstream agent body, verbatim.
+- `skills/encode-lessons/`: merges `principle-encode-lessons-in-structure` and `principle-fix-root-causes`, lightly edited.
+- `skills/create-verification-skill/`: upstream text with Antigravity paths (`.agents/skills/verify/`), the maintenance step folded in; `references/feature-map-example/` verbatim.
+
+```
+MIT License
+
+Copyright (c) 2026 Lauren Tan
+Copyright (c) 2026 Michael Denyer
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
