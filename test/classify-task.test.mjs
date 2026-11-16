@@ -563,3 +563,10 @@ test("model-routing.json: subagents has size_signals array", () => {
 	assert.ok(Array.isArray(routing.modes?.subagents?.size_signals));
 	assert.ok(routing.modes.subagents.size_signals.length >= 5);
 });
+
+test("transcription tasks carry the routed STT model, and the tool_first rule names the same model", () => {
+	const stt = ROUTING.roles.tool_first.stt_model;
+	assert.equal(classify("녹취 파일 20개 전사해줘").stt_model, stt);
+	assert.ok(ROUTING.roles.tool_first.rule.includes(stt), "tool_first rule text names a different STT model than stt_model");
+	assert.equal(classify("이 PR 리뷰해줘").stt_model, null);
+});

@@ -15,6 +15,7 @@ import http from "node:http"
 import https from "node:https"
 import { isIP } from "node:net"
 import zlib from "node:zlib"
+import { orgOf } from "./claims-gate.mjs"
 
 export const MAX_REDIRECTS = 5
 export const MAX_BYTES = 25 * 1024 * 1024
@@ -131,6 +132,9 @@ export function injectionSignals(text) {
 	return SIGNAL_RULES.filter(([, re]) => re.test(text)).map(([name]) => name)
 }
 
+/** 401 is a login wall: the page wants an account, so it is never a bypass target. */
+export const LOGIN_REQUIRED_STATUS = 401
+
 /** Status codes and bodies that mean "this page refuses plain requests" (the case the opt-in fallback is for). */
 export function looksBlocked(status, text = "") {
 	if ([401, 403, 406, 429, 451, 503].includes(status)) return true
@@ -152,6 +156,9 @@ export function insaneSearchPaths(env = process.env, home = homedir()) {
 	return { engineDir, python, standingConsent: existsSync(consentFile) }
 }
 
+/** Shorter engine output is a stub, an error page or a login prompt, not the article. */
+const MIN_BYPASS_TEXT = 200
+
 export function insaneSearchFetch(url, engineDir, { timeoutSec = 45, python = insaneSearchPaths().python } = {}) {
 	const run = spawnSync(python, ["-m", "engine", url, "--json-content", "--timeout", String(timeoutSec)], {
 		cwd: engineDir, encoding: "utf8", timeout: (timeoutSec + 30) * 1000, maxBuffer: MAX_BYTES * 2,
@@ -170,5 +177,9 @@ export function insaneSearchFetch(url, engineDir, { timeoutSec = 45, python = in
 	const to = end ? wrapped.lastIndexOf(end) : -1
 	const text = from >= 0 && to > from ? wrapped.slice(from + begin.length, to).trim() : ""
 	if (!payload.ok || !text) return { status: "blocked", why: `insane-search gave up: ${payload.verdict || payload.stop_reason || "no content"}` }
-	return { status: "ok", text, finalUrl: payload.final_url, verdict: payload.verdict }
+	const finalUrl = String(payload.final_url || url)
+	// Same organization (kr.indeed.com for www.indeed.com, co.kr aware) is a normal geo or www redirect; another one is a login, paywall or error host.
+	if (orgOf({ url: finalUrl }) !== orgOf({ url })) return { status: "blocked", why: `insane-search landed on ${finalUrl}, not the requested site; not stored`, finalUrl }
+	if (text.length < MIN_BYPASS_TEXT || looksBlocked(200, text)) return { status: "blocked", why: `insane-search returned a wall or an empty page (${text.length} chars); not stored`, finalUrl }
+	return { status: "ok", text, finalUrl, verdict: payload.verdict }
 }
