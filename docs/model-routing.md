@@ -134,4 +134,12 @@ Same 20 synthetic clips and grader as ocr-stt-1115 (14 natural voice, 6 robot TT
 
 The owner's note that Hydrogen transcribes Korean better was not confirmed here. Natural voice is nearly a tie between Flash High and Argon High; robot TTS and silence gaps separate them. Small synthetic set: re-measure on real recordings before tightening.
 
-**Status: provisional.** All 20 clips are macOS `say` speech; the natural-voice set is one synthetic voice, and the deciding gap (hallucinations) comes from the 6 robot-TTS number clips, the condition least like evidence recordings. Real human, multi-speaker, phone and noisy speech are unmeasured, and Flash High costs 1.6x the time per clip. Until a real-speech remeasure (public, licensed recordings only, never case audio), the `tool_first` rule still runs faster-whisper next to any Gemini transcription and has a person check numbers and names in evidence transcripts against the audio. `classify-task.mjs` emits `stt_model` for transcription tasks, and a test keeps the rule text and `stt_model` naming the same model.
+**Real speech (stt-real-1116, 2026-11-16).** OpenSLR SLR40 Zeroth-Korean (CC BY 4.0), 8 utterances from 5 speakers, each with numbers, dates or amounts; plus phone (8 kHz mu-law), pink noise at 10 dB and a two-speaker join: 13 clips, 26 serialized agy calls.
+
+| Model | Raw CER | Digit-normalized CER | Numbers | Invented sentences | s per clip |
+|---|---|---|---|---|---|
+| gemini-3.8-flash-high | 0.3% | 0.0% | 28/28 | 0 | 95 |
+| gemini-4-argon-high | 13.0% | 0.0% | 28/28 | 0 | 93 |
+| faster-whisper large-v3-turbo + VAD (local) | 16.8% | 1.2% | 27/28 | 0 | 6.4 |
+
+A tie at the ceiling: the raw gap is notation (the reference and Flash spell numbers in Hangul, Argon writes Arabic numerals), and the earlier 1.6x time gap did not show on real speech. `gemini-3.8-flash-high` stays; its edge rests on the synthetic robot-TTS and silence conditions. Still unmeasured: natural conversation, overlapping speech, dialects and long recordings, so the `tool_first` rule keeps faster-whisper next to any Gemini transcription and a person checks numbers and names in evidence transcripts against the audio. `classify-task.mjs` emits `stt_model` for transcription tasks, and a test keeps the rule text and `stt_model` naming the same model.
