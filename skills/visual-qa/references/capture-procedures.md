@@ -81,6 +81,10 @@ This JSON (diff ratio, similarity score, hotspots or overflow lines, border alig
 
 **Animation is never an excuse to skip or pass a region.** A high `diffRatio` from an in-flight animation means: compare the settled frame to the settled frame for pixel fidelity, and judge the motion itself against the reference's motion or, with no reference, against checklist section G.
 
+### Optional machine pass - property exploration
+
+After the Web or TUI capture, a Bombadil run can explore the surface on its own (clicks, typing, navigation) and check invariants such as no uncaught exceptions, no error logs, no HTTP 4xx/5xx, exit code 0, no unrenderable bytes. Exit `2` is a FAIL for the item it touches, named by the violated property; keep the trace (`--output-path`) as evidence next to the captures. It complements the screenshot checklist and never replaces it: it does not judge looks. Recipe and limits: `../../create-verification-skill/references/bombadil.md`.
+
 ## Reference evidence is not the verdict
 
 Illustrative output (locked field names):
