@@ -26,6 +26,9 @@
 | "ast-refactor", "ast grep", "ast-grep", "codemod", "sg" | `$ast-grep` | AST-shape search/rewrite across 25 languages via sg CLI |
 | "git commit", "git master", "커밋" | `$git-master` | Atomic commits, history analysis, rebase/bisect |
 | "remove slop", "clean ai code", "코드 슬롭 제거" | `$remove-ai-slops` | Parallel AI code smell elimination across 10 categories |
+| "no comments", "주석 정리", "주석 지워" | `$no-comments` | Comment-hating reviewer subagent; root-cause fixes for flagged workarounds |
+| "same mistake again", "같은 실수", "교훈 남기기", "근본 원인" | `$encode-lessons` | Turn repeated corrections into lint/test/hook; fix root causes |
+| "verification skill", "검증 스킬 만들기", "앱 돌려서 확인" | `$create-verification-skill` | Generate a project-local verify skill that drives the real app and keeps evidence |
 | "hate", "hate this plan", "이 계획 공격", "반대 의견 하나" | `$hate` | User-invoked: single strongest objection + cheapest falsifying test |
 | "shower", "cold read", "fresh eyes", "처음 보는 눈", "콜드 리드" | `$shower` | Zero-context subagent cold read of an artifact (diagnose only; pairs with `gf-qa-behavioral-verification`) |
 | "factchk", "통념 반증", "양방향 근거", "진짜 맞아" | `$factchk` | Two-direction source check of reality claims, local evidence first, ≤8 web searches, report-only by default (forensic/legal report verification stays with workspace `report-guard`) |

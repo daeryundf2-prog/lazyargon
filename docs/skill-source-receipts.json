@@ -47,15 +47,20 @@
     {
       "repo": "michael-denyer/pstack-claude",
       "url": "https://github.com/michael-denyer/pstack-claude",
-      "pinned_sha": null,
+      "pinned_sha": "a12b04786023e762f12f5de7bb5fafb8c23f8c36",
       "keyword": "poteto pstack & skills",
       "mapped_targets": [
+        "skills/create-verification-skill/SKILL.md",
+        "skills/encode-lessons/SKILL.md",
+        "skills/no-comments/SKILL.md",
         "skills/programming/references/formal-verify.md"
       ],
-      "status": "unverified",
+      "status": "verified",
       "observed_head_sha": "22b5e137e945cb65dd29dac5fc703c13d83a00aa",
       "observed_at": "2026-10-30T13:46:46.993Z",
-      "kind": "inspiration"
+      "kind": "skill_original",
+      "license": "MIT",
+      "note": "pstack (Lauren Tan): no-comments, encode-lessons (two principles merged), create-verification-skill ported for Antigravity on 2026-11-16"
     },
     {
       "repo": "faxenoff/ultracode",
