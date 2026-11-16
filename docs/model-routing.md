@@ -133,3 +133,5 @@ Same 20 synthetic clips and grader as ocr-stt-1115 (14 natural voice, 6 robot TT
 | gemini-4-hydrogen-xhigh | 0.4% | 96.8% | 25.4% | 333 | 232 |
 
 The owner's note that Hydrogen transcribes Korean better was not confirmed here. Natural voice is nearly a tie between Flash High and Argon High; robot TTS and silence gaps separate them. Small synthetic set: re-measure on real recordings before tightening.
+
+**Status: provisional.** All 20 clips are macOS `say` speech; the natural-voice set is one synthetic voice, and the deciding gap (hallucinations) comes from the 6 robot-TTS number clips, the condition least like evidence recordings. Real human, multi-speaker, phone and noisy speech are unmeasured, and Flash High costs 1.6x the time per clip. Until a real-speech remeasure (public, licensed recordings only, never case audio), the `tool_first` rule still runs faster-whisper next to any Gemini transcription and has a person check numbers and names in evidence transcripts against the audio. `classify-task.mjs` emits `stt_model` for transcription tasks, and a test keeps the rule text and `stt_model` naming the same model.

@@ -236,7 +236,10 @@ test("insaneSearchPaths finds the default install and lets env override it", () 
 	}
 });
 
-test("CLI: with standing consent a blocked page goes through the engine automatically; --no-bypass keeps it blocked", async () => {
+const ARTICLE = `Article 12 sets the fine at 3,000,000 won from 1 March 2026. ${"The ministry published the amended schedule with transitional rules for pending cases. ".repeat(3)}`;
+
+/** A fake insane-search install with standing consent under a temporary HOME, and a session with one high-risk claim. */
+async function withConsentEngine(payload, fn) {
 	const home = fs.mkdtempSync(path.join(os.tmpdir(), "is-consent-"));
 	const saved = { home: process.env.HOME, dir: process.env.ULW_INSANE_SEARCH_DIR, py: process.env.ULW_INSANE_SEARCH_PYTHON };
 	try {
@@ -244,7 +247,6 @@ test("CLI: with standing consent a blocked page goes through the engine automati
 		fs.mkdirSync(path.join(base, "skills", "insane-search", "engine"), { recursive: true });
 		fs.writeFileSync(path.join(base, "STANDING_CONSENT"), "public web research");
 		const fakePy = path.join(home, "fake-python");
-		const payload = { ok: true, verdict: "ok", final_url: "https://news.example.com/fine", untrusted_content_boundary: { begin: "[B]", end: "[E]" }, untrusted_text: "header\n[B]\nArticle 12 sets the fine at 3,000,000 won from 1 March 2026.\n[E]\n" };
 		fs.writeFileSync(fakePy, `#!/bin/sh\ncat <<'JSON'\n${JSON.stringify(payload)}\nJSON\n`);
 		fs.chmodSync(fakePy, 0o755);
 		process.env.HOME = home;
@@ -254,19 +256,55 @@ test("CLI: with standing consent a blocked page goes through the engine automati
 		fs.mkdirSync(dir);
 		fs.writeFileSync(path.join(dir, "claims.jsonl"), JSON.stringify(highClaim()));
 		fs.writeFileSync(path.join(dir, "sources.jsonl"), SOURCES.map((s) => JSON.stringify(s)).join("\n"));
-		const fetchImpl = async () => new Response("<title>Just a moment...</title>", { status: 403, headers: { "content-type": "text/html" } });
-		const off = await runSnapshot(["--session-dir", dir, "--no-bypass"], { fetchImpl });
-		assert.equal(off.json.snapshots[0].status, "blocked");
-		const on = await runSnapshot(["--session-dir", dir, "--refresh"], { fetchImpl });
-		assert.equal(on.json.snapshots[0].status, "ok", JSON.stringify(on.json));
-		assert.equal(on.json.snapshots[0].bypass, true);
-		const gate = runClaimGate(["--session-dir", dir]);
-		assert.equal(gate.json.verified, 1);
-		assert.ok(gate.json.warnings.some((w) => /bypass/.test(w)));
+		await fn(dir);
 	} finally {
 		process.env.HOME = saved.home;
 		if (saved.dir !== undefined) process.env.ULW_INSANE_SEARCH_DIR = saved.dir;
 		if (saved.py !== undefined) process.env.ULW_INSANE_SEARCH_PYTHON = saved.py; else delete process.env.ULW_INSANE_SEARCH_PYTHON;
 		fs.rmSync(home, { recursive: true, force: true });
 	}
+}
+
+const engineOk = (final_url, body = ARTICLE) => ({ ok: true, verdict: "ok", final_url, untrusted_content_boundary: { begin: "[B]", end: "[E]" }, untrusted_text: `header\n[B]\n${body}\n[E]\n` });
+const wall = (status) => async () => new Response("<title>Just a moment...</title>", { status, headers: { "content-type": "text/html" } });
+
+test("CLI: with standing consent a blocked page goes through the engine automatically; --no-bypass keeps it blocked; the report must disclose it", async () => {
+	await withConsentEngine(engineOk("https://m.law.go.kr/statute/12"), async (dir) => {
+		const off = await runSnapshot(["--session-dir", dir, "--no-bypass"], { fetchImpl: wall(403) });
+		assert.equal(off.json.snapshots[0].status, "blocked");
+		const on = await runSnapshot(["--session-dir", dir, "--refresh"], { fetchImpl: wall(403) });
+		assert.equal(on.json.snapshots[0].status, "ok", JSON.stringify(on.json));
+		assert.equal(on.json.snapshots[0].bypass, true);
+		const gate = runClaimGate(["--session-dir", dir]);
+		assert.equal(gate.json.verified, 1);
+		assert.ok(gate.json.warnings.some((w) => /bypass/.test(w)));
+		const report = path.join(dir, "report.md");
+		fs.writeFileSync(report, "# Fine\n\nThe fine is 3,000,000 won [C1].\n");
+		const silent = runClaimReport(["--session-dir", dir, "--report", report]);
+		assert.equal(silent.exitCode, 1);
+		assert.ok(silent.json.defects.some((d) => d.code === "bypass_not_disclosed"));
+		fs.appendFileSync(report, "\nSources: law.go.kr was read through the insane-search bypass.\n");
+		assert.equal(runClaimReport(["--session-dir", dir, "--report", report]).exitCode, 0);
+	});
+});
+
+test("CLI: login walls, case-material sessions, off-site landings and stub pages are never stored through the bypass", async () => {
+	await withConsentEngine(engineOk("https://law.go.kr/statute/12"), async (dir) => {
+		const login = await runSnapshot(["--session-dir", dir], { fetchImpl: wall(401) });
+		assert.equal(login.json.snapshots[0].status, "blocked");
+		assert.match(login.json.snapshots[0].why, /login/);
+		fs.writeFileSync(path.join(dir, "CASE_MATERIAL"), "");
+		const marked = await runSnapshot(["--session-dir", dir], { fetchImpl: wall(403) });
+		assert.equal(marked.json.snapshots[0].status, "blocked");
+		await assert.rejects(runSnapshot(["--session-dir", dir, "--allow-bypass"], { fetchImpl: wall(403) }), /CASE_MATERIAL/);
+	});
+	await withConsentEngine(engineOk("https://accounts.example.com/login"), async (dir) => {
+		const off = await runSnapshot(["--session-dir", dir], { fetchImpl: wall(403) });
+		assert.equal(off.json.snapshots[0].status, "blocked");
+		assert.match(off.json.snapshots[0].why, /landed on/);
+	});
+	await withConsentEngine(engineOk("https://law.go.kr/statute/12", "Please sign in."), async (dir) => {
+		const stub = await runSnapshot(["--session-dir", dir], { fetchImpl: wall(403) });
+		assert.equal(stub.json.snapshots[0].status, "blocked");
+	});
 });

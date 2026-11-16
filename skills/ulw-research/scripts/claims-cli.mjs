@@ -7,9 +7,9 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync,
 import { tmpdir } from "node:os"
 import { extname, join, relative, resolve } from "node:path"
 
-import { DEFAULT_MAX_UNRESOLVED_RATIO, normText, runGate, sha256, verifyReport } from "./claims-gate.mjs"
+import { DEFAULT_MAX_UNRESOLVED_RATIO, normText, orgOf, runGate, sha256, verifyReport } from "./claims-gate.mjs"
 import { CliError, parseArgs, readJsonFile, writeJsonAtomic } from "./cli-support.mjs"
-import { guardedFetch, injectionSignals, insaneSearchFetch, insaneSearchPaths, looksBlocked } from "./fetch-guard.mjs"
+import { LOGIN_REQUIRED_STATUS, guardedFetch, injectionSignals, insaneSearchFetch, insaneSearchPaths, looksBlocked } from "./fetch-guard.mjs"
 import { parseHtml, proseText } from "./html-lite.mjs"
 
 export const SNAPSHOT_TIMEOUT_MS = 20_000
@@ -93,15 +93,19 @@ export async function fetchSourceText(url, fetchImpl = guardedFetch, { allowBypa
 	if (response.ok && isPdf(type, bytes)) return pdfToText(bytes)
 	const raw = bytes.toString("utf8")
 	if (!response.ok || looksBlocked(response.status, raw)) {
+		if (response.status === LOGIN_REQUIRED_STATUS) return { status: "blocked", why: "HTTP 401: login required; pages behind a login are never bypassed" }
 		if (allowBypass && engineDir) {
 			const got = insaneSearchFetch(url, engineDir)
-			return got.status === "ok" ? { status: "ok", text: got.text, bypass: true, via: "insane-search" } : got
+			return got.status === "ok" ? { status: "ok", text: got.text, bypass: true, via: "insane-search", final_url: got.finalUrl } : got
 		}
 		return { status: "blocked", why: `HTTP ${response.status}${response.ok ? " (bot wall)" : ""}; save the page yourself and pass --from, or rerun with --allow-bypass` }
 	}
 	if (!/text\/|json|xml/i.test(type)) return { status: "unsupported", why: `content-type ${type || "unknown"}; save the text yourself and pass --from <id>=<file>` }
 	return { status: "ok", text: toText(raw, /html/i.test(type) ? "html" : "text") }
 }
+
+/** Session marker for case or evidence research; its presence turns every bypass off. */
+export const CASE_MATERIAL_MARKER = "CASE_MATERIAL"
 
 function storeSnapshot(dir, src, text, now, extra = {}) {
 	const snapDir = join(dir, "sources", "snapshots")
@@ -118,7 +122,10 @@ export async function runSnapshot(argv, { fetchImpl = guardedFetch, now = () => 
 	const dir = sessionDir(args.flags)
 	const { engineDir, standingConsent } = insaneSearchPaths()
 	// Standing consent (STANDING_CONSENT file next to the engine) turns the bypass on for every run; --no-bypass turns it off.
-	const allowBypass = !args.flags["no-bypass"] && Boolean(args.flags["allow-bypass"] || (standingConsent && engineDir))
+	// A CASE_MATERIAL file in the session marks case or evidence research: standing consent never applies there.
+	const caseMaterial = existsSync(join(sessionDir(args.flags), CASE_MATERIAL_MARKER))
+	if (caseMaterial && args.flags["allow-bypass"]) throw new CliError(`--allow-bypass refused: this session is marked ${CASE_MATERIAL_MARKER} (case material is never bypassed)`)
+	const allowBypass = !caseMaterial && !args.flags["no-bypass"] && Boolean(args.flags["allow-bypass"] || (standingConsent && engineDir))
 	if (args.flags["allow-bypass"] && !engineDir) throw new CliError("--allow-bypass needs the insane-search engine: install it under ~/.local/share/insane-search or set ULW_INSANE_SEARCH_DIR to its skills/insane-search folder")
 	const sourcesPath = join(dir, "sources.jsonl")
 	const claims = readJsonl(join(dir, "claims.jsonl"))
@@ -159,7 +166,7 @@ export async function runSnapshot(argv, { fetchImpl = guardedFetch, now = () => 
 		} catch (error) {
 			got = { status: "error", why: error.message }
 		}
-		if (got.status === "ok") storeSnapshot(dir, src, got.text, now(), got.bypass ? { bypass: true, via: got.via } : {})
+		if (got.status === "ok") storeSnapshot(dir, src, got.text, now(), got.bypass ? { bypass: true, via: got.via, final_url: got.final_url } : {})
 		else src.snapshot = { status: got.status, why: got.why, fetched_at: now() }
 		results.push({ id, status: got.status, ...(got.why ? { why: got.why } : {}), ...(got.bypass ? { bypass: true } : {}), ...(src.snapshot.injection_signals ? { injection_signals: src.snapshot.injection_signals } : {}) })
 	}
@@ -226,6 +233,13 @@ export function runClaimReport(argv) {
 	const status = readJsonFile(join(dir, "claim-status.json"))
 	const minCoverage = args.flags["min-coverage"] === undefined ? 0 : Number(args.flags["min-coverage"])
 	const result = verifyReport(report, status.records, { minCoverage })
+	const sources = existsSync(join(dir, "sources.jsonl")) ? readJsonl(join(dir, "sources.jsonl")) : []
+	for (const src of sources.filter((s) => s.snapshot?.bypass)) {
+		const site = orgOf({ url: src.url })
+		const disclosed = report.split(/\r?\n/).some((line) => line.toLowerCase().includes(site) && /bypass|insane-search|우회/i.test(line))
+		if (!disclosed) result.defects.push({ code: "bypass_not_disclosed", message: `${src.id} (${site}) was read through the insane-search bypass; name ${site} and say it was bypassed on one line` })
+	}
+	result.exitCode = result.defects.length ? 1 : 0
 	return { json: result, summary: `claims report: ${result.exitCode === 0 ? "pass" : "FAIL"} (${result.defects.length} defects, coverage ${result.coverage.toFixed(2)})`, exitCode: result.exitCode }
 }
 

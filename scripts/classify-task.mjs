@@ -5,7 +5,7 @@
  * Classify a /ulw task prompt and emit routing JSON.
  *
  * Output schema:
- *   { kind, size, model, mode, reason, verified_path, action, session_notice, prompt }
+ *   { kind, size, model, mode, reason, verified_path, action, session_notice, prompt, rules, stt_model }
  *
  * - kind:           one of the keys in model-routing.json task_kinds, or "general"
  * - size:           "single" | "subagents"
@@ -23,6 +23,8 @@
  *                   sensitive appends ", apply v2 flag/fail rule" to any of the above.
  * - session_notice: null for Argon (session default); one-line string for Hydrogen/Carbon.
  * - prompt:         "v2" when the routed role requires the v2 flag/fail rule; null otherwise.
+ * - rules:          rules of every matched kind, then the common rule.
+ * - stt_model:      the cloud transcription model (roles.*.stt_model) when a matched kind's role names one; null otherwise.
  *
  * No model names are hardcoded here. All signals and role mappings come from model-routing.json.
  *
@@ -265,6 +267,10 @@ const matchedRules = Object.keys(task_kinds)
 	.map((k) => roles[task_kinds[k].role]?.rule)
 	.filter(Boolean);
 const rules = [...new Set([...matchedRules, routing.common_rule].filter(Boolean))];
+const sttModel = Object.keys(task_kinds)
+	.filter((k) => (scores[k] ?? 0) > 0)
+	.map((k) => roles[task_kinds[k].role]?.stt_model)
+	.find(Boolean) ?? null;
 
 process.stdout.write(
 	JSON.stringify(
@@ -279,6 +285,7 @@ process.stdout.write(
 			session_notice: notice,
 			prompt: promptField,
 			rules,
+			stt_model: sttModel,
 		},
 		null,
 		2,
